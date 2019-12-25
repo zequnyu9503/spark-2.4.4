@@ -20,12 +20,17 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.prefetch.PrefetchMessage.RegisterPrefetcher
 import org.apache.spark.rpc.{RpcCallContext, RpcEnv, ThreadSafeRpcEndpoint}
 
-class PrefetcherMasterEndpoint(override val rpcEnv: RpcEnv, val master: PrefetcherMaster)
+class PrefetcherMasterEndpoint(override val rpcEnv: RpcEnv)
   extends ThreadSafeRpcEndpoint with Logging{
+
+  // Initialize instance of master firstly.
+  private var master_ : PrefetcherMaster = _
+
+  protected [prefetch] def setMaster(master: PrefetcherMaster): Unit = master_ = master
 
   override def receiveAndReply(context: RpcCallContext): PartialFunction[Any, Unit] = {
     case RegisterPrefetcher(prefetcherId) =>
-      master.acceptRegistration(prefetcherId.executorId, prefetcherId.host, prefetcherId.port)
+      master_.acceptRegistration(prefetcherId.executorId, prefetcherId.host, prefetcherId.port)
   }
 
 }

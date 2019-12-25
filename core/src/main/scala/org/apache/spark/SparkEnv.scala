@@ -34,6 +34,8 @@ import org.apache.spark.internal.config._
 import org.apache.spark.memory.{MemoryManager, StaticMemoryManager, UnifiedMemoryManager}
 import org.apache.spark.metrics.MetricsSystem
 import org.apache.spark.network.netty.NettyBlockTransferService
+import org.apache.spark.prefetch.master.{PrefetcherMaster, PrefetcherMasterEndpoint}
+import org.apache.spark.prefetch.slave.Prefetcher
 import org.apache.spark.rpc.{RpcEndpoint, RpcEndpointRef, RpcEnv}
 import org.apache.spark.scheduler.{LiveListenerBus, OutputCommitCoordinator}
 import org.apache.spark.scheduler.OutputCommitCoordinator.OutputCommitCoordinatorEndpoint
@@ -349,6 +351,15 @@ object SparkEnv extends Logging {
     val blockManager = new BlockManager(executorId, rpcEnv, blockManagerMaster,
       serializerManager, conf, memoryManager, mapOutputTracker, shuffleManager,
       blockTransferService, securityManager, numUsableCores)
+
+    // Prefetcher.
+    val masterEndpoint = new PrefetcherMasterEndpoint(rpcEnv)
+    val master = new PrefetcherMaster(registerOrLookupEndpoint(
+      PrefetcherMaster.ENDPOINT_NAME, masterEndpoint), masterEndpoint)
+
+    val prefetcher = new Prefetcher(executorId, advertiseAddress,
+      port.getOrElse(-1), master.endpointRef)
+
 
     val metricsSystem = if (isDriver) {
       // Don't start metrics system right now for Driver.

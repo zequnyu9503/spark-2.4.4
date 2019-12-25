@@ -21,11 +21,18 @@ import scala.collection.mutable
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.prefetch.PrefetcherId
+import org.apache.spark.rpc.{RpcEndpointRef}
 
-class PrefetcherMaster extends Logging {
+class PrefetcherMaster(var endpointRef: RpcEndpointRef,
+                       val endpoint: PrefetcherMasterEndpoint)
+    extends Logging {
 
   // Mapping form Executor to Prefetcher.
   private val prefetcherList = new mutable.HashMap[String, PrefetcherId]()
+
+  def initialize(): Unit = {
+    endpoint.setMaster(this)
+  }
 
   def acceptRegistration(executorId: String,
                          host: String,
@@ -40,4 +47,7 @@ class PrefetcherMaster extends Logging {
   }
 }
 
-object PrefetcherMaster {}
+object PrefetcherMaster {
+
+  def ENDPOINT_NAME: String = "PrefetcherMaster"
+}

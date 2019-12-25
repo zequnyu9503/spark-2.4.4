@@ -27,6 +27,8 @@ class Prefetcher(private val executorId: String,
                  val masterEndpoint: RpcEndpointRef
                 ) extends Logging{
 
+  initialize()
+
   // Unique Id for every prefetcher.
   private var prefetcherId: PrefetcherId = _
 
