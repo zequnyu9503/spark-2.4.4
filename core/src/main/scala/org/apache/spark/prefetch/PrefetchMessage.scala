@@ -16,10 +16,14 @@
  */
 package org.apache.spark.prefetch
 
+import org.apache.spark.rpc.RpcEndpointRef
+
 object PrefetchMessage {
 
   // Message from slaves to master.
   sealed trait Slave2Master
 
-  case class RegisterPrefetcher(prefetcherId: PrefetcherId) extends Slave2Master
+  case class RegisterPrefetcher(prefetcherId: PrefetcherId,
+                                rpcEndpointRef: RpcEndpointRef)
+      extends Slave2Master
 }

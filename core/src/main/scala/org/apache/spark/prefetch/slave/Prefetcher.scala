@@ -19,13 +19,13 @@ package org.apache.spark.prefetch.slave
 import org.apache.spark.internal.Logging
 import org.apache.spark.prefetch.PrefetcherId
 import org.apache.spark.prefetch.PrefetchMessage.RegisterPrefetcher
-import org.apache.spark.rpc.RpcEndpointRef
+import org.apache.spark.rpc.{RpcEndpointRef, RpcTimeout}
 
 class Prefetcher(private val executorId: String,
                  private val host: String,
                  private val port: Int,
-                 val masterEndpoint: RpcEndpointRef
-                ) extends Logging{
+                 val masterEndpoint: RpcEndpointRef)
+    extends Logging {
 
   initialize()
 
@@ -34,7 +34,6 @@ class Prefetcher(private val executorId: String,
 
   def initialize(): Unit = {
     if (prefetcherId.eq(null)) {
-      System.err.println("asd")
       logInfo(s"@YZQ Executor ${executorId} register prefetcher to master.")
       val pid = new PrefetcherId(executorId, host, port)
       prefetcherId = masterEndpoint.askSync[PrefetcherId](

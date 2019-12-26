@@ -29,8 +29,11 @@ class PrefetcherMaster(var endpointRef: RpcEndpointRef,
 
   initialize()
 
-  // Mapping form Executor to Prefetcher.
+  // Mapping from Executor to Prefetcher.
   private val prefetcherList = new mutable.HashMap[String, PrefetcherId]()
+
+  // Mapping from Prefetcher to RpcEndpointRef.
+  private val prefetcherEndpointList = new mutable.HashMap[PrefetcherId, RpcEndpointRef]()
 
   def initialize(): Unit = {
     endpoint.setMaster(this)
@@ -38,10 +41,12 @@ class PrefetcherMaster(var endpointRef: RpcEndpointRef,
 
   def acceptRegistration(executorId: String,
                          host: String,
-                         port: Int): PrefetcherId = {
+                         port: Int,
+                         rpcEndpointRef: RpcEndpointRef): PrefetcherId = {
     val pid = new PrefetcherId(executorId, host, port)
     if (!prefetcherList.contains(executorId)) {
       prefetcherList(executorId) = pid
+      prefetcherEndpointList(pid) = rpcEndpointRef
       logInfo(
         s"@YZQ Accept registration of prefetcher ${pid.prefetcherId} on executor ${pid.executorId}")
     }
