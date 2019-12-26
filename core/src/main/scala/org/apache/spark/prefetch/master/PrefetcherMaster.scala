@@ -27,6 +27,8 @@ class PrefetcherMaster(var endpointRef: RpcEndpointRef,
                        val endpoint: PrefetcherMasterEndpoint)
     extends Logging {
 
+  initialize()
+
   // Mapping form Executor to Prefetcher.
   private val prefetcherList = new mutable.HashMap[String, PrefetcherId]()
 
