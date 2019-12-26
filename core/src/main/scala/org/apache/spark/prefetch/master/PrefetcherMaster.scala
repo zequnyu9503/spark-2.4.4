@@ -50,6 +50,5 @@ class PrefetcherMaster(var endpointRef: RpcEndpointRef,
 }
 
 object PrefetcherMaster {
-
   def ENDPOINT_NAME: String = "PrefetcherMaster"
 }

@@ -34,6 +34,7 @@ class Prefetcher(private val executorId: String,
 
   def initialize(): Unit = {
     if (prefetcherId.eq(null)) {
+      System.err.println("asd")
       logInfo(s"@YZQ Executor ${executorId} register prefetcher to master.")
       val pid = new PrefetcherId(executorId, host, port)
       prefetcherId = masterEndpoint.askSync[PrefetcherId](
