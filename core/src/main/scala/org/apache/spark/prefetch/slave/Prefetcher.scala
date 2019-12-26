@@ -17,11 +17,12 @@
 package org.apache.spark.prefetch.slave
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.prefetch.PrefetcherId
 import org.apache.spark.prefetch.PrefetchMessage.RegisterPrefetcher
-import org.apache.spark.rpc.{RpcEndpointRef, RpcTimeout}
+import org.apache.spark.prefetch.PrefetcherId
+import org.apache.spark.rpc.{RpcEndpointRef, RpcEnv}
 
-class Prefetcher(private val executorId: String,
+class Prefetcher(private val rpcEnv: RpcEnv,
+                 private val executorId: String,
                  private val host: String,
                  private val port: Int,
                  val masterEndpoint: RpcEndpointRef)
@@ -32,13 +33,23 @@ class Prefetcher(private val executorId: String,
   // Unique Id for every prefetcher.
   private var prefetcherId: PrefetcherId = _
 
+  // Initialize Endpoint and EndpointRef.
+  private val rpcEndpoint = new PrefetcherEndpoint(rpcEnv, this)
+  private val rpcEndpointRef =
+    rpcEnv.setupEndpoint(Prefetcher.ENDPOINT_NAME(executorId), rpcEndpoint)
+
   def initialize(): Unit = {
     if (prefetcherId.eq(null)) {
       logInfo(s"@YZQ Executor ${executorId} register prefetcher to master.")
       val pid = new PrefetcherId(executorId, host, port)
       prefetcherId = masterEndpoint.askSync[PrefetcherId](
-        RegisterPrefetcher(pid)
+        RegisterPrefetcher(pid, rpcEndpointRef)
       )
     }
   }
+}
+
+object Prefetcher {
+
+  def ENDPOINT_NAME(executorId: String): String = "Prefetcher-" + executorId
 }

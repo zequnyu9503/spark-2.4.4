@@ -17,11 +17,10 @@
 package org.apache.spark.prefetch.slave
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.rpc.{RpcCallContext, RpcEnv, ThreadSafeRpcEndpoint}
+import org.apache.spark.rpc.{RpcEnv, ThreadSafeRpcEndpoint}
 
 class PrefetcherEndpoint(override val rpcEnv: RpcEnv,
                          val prefetcher: Prefetcher)
     extends ThreadSafeRpcEndpoint
     with Logging {
-
 }

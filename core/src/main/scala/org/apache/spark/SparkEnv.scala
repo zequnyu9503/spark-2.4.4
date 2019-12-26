@@ -357,7 +357,7 @@ object SparkEnv extends Logging {
     val master = new PrefetcherMaster(registerOrLookupEndpoint(
       PrefetcherMaster.ENDPOINT_NAME, masterEndpoint), masterEndpoint)
 
-    val prefetcher = new Prefetcher(executorId, advertiseAddress,
+    val prefetcher = new Prefetcher(rpcEnv, executorId, advertiseAddress,
       port.getOrElse(-1), master.endpointRef)
 
 
