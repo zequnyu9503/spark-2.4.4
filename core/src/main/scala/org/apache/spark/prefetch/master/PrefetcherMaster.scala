@@ -21,7 +21,8 @@ import scala.collection.mutable
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.prefetch.PrefetcherId
-import org.apache.spark.rpc.{RpcEndpointRef}
+import org.apache.spark.rdd.RDD
+import org.apache.spark.rpc.RpcEndpointRef
 
 class PrefetcherMaster(var endpointRef: RpcEndpointRef,
                        val endpoint: PrefetcherMasterEndpoint)
@@ -35,6 +36,9 @@ class PrefetcherMaster(var endpointRef: RpcEndpointRef,
   // Mapping from Prefetcher to RpcEndpointRef.
   private val prefetcherEndpointList = new mutable.HashMap[PrefetcherId, RpcEndpointRef]()
 
+  private val finished = new mutable.HashMap[PrefetcherId, Boolean]()
+
+  // PrefetcherMaster is disabled before initialize() is called.
   def initialize(): Unit = {
     endpoint.setMaster(this)
   }
@@ -51,6 +55,11 @@ class PrefetcherMaster(var endpointRef: RpcEndpointRef,
         s"@YZQ Accept registration of prefetcher ${pid.prefetcherId} on executor ${pid.executorId}")
     }
     pid
+  }
+
+  // core function.
+  def prefetch(rdd: RDD[_]): Unit = {
+
   }
 }
 
