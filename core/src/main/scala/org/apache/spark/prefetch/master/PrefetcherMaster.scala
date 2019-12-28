@@ -17,9 +17,14 @@
 
 package org.apache.spark.prefetch.master
 
-import scala.collection.mutable
+import java.io.NotSerializableException
 
+import org.apache.spark.{Partition, SparkContext, SparkEnv}
+import org.apache.spark.broadcast.Broadcast
+
+import scala.collection.mutable
 import org.apache.spark.internal.Logging
+import org.apache.spark.network.util.JavaUtils
 import org.apache.spark.prefetch.PrefetcherId
 import org.apache.spark.rdd.RDD
 import org.apache.spark.rpc.RpcEndpointRef
@@ -37,6 +42,8 @@ class PrefetcherMaster(var endpointRef: RpcEndpointRef,
   private val prefetcherEndpointList = new mutable.HashMap[PrefetcherId, RpcEndpointRef]()
 
   private val finished = new mutable.HashMap[PrefetcherId, Boolean]()
+
+  private val closureSerializer = SparkEnv.get.closureSerializer.newInstance()
 
   // PrefetcherMaster is disabled before initialize() is called.
   def initialize(): Unit = {
@@ -59,7 +66,16 @@ class PrefetcherMaster(var endpointRef: RpcEndpointRef,
 
   // core function.
   def prefetch(rdd: RDD[_]): Unit = {
+    var taskBinary: Broadcast[Array[Byte]] = null
+    var partitions: Array[Partition] = null
+    var taskBinaryBytes: Array[Byte] = null
 
+    try {
+      taskBinaryBytes = JavaUtils.bufferToArray(closureSerializer.serialize((rdd, func): AnyRef)
+    } catch {
+      case e: NotSerializableException =>
+    }
+    taskBinary = sc.broadcast(taskBinaryBytes)
   }
 }
 
