@@ -45,15 +45,4 @@ class PrefetcherMasterEndpoint(override val rpcEnv: RpcEnv)
                                    prefetcherId.port,
                                    rpcEndpointRef))
   }
-
-  def launchPrefetchTasks(pTasks: Seq[PrefetchTask[_]]): Unit = {
-    for (i <- pTasks.indices) {
-      val task: PrefetchTask[_] = pTasks(i)
-      var found: Boolean = false
-      for (location <- task.locs if !found) {
-        if (location.)
-      }
-    }
-  }
-
 }

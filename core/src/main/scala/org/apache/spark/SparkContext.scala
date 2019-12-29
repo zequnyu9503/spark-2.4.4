@@ -494,7 +494,7 @@ class SparkContext(config: SparkConf) extends Logging {
     _schedulerBackend = sched
     _taskScheduler = ts
     _dagScheduler = new DAGScheduler(this)
-    _prefetchScheduler = new PrefetchScheduler(this, _env.prefetcher.master)
+    _prefetchScheduler = new PrefetchScheduler(this, _dagScheduler, _env.prefetcher.master)
     _heartbeatReceiver.ask[Boolean](TaskSchedulerIsSet)
 
     // start TaskScheduler after taskScheduler sets DAGScheduler reference in DAGScheduler's
@@ -2437,6 +2437,11 @@ class SparkContext(config: SparkConf) extends Logging {
   // context as having finished construction.
   // NOTE: this must be placed at the end of the SparkContext constructor.
   SparkContext.setActiveContext(this, allowMultipleContexts)
+
+  // prefetch RDD API.
+  def prefetchRDD(rdd: RDD[_]): Unit = {
+    _prefetchScheduler.prefetch(rdd)
+  }
 }
 
 /**

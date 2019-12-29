@@ -14,16 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.prefetch.scheduler
+package org.apache.spark.prefetch
 
-import org.apache.spark.prefetch.PrefetchTask
-import org.apache.spark.prefetch.master.PrefetcherMaster
+class PrefetchTaskDescription(executorId: String, task: PrefetchTask[_]) {
 
-class PrefetchTaskManager(master: PrefetcherMaster, tasks: Seq[PrefetchTask[_]]) {
+  def launchTask(): Unit = {
 
-  private val prefetchList = master.prefetchList.clone()
-  private val prefetcherEndpointList = master.prefetcherEndpointList.clone()
-
-  def launchTasks(): Unit = {
   }
 }

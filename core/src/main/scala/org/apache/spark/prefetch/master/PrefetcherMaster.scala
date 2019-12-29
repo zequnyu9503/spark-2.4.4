@@ -32,8 +32,14 @@ class PrefetcherMaster(var endpointRef: RpcEndpointRef,
   // Mapping from Executor to Prefetcher.
   private val prefetcherList_ = new mutable.HashMap[String, PrefetcherId]()
 
+  def prefetchList: mutable.HashMap[String, PrefetcherId] = prefetcherList_
+
   // Mapping from Prefetcher to RpcEndpointRef.
-  private val prefetcherEndpointList_ = new mutable.HashMap[PrefetcherId, RpcEndpointRef]()
+  private val prefetcherEndpointList_ =
+    new mutable.HashMap[PrefetcherId, RpcEndpointRef]()
+
+  def prefetcherEndpointList: mutable.HashMap[PrefetcherId, RpcEndpointRef] =
+    prefetcherEndpointList_
 
   // PrefetcherMaster is disabled before initialize() is called.
   def initialize(): Unit = {

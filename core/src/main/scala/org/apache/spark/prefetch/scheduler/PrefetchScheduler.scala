@@ -59,9 +59,9 @@ class PrefetchScheduler(val sc: SparkContext,
     val pTasks: Seq[PrefetchTask[_]] = partitions.map(partition =>
       new PrefetchTask(taskBinary, partition, taskIdToLocations(partition))
     ).toSeq
-    if (pTasks.size > 0) {
+    if (pTasks.nonEmpty) {
       logInfo(s"@YZQ Accept ${pTasks.size} prefetch tasks.")
-
+      logError("@YZQ Left Works not DONE.")
     } else {
       logError("@YZQ Reject prefetch tasks.")
     }
