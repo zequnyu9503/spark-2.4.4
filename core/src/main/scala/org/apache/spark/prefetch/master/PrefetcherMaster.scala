@@ -17,16 +17,10 @@
 
 package org.apache.spark.prefetch.master
 
-import java.io.NotSerializableException
-
-import org.apache.spark.{Partition, SparkContext, SparkEnv}
-import org.apache.spark.broadcast.Broadcast
-
 import scala.collection.mutable
+
 import org.apache.spark.internal.Logging
-import org.apache.spark.network.util.JavaUtils
 import org.apache.spark.prefetch.PrefetcherId
-import org.apache.spark.rdd.RDD
 import org.apache.spark.rpc.RpcEndpointRef
 
 class PrefetcherMaster(var endpointRef: RpcEndpointRef,
@@ -36,18 +30,28 @@ class PrefetcherMaster(var endpointRef: RpcEndpointRef,
   initialize()
 
   // Mapping from Executor to Prefetcher.
-  private val prefetcherList = new mutable.HashMap[String, PrefetcherId]()
+  private val prefetcherList_ = new mutable.HashMap[String, PrefetcherId]()
 
   // Mapping from Prefetcher to RpcEndpointRef.
-  private val prefetcherEndpointList = new mutable.HashMap[PrefetcherId, RpcEndpointRef]()
-
-  private val finished = new mutable.HashMap[PrefetcherId, Boolean]()
-
-  private val closureSerializer = SparkEnv.get.closureSerializer.newInstance()
+  private val prefetcherEndpointList_ = new mutable.HashMap[PrefetcherId, RpcEndpointRef]()
 
   // PrefetcherMaster is disabled before initialize() is called.
   def initialize(): Unit = {
     endpoint.setMaster(this)
+  }
+
+  def rpcEndpointRefByExecutorId(eId: String): RpcEndpointRef = {
+    if (prefetcherList_.contains(eId)) {
+      val pId = prefetcherList_(eId)
+      if (prefetcherEndpointList_.contains(pId)) {
+        return prefetcherEndpointList_(pId)
+      } else {
+        logError(s"@YZQ Executor ${eId} exist but EndpointRef does not exist.")
+      }
+    } else {
+      logError(s"@YZQ Executor ${eId} does not exist.")
+    }
+    null
   }
 
   def acceptRegistration(executorId: String,
@@ -55,27 +59,13 @@ class PrefetcherMaster(var endpointRef: RpcEndpointRef,
                          port: Int,
                          rpcEndpointRef: RpcEndpointRef): PrefetcherId = {
     val pid = new PrefetcherId(executorId, host, port)
-    if (!prefetcherList.contains(executorId)) {
-      prefetcherList(executorId) = pid
-      prefetcherEndpointList(pid) = rpcEndpointRef
+    if (!prefetcherList_.contains(executorId)) {
+      prefetcherList_(executorId) = pid
+      prefetcherEndpointList_(pid) = rpcEndpointRef
       logInfo(
         s"@YZQ Accept registration of prefetcher ${pid.prefetcherId} on executor ${pid.executorId}")
     }
     pid
-  }
-
-  // core function.
-  def prefetch(rdd: RDD[_]): Unit = {
-    var taskBinary: Broadcast[Array[Byte]] = null
-    var partitions: Array[Partition] = null
-    var taskBinaryBytes: Array[Byte] = null
-
-    try {
-      taskBinaryBytes = JavaUtils.bufferToArray(closureSerializer.serialize((rdd, func): AnyRef)
-    } catch {
-      case e: NotSerializableException =>
-    }
-    taskBinary = sc.broadcast(taskBinaryBytes)
   }
 }
 

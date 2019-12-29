@@ -67,6 +67,7 @@ class SparkEnv (
     val broadcastManager: BroadcastManager,
     val blockManager: BlockManager,
     val securityManager: SecurityManager,
+    val prefetcher: Prefetcher,
     val metricsSystem: MetricsSystem,
     val memoryManager: MemoryManager,
     val outputCommitCoordinator: OutputCommitCoordinator,
@@ -358,7 +359,7 @@ object SparkEnv extends Logging {
       PrefetcherMaster.ENDPOINT_NAME, masterEndpoint), masterEndpoint)
 
     val prefetcher = new Prefetcher(rpcEnv, executorId, advertiseAddress,
-      port.getOrElse(-1), master.endpointRef)
+      port.getOrElse(-1), master, master.endpointRef)
 
 
     val metricsSystem = if (isDriver) {
@@ -394,6 +395,7 @@ object SparkEnv extends Logging {
       broadcastManager,
       blockManager,
       securityManager,
+      prefetcher,
       metricsSystem,
       memoryManager,
       outputCommitCoordinator,

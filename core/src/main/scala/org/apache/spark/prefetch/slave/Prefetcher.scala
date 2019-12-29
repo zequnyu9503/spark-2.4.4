@@ -14,21 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.spark.prefetch.slave
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.prefetch.PrefetchMessage.RegisterPrefetcher
 import org.apache.spark.prefetch.PrefetcherId
+import org.apache.spark.prefetch.PrefetchMessage.RegisterPrefetcher
+import org.apache.spark.prefetch.master.PrefetcherMaster
 import org.apache.spark.rpc.{RpcEndpointRef, RpcEnv}
 
 class Prefetcher(private val rpcEnv: RpcEnv,
                  private val executorId: String,
                  private val host: String,
                  private val port: Int,
+                 val master: PrefetcherMaster,
                  val masterEndpoint: RpcEndpointRef)
     extends Logging {
 
-  initialize()
+  private var appId_ : String = _
 
   // Unique Id for every prefetcher.
   private var prefetcherId: PrefetcherId = _
@@ -38,7 +41,8 @@ class Prefetcher(private val rpcEnv: RpcEnv,
   private val rpcEndpointRef =
     rpcEnv.setupEndpoint(Prefetcher.ENDPOINT_NAME(executorId), rpcEndpoint)
 
-  def initialize(): Unit = {
+  def initialize(appId: String): Unit = {
+    appId_ = appId
     if (prefetcherId.eq(null)) {
       logInfo(s"@YZQ Executor ${executorId} register prefetcher to master.")
       val pid = new PrefetcherId(executorId, host, port)

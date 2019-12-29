@@ -16,7 +16,10 @@
  */
 package org.apache.spark.prefetch.master
 
+import scala.collection.mutable
+
 import org.apache.spark.internal.Logging
+import org.apache.spark.prefetch.{PrefetcherId, PrefetchTask}
 import org.apache.spark.prefetch.PrefetchMessage.RegisterPrefetcher
 import org.apache.spark.rpc.{RpcCallContext, RpcEnv, ThreadSafeRpcEndpoint}
 
@@ -26,6 +29,8 @@ class PrefetcherMasterEndpoint(override val rpcEnv: RpcEnv)
 
   // Initialize instance of master firstly.
   private var master_ : PrefetcherMaster = _
+
+  private val finished = new mutable.HashMap[PrefetcherId, Boolean]()
 
   protected[prefetch] def setMaster(master: PrefetcherMaster): Unit =
     master_ = master
@@ -39,6 +44,16 @@ class PrefetcherMasterEndpoint(override val rpcEnv: RpcEnv)
                                    prefetcherId.host,
                                    prefetcherId.port,
                                    rpcEndpointRef))
+  }
+
+  def launchPrefetchTasks(pTasks: Seq[PrefetchTask[_]]): Unit = {
+    for (i <- pTasks.indices) {
+      val task: PrefetchTask[_] = pTasks(i)
+      var found: Boolean = false
+      for (location <- task.locs if !found) {
+        if (location.)
+      }
+    }
   }
 
 }
