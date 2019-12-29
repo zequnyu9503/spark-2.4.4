@@ -16,9 +16,23 @@
  */
 package org.apache.spark.prefetch
 
-import org.apache.spark.scheduler.Task
+import java.nio.ByteBuffer
 
-class PrefetchTask[U] extends Task[U](stageId, stageAttemptId, partition.index, localProperties, serializedTaskMetrics,
-  jobId, appId, appAttemptId, isBarrier) with Serializable {
+import org.apache.spark.{Partition, SparkEnv, TaskContext}
+import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.rdd.RDD
 
+class PrefetchTask[T](taskBinary: Broadcast[Array[Byte]], partition: Partition)
+    extends Serializable {
+
+  private var paused: Boolean = true
+
+  def startTask(context: TaskContext): Unit = {
+    val ser = SparkEnv.get.closureSerializer.newInstance()
+    val rdd = ser.deserialize[RDD[T]](
+      ByteBuffer.wrap(taskBinary.value),
+      Thread.currentThread.getContextClassLoader)
+    val iterator = rdd.iterator(partition, context)
+    while (iterator.hasNext) {iterator.next()}
+  }
 }
