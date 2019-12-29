@@ -20,5 +20,5 @@ import org.apache.spark.scheduler.Task
 
 class PrefetchTask[U] extends Task[U](stageId, stageAttemptId, partition.index, localProperties, serializedTaskMetrics,
   jobId, appId, appAttemptId, isBarrier) with Serializable {
-  
+
 }
