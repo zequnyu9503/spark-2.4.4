@@ -30,4 +30,12 @@ class Validity extends SparkFunSuite{
 
     sc.stop()
   }
+
+  test("prefetch") {
+    val conf = new SparkConf().setAppName("Basic Spark Running")
+    conf.setMaster("local")
+    val sc = new SparkContext(conf)
+    val rdd = sc.textFile("C:\\Users\\YZQ\\Downloads\\app-20191225115652-0000")
+    sc.prefetchRDD(rdd)
+  }
 }
