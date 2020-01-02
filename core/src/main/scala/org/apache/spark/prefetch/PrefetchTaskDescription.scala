@@ -16,9 +16,32 @@
  */
 package org.apache.spark.prefetch
 
-class PrefetchTaskDescription(executorId: String, task: PrefetchTask[_]) {
+import java.io.{DataInputStream, DataOutputStream}
+import java.nio.ByteBuffer
 
-  def launchTask(): Unit = {
+import org.apache.spark.util.{ByteBufferInputStream, ByteBufferOutputStream, Utils}
 
+class PrefetchTaskDescription(val executorId: String, val serializedTask: ByteBuffer) {
+
+}
+
+object PrefetchTaskDescription {
+  def encode(taskDescription: PrefetchTaskDescription): ByteBuffer = {
+    val bytesOut = new ByteBufferOutputStream(4096)
+    val dataOut = new DataOutputStream(bytesOut)
+
+    dataOut.writeUTF(taskDescription.executorId)
+    Utils.writeByteBuffer(taskDescription.serializedTask, bytesOut)
+
+    dataOut.close()
+    bytesOut.close()
+    bytesOut.toByteBuffer
+  }
+
+  def decode(byteBuffer: ByteBuffer): PrefetchTaskDescription = {
+    val dataIn = new DataInputStream(new ByteBufferInputStream(byteBuffer))
+    val executorId = dataIn.readUTF()
+    val serializedTask = byteBuffer.slice()
+    new PrefetchTaskDescription(executorId, serializedTask)
   }
 }

@@ -27,9 +27,11 @@ import org.apache.spark.network.util.JavaUtils
 import org.apache.spark.prefetch.PrefetchTask
 import org.apache.spark.prefetch.master.PrefetcherMaster
 import org.apache.spark.rdd.RDD
-import org.apache.spark.scheduler.{DAGScheduler, TaskLocation}
+import org.apache.spark.scheduler.{DAGScheduler, SchedulerBackend, TaskLocation, TaskScheduler}
 
 class PrefetchScheduler(val sc: SparkContext,
+                        val backend: SchedulerBackend,
+                        val ts: TaskScheduler,
                         val dag: DAGScheduler,
                         val master: PrefetcherMaster)
     extends Logging {
@@ -39,7 +41,7 @@ class PrefetchScheduler(val sc: SparkContext,
   // core function.
   def prefetch(rdd: RDD[_]): Unit = {
     var taskBinary: Broadcast[Array[Byte]] = null
-    var partitions: Array[Partition] = rdd.partitions
+    val partitions: Array[Partition] = rdd.partitions
     var taskBinaryBytes: Array[Byte] = null
 
     try {
@@ -61,7 +63,8 @@ class PrefetchScheduler(val sc: SparkContext,
     ).toSeq
     if (pTasks.nonEmpty) {
       logInfo(s"@YZQ Accept ${pTasks.size} prefetch tasks.")
-      logError("@YZQ Left Works not DONE.")
+      val taskManager = new PrefetchTaskManager(master, ts, backend, pTasks)
+
     } else {
       logError("@YZQ Reject prefetch tasks.")
     }

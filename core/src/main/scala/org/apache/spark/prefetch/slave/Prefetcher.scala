@@ -17,11 +17,17 @@
 
 package org.apache.spark.prefetch.slave
 
+import java.util.concurrent.{Executors, ThreadFactory, ThreadPoolExecutor}
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder
+
+import org.apache.spark.SparkEnv
 import org.apache.spark.internal.Logging
-import org.apache.spark.prefetch.PrefetcherId
+import org.apache.spark.prefetch.{PrefetcherId, PrefetchTaskDescription, PrefetchTaskRunner}
 import org.apache.spark.prefetch.PrefetchMessage.RegisterPrefetcher
 import org.apache.spark.prefetch.master.PrefetcherMaster
 import org.apache.spark.rpc.{RpcEndpointRef, RpcEnv}
+import org.apache.spark.util.UninterruptibleThread
 
 class Prefetcher(private val rpcEnv: RpcEnv,
                  private val executorId: String,
@@ -31,7 +37,10 @@ class Prefetcher(private val rpcEnv: RpcEnv,
                  val masterEndpoint: RpcEndpointRef)
     extends Logging {
 
+  private var env_ : SparkEnv = _
   private var appId_ : String = _
+
+  private var theadpoolexecutor_ : ThreadPoolExecutor = _
 
   // Unique Id for every prefetcher.
   private var prefetcherId: PrefetcherId = _
@@ -41,8 +50,9 @@ class Prefetcher(private val rpcEnv: RpcEnv,
   private val rpcEndpointRef =
     rpcEnv.setupEndpoint(Prefetcher.ENDPOINT_NAME(executorId), rpcEndpoint)
 
-  def initialize(appId: String): Unit = {
+  def initialize(appId: String, env: SparkEnv): Unit = {
     appId_ = appId
+    env_ = env
     if (prefetcherId.eq(null)) {
       logInfo(s"@YZQ Executor ${executorId} register prefetcher to master.")
       val pid = new PrefetcherId(executorId, host, port)
@@ -50,6 +60,26 @@ class Prefetcher(private val rpcEnv: RpcEnv,
         RegisterPrefetcher(pid, rpcEndpointRef)
       )
     }
+    if (!prefetcherId.eq(null) && theadpoolexecutor_.eq(null)) {
+      theadpoolexecutor_ = initializeThreadPoolExecutor()
+    }
+  }
+
+  private def initializeThreadPoolExecutor(): ThreadPoolExecutor = {
+    val threadFactory = new ThreadFactoryBuilder()
+      .setDaemon(false)
+      .setNameFormat("Prefetch task launch p-%d")
+      .setThreadFactory(new ThreadFactory {
+        override def newThread(r: Runnable): Thread =
+          new UninterruptibleThread(r, "unused")
+      })
+      .build()
+    Executors.newCachedThreadPool(threadFactory).asInstanceOf[ThreadPoolExecutor]
+  }
+
+  def acceptLaunchTask(taskDesc: PrefetchTaskDescription): Unit = {
+    val taskRunner = new PrefetchTaskRunner(env_, taskDesc)
+    theadpoolexecutor_.execute(taskRunner)
   }
 }
 

@@ -17,10 +17,18 @@
 package org.apache.spark.prefetch.slave
 
 import org.apache.spark.internal.Logging
+import org.apache.spark.prefetch.PrefetchMessage.LaunchPrefetchTask
+import org.apache.spark.prefetch.PrefetchTaskDescription
 import org.apache.spark.rpc.{RpcEnv, ThreadSafeRpcEndpoint}
+import org.apache.spark.util.SerializableBuffer
 
 class PrefetcherEndpoint(override val rpcEnv: RpcEnv,
                          val prefetcher: Prefetcher)
     extends ThreadSafeRpcEndpoint
     with Logging {
+
+  override def receive: PartialFunction[Any, Unit] = {
+    case LaunchPrefetchTask(data: SerializableBuffer) =>
+      prefetcher.acceptLaunchTask(PrefetchTaskDescription.decode(data.value))
+  }
 }

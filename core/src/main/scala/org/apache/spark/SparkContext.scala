@@ -494,7 +494,8 @@ class SparkContext(config: SparkConf) extends Logging {
     _schedulerBackend = sched
     _taskScheduler = ts
     _dagScheduler = new DAGScheduler(this)
-    _prefetchScheduler = new PrefetchScheduler(this, _dagScheduler, _env.prefetcher.master)
+    _prefetchScheduler = new PrefetchScheduler(this, sched, ts, _dagScheduler,
+      _env.prefetcher.master)
     _heartbeatReceiver.ask[Boolean](TaskSchedulerIsSet)
 
     // start TaskScheduler after taskScheduler sets DAGScheduler reference in DAGScheduler's
@@ -511,7 +512,7 @@ class SparkContext(config: SparkConf) extends Logging {
     _env.blockManager.initialize(_applicationId)
 
     // Initialize prefetcher on nodes secondly.
-    _env.prefetcher.initialize(_applicationId)
+    _env.prefetcher.initialize(_applicationId, _env)
 
     // The metrics system for Driver need to be set spark.app.id to app ID.
     // So it should start after we get app ID from the task scheduler and set spark.app.id.

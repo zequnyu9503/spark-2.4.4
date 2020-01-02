@@ -16,20 +16,25 @@
  */
 package org.apache.spark.prefetch
 
-import org.apache.spark.rpc.RpcEndpointRef
-import org.apache.spark.util.SerializableBuffer
+import org.apache.spark.SparkEnv
+import org.apache.spark.TaskContext
+import org.apache.spark.internal.Logging
 
-object PrefetchMessage {
+class PrefetchTaskRunner(val env: SparkEnv,
+                         val taskDescription: PrefetchTaskDescription)
+    extends Runnable with Logging{
 
-  // Message from slaves to master.
-  sealed trait Slave2Master
+  val ser = env.closureSerializer.newInstance()
 
-  case class RegisterPrefetcher(prefetcherId: PrefetcherId,
-                                rpcEndpointRef: RpcEndpointRef)
-      extends Slave2Master
-
-  // Message from master to slaves.
-  sealed trait MasterSlave2
-
-  case class LaunchPrefetchTask(data: SerializableBuffer) extends MasterSlave2
+  override def run(): Unit = {
+    try {
+      val task = ser.deserialize[PrefetchTask[Any]](
+        taskDescription.serializedTask,
+        Thread.currentThread.getContextClassLoader)
+        task.startTask(TaskContext.empty())
+    } catch {
+      case t: Throwable =>
+        logError(s"Exception in  prefetching", t)
+    }
+  }
 }

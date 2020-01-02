@@ -360,9 +360,12 @@ private[spark] class TaskSchedulerImpl(
     // Also track if new executor is added
     var newExecAvail = false
     for (o <- offers) {
+      // check hosts.
       if (!hostToExecutors.contains(o.host)) {
+        // Only if none host on hostToExecutors.
         hostToExecutors(o.host) = new HashSet[String]()
       }
+      // check executors.
       if (!executorIdToRunningTaskIds.contains(o.executorId)) {
         hostToExecutors(o.host) += o.executorId
         executorAdded(o.executorId, o.host)

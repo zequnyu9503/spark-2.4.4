@@ -29,10 +29,9 @@ class PrefetcherMaster(var endpointRef: RpcEndpointRef,
 
   initialize()
 
-  // Mapping from Executor to Prefetcher.
-  private val prefetcherList_ = new mutable.HashMap[String, PrefetcherId]()
+  private val prefetcherList_ = new mutable.HashSet[PrefetcherId]()
 
-  def prefetchList: mutable.HashMap[String, PrefetcherId] = prefetcherList_
+  def prefetchList: mutable.HashSet[PrefetcherId] = prefetcherList_
 
   // Mapping from Prefetcher to RpcEndpointRef.
   private val prefetcherEndpointList_ =
@@ -46,18 +45,12 @@ class PrefetcherMaster(var endpointRef: RpcEndpointRef,
     endpoint.setMaster(this)
   }
 
-  def rpcEndpointRefByExecutorId(eId: String): RpcEndpointRef = {
-    if (prefetcherList_.contains(eId)) {
-      val pId = prefetcherList_(eId)
-      if (prefetcherEndpointList_.contains(pId)) {
-        return prefetcherEndpointList_(pId)
-      } else {
-        logError(s"@YZQ Executor ${eId} exist but EndpointRef does not exist.")
-      }
-    } else {
-      logError(s"@YZQ Executor ${eId} does not exist.")
-    }
-    null
+  def hostToExecutors(host: String): Option[Set[String]] = {
+    Option(prefetcherList_.filter(_.host.equals(host)).map(_.executorId).toSet)
+  }
+
+  def executorToPrefetcher(executorId: String): Option[PrefetcherId] = {
+    prefetchList.find(_.executorId.equals(executorId))
   }
 
   def acceptRegistration(executorId: String,
@@ -65,8 +58,8 @@ class PrefetcherMaster(var endpointRef: RpcEndpointRef,
                          port: Int,
                          rpcEndpointRef: RpcEndpointRef): PrefetcherId = {
     val pid = new PrefetcherId(executorId, host, port)
-    if (!prefetcherList_.contains(executorId)) {
-      prefetcherList_(executorId) = pid
+    if (!prefetcherList_.exists(_.executorId.equals(pid.executorId))) {
+      prefetcherList_.add(pid)
       prefetcherEndpointList_(pid) = rpcEndpointRef
       logInfo(
         s"@YZQ Accept registration of prefetcher ${pid.prefetcherId} on executor ${pid.executorId}")
