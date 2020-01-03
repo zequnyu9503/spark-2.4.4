@@ -38,7 +38,6 @@ class Prefetcher(private val rpcEnv: RpcEnv,
     extends Logging {
 
   private var env_ : SparkEnv = _
-  private var appId_ : String = _
 
   private var theadpoolexecutor_ : ThreadPoolExecutor = _
 
@@ -60,6 +59,7 @@ class Prefetcher(private val rpcEnv: RpcEnv,
       )
     }
     if (!prefetcherId.eq(null) && theadpoolexecutor_.eq(null)) {
+      logInfo(s"@YZQ Prefetcher create thread pool executors.")
       theadpoolexecutor_ = initializeThreadPoolExecutor()
     }
   }

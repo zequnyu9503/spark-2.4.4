@@ -42,6 +42,7 @@ class PrefetcherMaster(var endpointRef: RpcEndpointRef,
 
   // PrefetcherMaster is disabled before initialize() is called.
   def initialize(): Unit = {
+    logInfo("@YZQ Initialize PrefetcherMaster.")
     endpoint.setMaster(this)
   }
 
@@ -62,9 +63,11 @@ class PrefetcherMaster(var endpointRef: RpcEndpointRef,
       prefetcherList_.add(pid)
       prefetcherEndpointList_(pid) = rpcEndpointRef
       logInfo(
-        s"@YZQ Accept registration of prefetcher ${pid.prefetcherId} on executor ${pid.executorId}")
+        s"@YZQ Accept registration of prefetcher ${pid.prefetcherId}" +
+          s"on executor ${pid.executorId}.")
     } else {
-      logError(s"@YZQ Duplicate registration of prefetcher ${pid.prefetcherId}")
+      logError(
+        s"@YZQ Duplicate registration of prefetcher ${pid.prefetcherId}.")
     }
     pid
   }
