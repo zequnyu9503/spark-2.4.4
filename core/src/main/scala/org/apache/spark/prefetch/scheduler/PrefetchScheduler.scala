@@ -38,6 +38,10 @@ class PrefetchScheduler(val sc: SparkContext,
 
   private val closureSerializer = SparkEnv.get.closureSerializer.newInstance()
 
+  private def getPreferredLocations(rdd: RDD[_], partition: Int) = {
+    rdd.preferredLocations(rdd.partitions(partition)).toList.map(TaskLocation(_))
+  }
+
   // core function.
   def prefetch(rdd: RDD[_]): Unit = {
     var taskBinary: Broadcast[Array[Byte]] = null
@@ -54,7 +58,7 @@ class PrefetchScheduler(val sc: SparkContext,
     val taskIdToLocations: Map[Partition, Seq[TaskLocation]] = partitions
       .map(
         partition => {
-          (partition, dag.getPreferredLocs(rdd, partition.index))
+          (partition, getPreferredLocations(rdd, partition.index))
         }
       )
       .toMap
