@@ -64,7 +64,7 @@ class PrefetchScheduler(val sc: SparkContext,
     if (pTasks.nonEmpty) {
       logInfo(s"@YZQ Accept ${pTasks.size} prefetch tasks.")
       val taskManager = new PrefetchTaskManager(master, ts, backend, pTasks)
-
+      taskManager.launchTasks()
     } else {
       logError("@YZQ Reject prefetch tasks.")
     }
