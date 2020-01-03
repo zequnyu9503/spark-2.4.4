@@ -120,7 +120,7 @@ class PrefetchTaskManager(val master: PrefetcherMaster,
       return Some((task, TaskLocality.PROCESS_LOCAL))
     }
     if (TaskLocality.isAllowed(maxLocality, TaskLocality.NODE_LOCAL)) {
-      for (task <- dequeueTaskFromList(executorId, host, forHosts(executorId))) {
+      for (task <- dequeueTaskFromList(executorId, host, forHosts(host))) {
         return Some((task, TaskLocality.NODE_LOCAL))
       }
     }
