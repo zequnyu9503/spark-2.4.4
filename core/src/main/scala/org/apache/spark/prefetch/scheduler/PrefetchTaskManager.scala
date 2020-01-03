@@ -114,6 +114,7 @@ class PrefetchTaskManager(val master: PrefetcherMaster,
                           host: String,
                           maxLocality: TaskLocality.TaskLocality)
     : Option[(PrefetchTask[_], TaskLocality.Value)] = {
+    logInfo(s"@YZQ executorId=${executorId} host=${host}")
     for (task <- dequeueTaskFromList(executorId,
                                      host,
                                      forExecutors(executorId))) {
