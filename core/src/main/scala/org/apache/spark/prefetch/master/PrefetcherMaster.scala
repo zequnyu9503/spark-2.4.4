@@ -63,6 +63,8 @@ class PrefetcherMaster(var endpointRef: RpcEndpointRef,
       prefetcherEndpointList_(pid) = rpcEndpointRef
       logInfo(
         s"@YZQ Accept registration of prefetcher ${pid.prefetcherId} on executor ${pid.executorId}")
+    } else {
+      logError(s"@YZQ Duplicate registration of prefetcher ${pid.prefetcherId}")
     }
     pid
   }
