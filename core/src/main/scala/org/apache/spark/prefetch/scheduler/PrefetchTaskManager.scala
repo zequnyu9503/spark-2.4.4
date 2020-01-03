@@ -50,12 +50,6 @@ class PrefetchTaskManager(val master: PrefetcherMaster,
   private val forNoRefs = new ArrayBuffer[PrefetchTask[_]]()
   private val forAll = new ArrayBuffer[PrefetchTask[_]]()
 
-  initialize()
-
-  private def initialize(): Unit = {
-    addPendingTasks()
-  }
-
   private def addPendingTasks(): Unit = {
     for (i <- tasks.indices) {
       for (loc <- tasks(i).locs) {
@@ -171,6 +165,7 @@ class PrefetchTaskManager(val master: PrefetcherMaster,
   }
 
   def launchTasks(): Unit = {
+    addPendingTasks()
     val taskDescs = makeOffer()
     if (taskDescs.nonEmpty) {
       for (task <- taskDescs) {
