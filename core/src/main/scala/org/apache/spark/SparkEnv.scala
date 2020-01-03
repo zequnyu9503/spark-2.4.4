@@ -360,7 +360,7 @@ object SparkEnv extends Logging {
 
     val prefetcher = new Prefetcher(rpcEnv, executorId, advertiseAddress,
       port.getOrElse(-1), master, master.endpointRef)
-
+    prefetcher.initialize(this.get)
 
     val metricsSystem = if (isDriver) {
       // Don't start metrics system right now for Driver.
