@@ -1109,9 +1109,7 @@ private[spark] class DAGScheduler(
         case s: ResultStage =>
           partitionsToCompute.map { id =>
             val p = s.partitions(id)
-            val tuple2 = (id, getPreferredLocs(stage.rdd, p))
-            logInfo(s"@YZQ tuple2 ${tuple2}")
-            tuple2
+            (id, getPreferredLocs(stage.rdd, p))
           }.toMap
       }
     } catch {

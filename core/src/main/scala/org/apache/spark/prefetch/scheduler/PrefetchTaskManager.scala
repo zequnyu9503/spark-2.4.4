@@ -59,16 +59,14 @@ class PrefetchTaskManager(val master: PrefetcherMaster,
             forExecutors.getOrElseUpdate(
               exe.executorId,
               new ArrayBuffer[PrefetchTask[_]]()) += tasks(i)
-            logInfo(s"@YZQ Task [${tasks(i).taskId}] added into forExecutors")
+            logInfo(s"@YZQ Task [${tasks(i).taskId}] added into forExecutors as ${exe.executorId}.")
           case hdfs: HDFSCacheTaskLocation =>
             master.hostToExecutors(hdfs.host) match {
               case Some(set) =>
-                set.foreach(
-                  e =>
-                    forExecutors.getOrElseUpdate(
-                      e,
-                      new ArrayBuffer[PrefetchTask[_]]()) += tasks(i))
-                logInfo(s"@YZQ Task [${tasks(i).taskId}] added into forExecutors")
+                set.foreach(e => {
+                  forExecutors.getOrElseUpdate(e, new ArrayBuffer[PrefetchTask[_]]()) += tasks(i)
+                  logInfo(s"@YZQ Task [${tasks(i).taskId}] added into forExecutors as ${e}")
+                })
               case None =>
                 logInfo(
                   s"@YZQ Pending task has a location at" +
@@ -78,7 +76,7 @@ class PrefetchTaskManager(val master: PrefetcherMaster,
         }
         forHosts.getOrElseUpdate(loc.host, new ArrayBuffer[PrefetchTask[_]]()) += tasks(
           i)
-        logInfo(s"@YZQ Task [${tasks(i).taskId}] added into forHosts")
+        logInfo(s"@YZQ Task [${tasks(i).taskId}] added into forHosts as ${loc.host}")
         if (tasks(i).locs == Nil) {
           forNoRefs += tasks(i)
           logInfo(s"@YZQ Task [${tasks(i).taskId}] added into forNoRefs")
