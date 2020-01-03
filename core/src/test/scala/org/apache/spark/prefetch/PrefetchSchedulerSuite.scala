@@ -18,12 +18,15 @@ package org.apache.spark.prefetch
 
 import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
 
-class PrefetchSchedulerSuite extends SparkFunSuite{
+class PrefetchSchedulerSuite extends SparkFunSuite {
 
-  val conf = new SparkConf().setMaster("local").setAppName("PrefetchSchedulerSuite")
+  val conf =
+    new SparkConf().setMaster("local").setAppName("PrefetchSchedulerSuite")
   val sc = new SparkContext(conf)
 
+  // scalastyle:off println
   test("getPreferredLocations") {
-    
+    val rdd = sc.textFile("C:\\Users\\YZQ\\Desktop\\log.txt")
+    rdd.count()
   }
 }

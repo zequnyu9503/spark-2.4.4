@@ -27,7 +27,12 @@ import org.apache.spark.network.util.JavaUtils
 import org.apache.spark.prefetch.PrefetchTask
 import org.apache.spark.prefetch.master.PrefetcherMaster
 import org.apache.spark.rdd.RDD
-import org.apache.spark.scheduler.{DAGScheduler, SchedulerBackend, TaskLocation, TaskScheduler}
+import org.apache.spark.scheduler.{
+  DAGScheduler,
+  SchedulerBackend,
+  TaskLocation,
+  TaskScheduler
+}
 
 class PrefetchScheduler(val sc: SparkContext,
                         val backend: SchedulerBackend,
@@ -38,8 +43,15 @@ class PrefetchScheduler(val sc: SparkContext,
 
   private val closureSerializer = SparkEnv.get.closureSerializer.newInstance()
 
-  protected [prefetch] def getPreferredLocations(rdd: RDD[_], partition: Int) = {
-    rdd.preferredLocations(rdd.partitions(partition)).toList.map(TaskLocation(_))
+  // Regard rdd as input.
+  protected[prefetch] def getPreferredLocations(
+      rdd: RDD[_],
+      partition: Int): List[TaskLocation] = {
+    val list = rdd
+      .preferredLocations(rdd.partitions(partition))
+      .toList
+    logInfo(s"@YZQ Partition ${partition} has ${list.size} preferred locations")
+      list.map(TaskLocation(_))
   }
 
   // core function.
@@ -62,9 +74,10 @@ class PrefetchScheduler(val sc: SparkContext,
         }
       )
       .toMap
-    val pTasks: Seq[PrefetchTask[_]] = partitions.map(partition =>
-      new PrefetchTask(taskBinary, partition, taskIdToLocations(partition))
-    ).toSeq
+    val pTasks: Seq[PrefetchTask[_]] = partitions
+      .map(partition =>
+        new PrefetchTask(taskBinary, partition, taskIdToLocations(partition)))
+      .toSeq
     if (pTasks.nonEmpty) {
       logInfo(s"@YZQ Accept ${pTasks.size} prefetch tasks.")
       val taskManager = new PrefetchTaskManager(master, ts, backend, pTasks)
