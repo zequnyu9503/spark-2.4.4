@@ -46,12 +46,10 @@ class PrefetchScheduler(val sc: SparkContext,
   // Regard rdd as input.
   protected[prefetch] def getPreferredLocations(
       rdd: RDD[_],
-      partition: Int): List[TaskLocation] = {
-    val list = rdd
-      .preferredLocations(rdd.partitions(partition))
-      .toList
-    logInfo(s"@YZQ Partition ${partition} has ${list.size} preferred locations")
-      list.map(TaskLocation(_))
+      partition: Int): Seq[TaskLocation] = {
+    val locations = dag.getPreferredLocs(rdd, partition)
+    logInfo(s"@YZQ locations has ${locations.size}.")
+    locations
   }
 
   // core function.
