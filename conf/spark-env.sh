@@ -59,7 +59,7 @@ export SPARK_WORKER_MEMORY=16g
 export SPARK_WORKER_OPTS="-Dspark.worker.cleanup.enabled=true  -Dspark.worker.cleanup.interval=120  -Dspark.worker.cleanup.appDataTtl=3600"
 # - SPARK_DAEMON_MEMORY, to allocate to the master, worker and history server themselves (default: 1g).
 # - SPARK_HISTORY_OPTS, to set config properties only for the history server (e.g. "-Dx=y")
-export SPARK_HISTORY_OPTS="-Dspark.history.fs.logDirectory=hdfs:///centos3:9000/spark-2.4.4-logs"
+export SPARK_HISTORY_OPTS="-Dspark.history.fs.logDirectory=hdfs://centos3:9000/spark-2.4.4-logs"
 # - SPARK_SHUFFLE_OPTS, to set config properties only for the external shuffle service (e.g. "-Dx=y")
 # - SPARK_DAEMON_JAVA_OPTS, to set config properties for all daemons (e.g. "-Dx=y")
 # - SPARK_DAEMON_CLASSPATH, to set the classpath for all daemons
@@ -67,7 +67,7 @@ export SPARK_HISTORY_OPTS="-Dspark.history.fs.logDirectory=hdfs:///centos3:9000/
 
 # Generic options for the daemons used in the standalone deploy mode
 # - SPARK_CONF_DIR      Alternate conf dir. (Default: ${SPARK_HOME}/conf)
-export SPARK_LOG_DIR="hdfs:///centos3:9000/spark-2.4.4-logs"
+export SPARK_LOG_DIR="hdfs://centos3:9000/spark-2.4.4-logs"
 # - SPARK_PID_DIR       Where the pid file is stored. (Default: /tmp)
 # - SPARK_IDENT_STRING  A string representing this instance of spark. (Default: $USER)
 # - SPARK_NICENESS      The scheduling priority for daemons. (Default: 0)
