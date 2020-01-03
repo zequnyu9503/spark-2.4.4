@@ -18,24 +18,12 @@ package org.apache.spark.prefetch
 
 import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
 
-class Validity extends SparkFunSuite{
+class PrefetchSchedulerSuite extends SparkFunSuite{
 
-  test("Basic Spark Running") {
-    val conf = new SparkConf().setAppName("Basic Spark Running")
-    conf.setMaster("local")
-    val sc = new SparkContext(conf)
+  val conf = new SparkConf().setMaster("local").setAppName("PrefetchSchedulerSuite")
+  val sc = new SparkContext(conf)
 
-    val rdd = sc.textFile("C:\\Users\\YZQ\\Downloads\\app-20191225115652-0000")
-    rdd.count()
-
-    sc.stop()
-  }
-
-  test("prefetch") {
-    val conf = new SparkConf().setAppName("Basic Spark Running")
-    conf.setMaster("local")
-    val sc = new SparkContext(conf)
-    val rdd = sc.textFile("C:\\Users\\YZQ\\Downloads\\app-20191225115652-0000")
-    sc.prefetchRDD(rdd)
+  test("getPreferredLocations") {
+    
   }
 }
