@@ -65,6 +65,7 @@ class PrefetchTaskManager(val master: PrefetcherMaster,
             forExecutors.getOrElseUpdate(
               exe.executorId,
               new ArrayBuffer[PrefetchTask[_]]()) += tasks(i)
+            logInfo(s"@YZQ Task [${tasks(i).taskId}] added into forExecutors")
           case hdfs: HDFSCacheTaskLocation =>
             master.hostToExecutors(hdfs.host) match {
               case Some(set) =>
@@ -73,17 +74,23 @@ class PrefetchTaskManager(val master: PrefetcherMaster,
                     forExecutors.getOrElseUpdate(
                       e,
                       new ArrayBuffer[PrefetchTask[_]]()) += tasks(i))
+                logInfo(s"@YZQ Task [${tasks(i).taskId}] added into forExecutors")
               case None =>
                 logInfo(
-                  s"Pending task has a location at" +
+                  s"@YZQ Pending task has a location at" +
                     s"${hdfs.host} but no executors found")
             }
           case _ =>
         }
         forHosts.getOrElseUpdate(loc.host, new ArrayBuffer[PrefetchTask[_]]()) += tasks(
           i)
-        if (tasks(i).locs == Nil) forNoRefs += tasks(i)
+        logInfo(s"@YZQ Task [${tasks(i).taskId}] added into forHosts")
+        if (tasks(i).locs == Nil) {
+          forNoRefs += tasks(i)
+          logInfo(s"@YZQ Task [${tasks(i).taskId}] added into forNoRefs")
+        }
         forAll += tasks(i)
+        logInfo(s"@YZQ Task [${tasks(i).taskId}] added into forAll")
       }
     }
   }
@@ -95,6 +102,7 @@ class PrefetchTaskManager(val master: PrefetcherMaster,
     if (forHosts.nonEmpty) levels += NODE_LOCAL
     if (forNoRefs.nonEmpty) levels += NO_PREF
     if (forAll.nonEmpty) levels += ANY
+    logInfo(s"@YZQ Levels is ${levels.mkString(", ")}")
     levels.toArray
   }
 
@@ -104,6 +112,7 @@ class PrefetchTaskManager(val master: PrefetcherMaster,
     : Option[PrefetchTaskDescription] = {
     dequeueTask(executorId, host, maxLocality) match {
       case Some(blend) =>
+        logInfo(s"@YZQ ResourceOffered ${executorId} <=> ${blend._1.taskId}")
         Some(new PrefetchTaskDescription(executorId, ser.serialize(blend._1)))
       case _ => None
     }

@@ -28,6 +28,8 @@ class PrefetchTask[T](taskBinary: Broadcast[Array[Byte]],
                       locs_ : Seq[TaskLocation])
     extends Serializable {
 
+  val taskId: String = partition_.index.toString
+
   private var paused: Boolean = true
 
   def partition: Partition = partition_
