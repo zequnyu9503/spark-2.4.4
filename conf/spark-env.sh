@@ -56,7 +56,7 @@ export SPARK_WORKER_MEMORY=16g
 # - SPARK_WORKER_PORT / SPARK_WORKER_WEBUI_PORT, to use non-default ports for the worker
 # - SPARK_WORKER_DIR, to set the working directory of worker processes
 # - SPARK_WORKER_OPTS, to set config properties only for the worker (e.g. "-Dx=y")
-export SPARK_WORKER_OPTS="-Dspark.worker.cleanup.enabled=true  -Dspark.worker.cleanup.interval=120  -Dspark.worker.cleanup.appDataTtl=3600"
+# export SPARK_WORKER_OPTS="-Dspark.worker.cleanup.enabled=true  -Dspark.worker.cleanup.interval=120  -Dspark.worker.cleanup.appDataTtl=3600"
 # - SPARK_DAEMON_MEMORY, to allocate to the master, worker and history server themselves (default: 1g).
 # - SPARK_HISTORY_OPTS, to set config properties only for the history server (e.g. "-Dx=y")
 export SPARK_HISTORY_OPTS="-Dspark.history.fs.logDirectory=hdfs://centos3:9000/spark-2.4.4-logs"

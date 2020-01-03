@@ -59,7 +59,7 @@ class Prefetcher(private val rpcEnv: RpcEnv,
       )
     }
     if (!prefetcherId.eq(null) && theadpoolexecutor_.eq(null)) {
-      logInfo(s"@YZQ Prefetcher create thread pool executors.")
+      logInfo(s"@YZQ Prefetcher creates thread pool executors.")
       theadpoolexecutor_ = initializeThreadPoolExecutor()
     }
   }
