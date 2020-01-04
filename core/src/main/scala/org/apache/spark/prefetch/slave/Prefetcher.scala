@@ -49,11 +49,16 @@ class Prefetcher(private val rpcEnv: RpcEnv,
 
   def initialize(): Unit = {
     if (prefetcherId.eq(null)) {
-      logInfo(s"@YZQ Executor ${executorId} register prefetcher to master.")
+      logInfo(s"@YZQ Executor ${executorId} start registering prefetcher to driver.")
       val pid = new PrefetcherId(executorId, host, port)
       prefetcherId = masterEndpoint.askSync[PrefetcherId](
         RegisterPrefetcher(pid, rpcEndpointRef)
       )
+      if (!prefetcherId.eq(null)) {
+        logInfo(s"@YZQ Executor ${executorId} registered successfully")
+      } else {
+        logInfo(s"@YZQ Eexecutor ${executorId} registered failed.")
+      }
     }
     if (!prefetcherId.eq(null) && theadpoolexecutor_.eq(null)) {
       logInfo(s"@YZQ Prefetcher creates thread pool executors.")
