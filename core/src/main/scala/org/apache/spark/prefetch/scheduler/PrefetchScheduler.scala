@@ -18,68 +18,84 @@ package org.apache.spark.prefetch.scheduler
 
 import java.io.NotSerializableException
 
-import scala.collection.Map
-
+import scala.collection.{Map, mutable}
 import org.apache.spark.{Partition, SparkContext, SparkEnv}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
 import org.apache.spark.network.util.JavaUtils
-import org.apache.spark.prefetch.PrefetchTask
-import org.apache.spark.prefetch.master.PrefetcherMaster
+import org.apache.spark.prefetch.{PrefetchOffer, PrefetchTask, PrefetchTaskDescription}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.scheduler.{
-  DAGScheduler,
-  SchedulerBackend,
-  TaskLocation,
-  TaskScheduler
-}
+import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
+import org.apache.spark.scheduler.{DAGScheduler, SchedulerBackend, TaskLocation, TaskScheduler}
+import org.apache.spark.serializer.SerializerInstance
+
+import scala.collection.mutable.ArrayBuffer
+
 
 class PrefetchScheduler(val sc: SparkContext,
                         val backend: SchedulerBackend,
                         val ts: TaskScheduler,
-                        val dag: DAGScheduler,
-                        val master: PrefetcherMaster)
+                        val dag: DAGScheduler)
     extends Logging {
 
-  private val closureSerializer = SparkEnv.get.closureSerializer.newInstance()
+  logInfo("Initialize PrefetchScheduler.")
 
-  // Regard rdd as input.
-  protected[prefetch] def getPreferredLocations(
-      rdd: RDD[_],
-      partition: Int): Seq[TaskLocation] = {
-    dag.getPreferredLocs(rdd, partition)
+  private var pTasks_ : Seq[PrefetchTask[_]] = _
+
+  private val cgsb_ : CoarseGrainedSchedulerBackend = {
+    backend match {
+      case backend: CoarseGrainedSchedulerBackend =>
+        backend.asInstanceOf[CoarseGrainedSchedulerBackend]
+      case _ =>
+        null
+    }
   }
 
   // core function.
   def prefetch(rdd: RDD[_]): Unit = {
+    val pTasks = createPrefetchTasks(rdd)
+    if (pTasks.nonEmpty) {
+      logInfo(s"Create ${pTasks.size} prefetch tasks.")
+      pTasks_ = pTasks
+    } else {
+      logError("Reject all prefetch tasks.")
+      pTasks_ = null
+    }
+  }
+
+  def createPrefetchTasks(rdd: RDD[_]): Seq[PrefetchTask[_]] = {
     var taskBinary: Broadcast[Array[Byte]] = null
     val partitions: Array[Partition] = rdd.partitions
     var taskBinaryBytes: Array[Byte] = null
 
     try {
       taskBinaryBytes =
-        JavaUtils.bufferToArray(closureSerializer.serialize(rdd: AnyRef))
+        JavaUtils.bufferToArray(PrefetchScheduler.closureSerializer.serialize(rdd: AnyRef))
     } catch {
-      case e: NotSerializableException => return
+      case e: NotSerializableException =>
+        logError("NotSerializableException for RDD.")
+        return Seq()
     }
     taskBinary = sc.broadcast(taskBinaryBytes)
-    val taskIdToLocations: Map[Partition, Seq[TaskLocation]] = partitions
-      .map(
-        partition => {
-          (partition, getPreferredLocations(rdd, partition.index))
-        }
-      )
-      .toMap
-    val pTasks: Seq[PrefetchTask[_]] = partitions
-      .map(partition =>
-        new PrefetchTask(taskBinary, partition, taskIdToLocations(partition)))
-      .toSeq
-    if (pTasks.nonEmpty) {
-      logInfo(s"@YZQ Accept ${pTasks.size} prefetch tasks.")
-      val taskManager = new PrefetchTaskManager(master, ts, backend, pTasks)
-      taskManager.launchTasks()
-    } else {
-      logError("@YZQ Reject prefetch tasks.")
-    }
+    // Find preferring locations for each partition.
+    val taskIdToLocations: Map[Partition, Seq[TaskLocation]] = partitions.map(
+      partition => (partition, dag.getPreferredLocs(rdd, partition.index))
+    ).toMap
+    // Create prefetch tasks waiting to be launched.
+   partitions.map(partition =>
+      new PrefetchTask(taskBinary, partition, taskIdToLocations(partition))).toSeq
   }
+
+  def resourceOffers(offers: Seq[PrefetchOffer]): Array[PrefetchTaskDescription] = {
+    val hostToExecutors = new mutable.HashMap[String, ArrayBuffer[String]]()
+    for (o <- offers) {
+      hostToExecutors.getOrElseUpdate(o.host, new ArrayBuffer[String]()) += o.executorId
+    }
+    val prefetchTaskManager = new PrefetchTaskManager(offers, hostToExecutors, pTasks_)
+    prefetchTaskManager.makeResources()
+  }
+}
+
+object PrefetchScheduler {
+  def closureSerializer: SerializerInstance = SparkEnv.get.closureSerializer.newInstance()
 }

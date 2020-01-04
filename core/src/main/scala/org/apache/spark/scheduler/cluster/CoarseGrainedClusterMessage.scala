@@ -20,6 +20,7 @@ package org.apache.spark.scheduler.cluster
 import java.nio.ByteBuffer
 
 import org.apache.spark.TaskState.TaskState
+import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rpc.RpcEndpointRef
 import org.apache.spark.scheduler.ExecutorLossReason
 import org.apache.spark.util.SerializableBuffer
@@ -40,6 +41,8 @@ private[spark] object CoarseGrainedClusterMessages {
 
   // Driver to executors
   case class LaunchTask(data: SerializableBuffer) extends CoarseGrainedClusterMessage
+
+  case class LaunchPrefetchTask(data: SerializableBuffer) extends CoarseGrainedClusterMessage
 
   case class KillTask(taskId: Long, executor: String, interruptThread: Boolean, reason: String)
     extends CoarseGrainedClusterMessage
@@ -85,6 +88,9 @@ private[spark] object CoarseGrainedClusterMessages {
   case object StopExecutor extends CoarseGrainedClusterMessage
 
   case object StopExecutors extends CoarseGrainedClusterMessage
+
+  case class ReceivePrefetches(prefetchScheduler: PrefetchScheduler)
+    extends CoarseGrainedClusterMessage
 
   case class RemoveExecutor(executorId: String, reason: ExecutorLossReason)
     extends CoarseGrainedClusterMessage

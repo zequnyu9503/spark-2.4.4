@@ -18,30 +18,20 @@ package org.apache.spark.prefetch.scheduler
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-
 import org.apache.spark.SparkEnv
 import org.apache.spark.internal.Logging
-import org.apache.spark.prefetch.{PrefetchTask, PrefetchTaskDescription}
-import org.apache.spark.prefetch.PrefetchMessage.LaunchPrefetchTask
-import org.apache.spark.prefetch.master.PrefetcherMaster
-import org.apache.spark.scheduler.{
-  ExecutorCacheTaskLocation,
-  HDFSCacheTaskLocation,
-  SchedulerBackend,
-  TaskLocality,
-  TaskScheduler
-}
+import org.apache.spark.prefetch.{PrefetchOffer, PrefetchTask, PrefetchTaskDescription}
+import org.apache.spark.scheduler.{ExecutorCacheTaskLocation, HDFSCacheTaskLocation, TaskLocality}
 import org.apache.spark.scheduler.TaskLocality.TaskLocality
-import org.apache.spark.util.SerializableBuffer
 
-class PrefetchTaskManager(val master: PrefetcherMaster,
-                          ts: TaskScheduler,
-                          val backend: SchedulerBackend,
-                          val tasks: Seq[PrefetchTask[_]])
+class PrefetchTaskManager(
+    offers: Seq[PrefetchOffer],
+    hostToExecutors: mutable.HashMap[String, ArrayBuffer[String]],
+    pTasks: Seq[PrefetchTask[_]])
     extends Logging {
 
-  val env = SparkEnv.get
-  val ser = env.closureSerializer.newInstance()
+  private val env = SparkEnv.get
+  private val ser = env.closureSerializer.newInstance()
 
   private val forExecutors =
     new mutable.HashMap[String, ArrayBuffer[PrefetchTask[_]]]()
@@ -50,39 +40,44 @@ class PrefetchTaskManager(val master: PrefetcherMaster,
   private val forNoRefs = new ArrayBuffer[PrefetchTask[_]]()
   private val forAll = new ArrayBuffer[PrefetchTask[_]]()
 
+  addPendingTasks()
+
   private def addPendingTasks(): Unit = {
-    for (i <- tasks.indices) {
-      for (loc <- tasks(i).locs) {
+    for (i <- pTasks.indices) {
+      for (loc <- pTasks(i).locs) {
         loc match {
           case exe: ExecutorCacheTaskLocation =>
             // which means partition located on running executors.
             forExecutors.getOrElseUpdate(
               exe.executorId,
-              new ArrayBuffer[PrefetchTask[_]]()) += tasks(i)
-            logInfo(s"@YZQ Task [${tasks(i).taskId}] added into forExecutors as ${exe.executorId}.")
+              new ArrayBuffer[PrefetchTask[_]]()) += pTasks(i)
+            logInfo(
+              s"Task [${pTasks(i).taskId}] added into forExecutors as ${exe.executorId}.")
           case hdfs: HDFSCacheTaskLocation =>
-            master.hostToExecutors(hdfs.host) match {
-              case Some(set) =>
-                set.foreach(e => {
-                  forExecutors.getOrElseUpdate(e, new ArrayBuffer[PrefetchTask[_]]()) += tasks(i)
-                  logInfo(s"@YZQ Task [${tasks(i).taskId}] added into forExecutors as ${e}")
-                })
-              case None =>
+            val executors = hostToExecutors(hdfs.host)
+            if (executors.nonEmpty) {
+              executors.foreach { e =>
+                forExecutors.getOrElseUpdate(
+                  e,
+                  new ArrayBuffer[PrefetchTask[_]]()) += pTasks(i)
                 logInfo(
-                  s"@YZQ Pending task has a location at" +
-                    s"${hdfs.host} but no executors found")
+                  s"Task [${pTasks(i).taskId}] added into forExecutors as ${e}")
+              }
+            } else {
+              logError(s"Task [${pTasks(i).taskId}] preferred Executor lost.")
             }
           case _ =>
         }
-        forHosts.getOrElseUpdate(loc.host, new ArrayBuffer[PrefetchTask[_]]()) += tasks(
+        forHosts.getOrElseUpdate(loc.host, new ArrayBuffer[PrefetchTask[_]]()) += pTasks(
           i)
-        logInfo(s"@YZQ Task [${tasks(i).taskId}] added into forHosts as ${loc.host}")
-        if (tasks(i).locs == Nil) {
-          forNoRefs += tasks(i)
-          logInfo(s"@YZQ Task [${tasks(i).taskId}] added into forNoRefs")
+        logInfo(
+          s"Task [${pTasks(i).taskId}] added into forHosts as ${loc.host}")
+        if (pTasks(i).locs == Nil) {
+          forNoRefs += pTasks(i)
+          logInfo(s"Task [${pTasks(i).taskId}] added into forNoRefs")
         }
-        forAll += tasks(i)
-        logInfo(s"@YZQ Task [${tasks(i).taskId}] added into forAll")
+        forAll += pTasks(i)
+        logInfo(s"Task [${pTasks(i).taskId}] added into forAll")
       }
     }
   }
@@ -94,7 +89,7 @@ class PrefetchTaskManager(val master: PrefetcherMaster,
     if (forHosts.nonEmpty) levels += NODE_LOCAL
     if (forNoRefs.nonEmpty) levels += NO_PREF
     if (forAll.nonEmpty) levels += ANY
-    logInfo(s"@YZQ Levels is ${levels.mkString(", ")}")
+    logInfo(s"Prefetch levels are ${levels.mkString(", ")}")
     levels.toArray
   }
 
@@ -104,7 +99,9 @@ class PrefetchTaskManager(val master: PrefetcherMaster,
     : Option[PrefetchTaskDescription] = {
     dequeueTask(executorId, host, maxLocality) match {
       case Some(blend) =>
-        logInfo(s"@YZQ ResourceOffered ${executorId} <=> ${blend._1.taskId}")
+        logInfo(
+          s"Offer resource for ${blend._1.taskId}" +
+            s"on executor ${executorId} belongs to host ${host}")
         Some(new PrefetchTaskDescription(executorId, ser.serialize(blend._1)))
       case _ => None
     }
@@ -114,7 +111,7 @@ class PrefetchTaskManager(val master: PrefetcherMaster,
                           host: String,
                           maxLocality: TaskLocality.TaskLocality)
     : Option[(PrefetchTask[_], TaskLocality.Value)] = {
-    logInfo(s"@YZQ executorId=${executorId} host=${host}")
+    logInfo(s"ExecutorId=${executorId} host=${host}")
     for (task <- dequeueTaskFromList(executorId,
                                      host,
                                      forExecutors(executorId))) {
@@ -150,33 +147,18 @@ class PrefetchTaskManager(val master: PrefetcherMaster,
     None
   }
 
-  private def makeOffer(): Array[PrefetchTaskDescription] = {
+  protected[prefetch] def makeResources(): Array[PrefetchTaskDescription] = {
     val descriptions = new ArrayBuffer[PrefetchTaskDescription]()
+    // It's upper limit.
     val maxLocalityLevels = computeValidLocalityLevels()
     for (currentMaxLocality <- maxLocalityLevels) {
-      for (prefetcher <- master.prefetchList) {
-        descriptions += resourceOffer(prefetcher.executorId,
-                                      prefetcher.host,
+      for (offer <- offers) {
+        // Find fittest tasks launched on every executor.
+        descriptions += resourceOffer(offer.executorId,
+                                      offer.host,
                                       currentMaxLocality).get
       }
     }
     descriptions.toArray
-  }
-
-  def launchTasks(): Unit = {
-    addPendingTasks()
-    val taskDescs = makeOffer()
-    if (taskDescs.nonEmpty) {
-      for (task <- taskDescs) {
-        val serializedTask = PrefetchTaskDescription.encode(task)
-        master.executorToPrefetcher(task.executorId) match {
-          case Some(prefetcherId) =>
-            master
-              .prefetcherEndpointList(prefetcherId)
-              .send(LaunchPrefetchTask(new SerializableBuffer(serializedTask)))
-          case _ => logError(s"No prefetcher on executor ${task.executorId}")
-        }
-      }
-    }
   }
 }

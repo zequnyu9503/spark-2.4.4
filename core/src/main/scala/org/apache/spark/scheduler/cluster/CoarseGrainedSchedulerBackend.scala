@@ -19,13 +19,15 @@ package org.apache.spark.scheduler.cluster
 
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+
 import javax.annotation.concurrent.GuardedBy
 
 import scala.collection.mutable.{ArrayBuffer, HashMap, HashSet}
 import scala.concurrent.Future
-
 import org.apache.spark.{ExecutorAllocationClient, SparkEnv, SparkException, TaskState}
 import org.apache.spark.internal.Logging
+import org.apache.spark.prefetch.{PrefetchOffer, PrefetchTaskDescription}
+import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rpc._
 import org.apache.spark.scheduler._
 import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages._
@@ -134,6 +136,9 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
 
       case ReviveOffers =>
         makeOffers()
+
+      case ReceivePrefetches(prefetchScheduler: PrefetchScheduler) =>
+        makePrefetches(prefetchScheduler)
 
       case KillTask(taskId, executorId, interruptThread, reason) =>
         executorDataMap.get(executorId) match {
@@ -252,6 +257,21 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
       }
     }
 
+    // Make resource offers for prefetching RDD.
+    def makePrefetches(prefetchScheduler: PrefetchScheduler): Unit = {
+      val prefetchers = withLock {
+        val activeExecutors = executorDataMap.filterKeys(executorIsAlive)
+        val prefetchOffers = activeExecutors.map {
+          case (id, executorData) =>
+            PrefetchOffer(id, executorData.executorHost)
+        }.toSeq
+        prefetchScheduler.resourceOffers(prefetchOffers)
+      }
+      if (prefetchers.nonEmpty) {
+        launchPrefetchTasks(prefetchers)
+      }
+    }
+
     override def onDisconnected(remoteAddress: RpcAddress): Unit = {
       addressToExecutorId
         .get(remoteAddress)
@@ -310,6 +330,19 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
             s"${executorData.executorHost}.")
 
           executorData.executorEndpoint.send(LaunchTask(new SerializableBuffer(serializedTask)))
+        }
+      }
+    }
+
+    // Launch tasks for prefetching.
+    private def launchPrefetchTasks(tasks: Seq[PrefetchTaskDescription]): Unit = {
+      if (tasks.nonEmpty) {
+        for (task <- tasks) {
+          val serializedTask = PrefetchTaskDescription.encode(task)
+          val executorData = executorDataMap(task.executorId)
+          logInfo(s"Launch prefetch task to executor ${task.executorId}")
+          executorData.executorEndpoint.send(
+            LaunchPrefetchTask(new SerializableBuffer(serializedTask)))
         }
       }
     }
@@ -443,6 +476,10 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
     executors.foreach { eid =>
       removeExecutor(eid, SlaveLost("Stale executor after cluster manager re-registered."))
     }
+  }
+
+  def receivePrefetches(prefetchScheduler: PrefetchScheduler): Unit = {
+    driverEndpoint.send(ReceivePrefetches(prefetchScheduler))
   }
 
   override def reviveOffers() {
