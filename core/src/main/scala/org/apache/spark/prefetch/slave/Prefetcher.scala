@@ -37,8 +37,6 @@ class Prefetcher(private val rpcEnv: RpcEnv,
                  val masterEndpoint: RpcEndpointRef)
     extends Logging {
 
-  private var env_ : SparkEnv = _
-
   private var theadpoolexecutor_ : ThreadPoolExecutor = _
 
   // Unique Id for every prefetcher.
@@ -49,8 +47,7 @@ class Prefetcher(private val rpcEnv: RpcEnv,
   private val rpcEndpointRef =
     rpcEnv.setupEndpoint(Prefetcher.ENDPOINT_NAME(executorId), rpcEndpoint)
 
-  def initialize(env: SparkEnv): Unit = {
-    env_ = env
+  def initialize(): Unit = {
     if (prefetcherId.eq(null)) {
       logInfo(s"@YZQ Executor ${executorId} register prefetcher to master.")
       val pid = new PrefetcherId(executorId, host, port)
@@ -77,7 +74,7 @@ class Prefetcher(private val rpcEnv: RpcEnv,
   }
 
   def acceptLaunchTask(taskDesc: PrefetchTaskDescription): Unit = {
-    val taskRunner = new PrefetchTaskRunner(env_, taskDesc)
+    val taskRunner = new PrefetchTaskRunner(SparkEnv.get, taskDesc)
     theadpoolexecutor_.execute(taskRunner)
   }
 }

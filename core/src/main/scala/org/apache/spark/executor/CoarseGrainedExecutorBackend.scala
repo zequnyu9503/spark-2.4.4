@@ -64,6 +64,7 @@ private[spark] class CoarseGrainedExecutorBackend(
     }(ThreadUtils.sameThread).onComplete {
       // This is a very fast action so we can use "ThreadUtils.sameThread"
       case Success(msg) =>
+        env.prefetcher.initialize()
         // Always receive `true`. Just ignore it
       case Failure(e) =>
         exitExecutor(1, s"Cannot register with driver: $driverUrl", e, notifyDriver = false)
