@@ -20,21 +20,20 @@ import org.apache.spark.SparkEnv
 import org.apache.spark.TaskContext
 import org.apache.spark.internal.Logging
 
-class PrefetchTaskRunner(val env: SparkEnv,
+class PrefetchTaskRunner(val prefetcher: Prefetcher,
+                         val env: SparkEnv,
                          val taskDescription: PrefetchTaskDescription)
-    extends Runnable with Logging{
+    extends Runnable
+    with Logging {
 
   val ser = env.closureSerializer.newInstance()
 
   override def run(): Unit = {
     try {
-      val id = System.currentTimeMillis()
       val task = ser.deserialize[PrefetchTask[Any]](
         taskDescription.serializedTask,
         Thread.currentThread.getContextClassLoader)
-      logInfo(s"Task [${id}] Started.")
-        task.startTask(TaskContext.empty())
-      logInfo(s"Task [${id}] Over.")
+      prefetcher.reportTaskFinished(task.startTask(TaskContext.empty()).toString)
     } catch {
       case t: Throwable =>
         logError(s"Exception in  prefetching", t)

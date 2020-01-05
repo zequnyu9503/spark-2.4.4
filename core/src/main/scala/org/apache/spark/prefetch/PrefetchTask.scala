@@ -36,12 +36,17 @@ class PrefetchTask[T](taskBinary: Broadcast[Array[Byte]],
 
   def locs: Seq[TaskLocation] = locs_
 
-  def startTask(context: TaskContext): Unit = {
+  def startTask(context: TaskContext): Long = {
     val ser = SparkEnv.get.closureSerializer.newInstance()
     val rdd = ser.deserialize[RDD[T]](
       ByteBuffer.wrap(taskBinary.value),
       Thread.currentThread.getContextClassLoader)
     val iterator = rdd.iterator(partition_, context)
-    while (iterator.hasNext) { iterator.next() }
+    var nums = 0L
+    while (iterator.hasNext) {
+      iterator.next()
+      nums += 1
+    }
+    nums
   }
 }

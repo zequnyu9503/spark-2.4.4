@@ -140,6 +140,9 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
       case ReceivePrefetches(prefetchScheduler: PrefetchScheduler) =>
         makePrefetches(prefetchScheduler)
 
+      case PrefetchStatusUpdate(string) =>
+        reportPrefetchFinished(string)
+
       case KillTask(taskId, executorId, interruptThread, reason) =>
         executorDataMap.get(executorId) match {
           case Some(executorInfo) =>
@@ -270,6 +273,10 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
       if (prefetchers.nonEmpty) {
         launchPrefetchTasks(prefetchers)
       }
+    }
+
+    def reportPrefetchFinished(string: String): Unit = {
+      logInfo(s"Prefetch ${string}")
     }
 
     override def onDisconnected(remoteAddress: RpcAddress): Unit = {
