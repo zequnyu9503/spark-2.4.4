@@ -324,6 +324,7 @@ private[spark] class TaskSchedulerImpl(
       if (availableCpus(i) >= CPUS_PER_TASK) {
         try {
           for (task <- taskSet.resourceOffer(execId, host, maxLocality)) {
+            logInfo(s"YZQ Create Task on ${execId} of host ${host} under level ${maxLocality.toString}")
             tasks(i) += task
             val tid = task.taskId
             taskIdToTaskSetManager.put(tid, taskSet)
@@ -391,7 +392,6 @@ private[spark] class TaskSchedulerImpl(
     }.getOrElse(offers)
 
     val shuffledOffers = shuffleOffers(filteredOffers)
-    logInfo(s"YZQ shuffleOffers has ${shuffledOffers.map(e => e.executorId).mkString(", ")}")
     // Build a list of tasks to assign to each worker.
     val tasks = shuffledOffers.map(o => new ArrayBuffer[TaskDescription](o.cores / CPUS_PER_TASK))
     val availableCpus = shuffledOffers.map(o => o.cores).toArray

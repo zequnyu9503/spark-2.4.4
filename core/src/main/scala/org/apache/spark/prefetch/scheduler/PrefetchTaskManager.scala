@@ -154,11 +154,8 @@ class PrefetchTaskManager(
     for (currentMaxLocality <- maxLocalityLevels) {
       for (offer <- offers) {
         // Find fittest tasks launched on every executor.
-        resourceOffer(offer.executorId,
-          offer.host,
-          currentMaxLocality) match {
-          case Some(descs) =>
-            descriptions += descs
+        resourceOffer(offer.executorId, offer.host, currentMaxLocality) match {
+          case Some(descs) => descriptions += descs
         }
       }
     }

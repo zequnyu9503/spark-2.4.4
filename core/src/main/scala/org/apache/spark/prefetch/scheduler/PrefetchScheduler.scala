@@ -20,7 +20,6 @@ import java.io.NotSerializableException
 
 import scala.collection.{Map, mutable}
 import org.apache.spark.{Partition, SparkContext, SparkEnv}
-
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
 import org.apache.spark.network.util.JavaUtils
@@ -29,6 +28,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
 import org.apache.spark.scheduler.{DAGScheduler, SchedulerBackend, TaskLocation, TaskScheduler}
 import org.apache.spark.serializer.SerializerInstance
+import org.apache.spark.storage.StorageLevel
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -54,7 +54,7 @@ class PrefetchScheduler(val sc: SparkContext,
 
   // core function.
   def prefetch(rdd: RDD[_]): Unit = {
-    val pTasks = createPrefetchTasks(rdd)
+    val pTasks = createPrefetchTasks(rdd.persist(StorageLevel.MEMORY_ONLY))
     if (pTasks.nonEmpty) {
       logInfo(s"Create ${pTasks.size} prefetch tasks.")
       pTasks_ = pTasks

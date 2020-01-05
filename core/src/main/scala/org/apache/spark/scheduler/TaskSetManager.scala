@@ -232,6 +232,7 @@ private[spark] class TaskSetManager(
         case _ =>
       }
       pendingTasksForHost.getOrElseUpdate(loc.host, new ArrayBuffer) += index
+      logInfo(s"YZQ Task add onto host [${loc.host}] ")
       for (rack <- sched.getRackForHost(loc.host)) {
         pendingTasksForRack.getOrElseUpdate(rack, new ArrayBuffer) += index
       }
@@ -242,6 +243,7 @@ private[spark] class TaskSetManager(
     }
 
     allPendingTasks += index  // No point scanning this whole list to find the old task there
+    logInfo(s"YZQ Task add onto ANY")
   }
 
   /**
@@ -466,6 +468,7 @@ private[spark] class TaskSetManager(
 
       dequeueTask(execId, host, allowedLocality).map { case ((index, taskLocality, speculative)) =>
         // Found a task; do some bookkeeping and return a task description
+        logInfo(s"YZQ TaskDesc created where executor [${execId}] host[${host}]")
         val task = tasks(index)
         val taskId = sched.newTaskId()
         // Do various bookkeeping
