@@ -114,11 +114,11 @@ class PrefetchTaskManager(
     logInfo(s"ExecutorId=${executorId} host=${host}")
     for (task <- dequeueTaskFromList(executorId,
                                      host,
-                                     forExecutors(executorId))) {
+                                     forExecutors.getOrElse(executorId, ArrayBuffer()))) {
       return Some((task, TaskLocality.PROCESS_LOCAL))
     }
     if (TaskLocality.isAllowed(maxLocality, TaskLocality.NODE_LOCAL)) {
-      for (task <- dequeueTaskFromList(executorId, host, forHosts(host))) {
+      for (task <- dequeueTaskFromList(executorId, host, forHosts.getOrElse(host, ArrayBuffer()))) {
         return Some((task, TaskLocality.NODE_LOCAL))
       }
     }
