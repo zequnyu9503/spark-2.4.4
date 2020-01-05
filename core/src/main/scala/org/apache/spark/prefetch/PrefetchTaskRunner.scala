@@ -28,10 +28,13 @@ class PrefetchTaskRunner(val env: SparkEnv,
 
   override def run(): Unit = {
     try {
+      val id = System.currentTimeMillis()
       val task = ser.deserialize[PrefetchTask[Any]](
         taskDescription.serializedTask,
         Thread.currentThread.getContextClassLoader)
+      logInfo(s"Task [${id}] Started.")
         task.startTask(TaskContext.empty())
+      logInfo(s"Task [${id}] Over.")
     } catch {
       case t: Throwable =>
         logError(s"Exception in  prefetching", t)
