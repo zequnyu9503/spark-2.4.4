@@ -30,8 +30,6 @@ class PrefetchTask[T](taskBinary: Broadcast[Array[Byte]],
 
   val taskId: String = partition_.index.toString
 
-  private var paused: Boolean = true
-
   def partition: Partition = partition_
 
   def locs: Seq[TaskLocation] = locs_

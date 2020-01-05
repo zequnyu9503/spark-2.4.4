@@ -40,6 +40,8 @@ class PrefetchTaskManager(
   private val forNoRefs = new ArrayBuffer[PrefetchTask[_]]()
   private val forAll = new ArrayBuffer[PrefetchTask[_]]()
 
+  private val isScheduled = new mutable.HashMap[PrefetchTask[_], Boolean]()
+
   addPendingTasks()
 
   private def addPendingTasks(): Unit = {
@@ -79,6 +81,7 @@ class PrefetchTaskManager(
         forAll += pTasks(i)
         logInfo(s"Task [${pTasks(i).taskId}] added into forAll")
       }
+      isScheduled(pTasks(i)) = false
     }
   }
 
@@ -142,7 +145,11 @@ class PrefetchTaskManager(
     var index = tasks.size
     while (index > 0) {
       index -= 1
-      return Option(tasks(index))
+      val task = tasks(index)
+      if (!isScheduled(task)) {
+        isScheduled(task) = true
+        return Option(task)
+      }
     }
     None
   }
