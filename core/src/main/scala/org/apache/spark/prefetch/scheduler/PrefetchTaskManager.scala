@@ -18,6 +18,7 @@ package org.apache.spark.prefetch.scheduler
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
+
 import org.apache.spark.SparkEnv
 import org.apache.spark.internal.Logging
 import org.apache.spark.prefetch.{PrefetchOffer, PrefetchTask, PrefetchTaskDescription}
@@ -162,11 +163,13 @@ class PrefetchTaskManager(
     val descriptions = new ArrayBuffer[PrefetchTaskDescription]()
     // It's upper limit.
     val maxLocalityLevels = computeValidLocalityLevels()
-    for (currentMaxLocality <- maxLocalityLevels) {
-      for (offer <- offers) {
-        // Find fittest tasks launched on every executor.
-        resourceOffer(offer.executorId, offer.host, currentMaxLocality) match {
-          case Some(descs) => descriptions += descs
+    while (!isAllScheduled) {
+      for (currentMaxLocality <- maxLocalityLevels) {
+        for (offer <- offers) {
+          // Find fittest tasks launched on every executor.
+          resourceOffer(offer.executorId, offer.host, currentMaxLocality) match {
+            case Some(descs) => descriptions += descs
+          }
         }
       }
     }
