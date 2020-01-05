@@ -43,6 +43,7 @@ class Prefetcher(val executorId: String, val executorHostname: String)
 
   def acceptLaunchTask(taskDesc: PrefetchTaskDescription): Unit = {
     val taskRunner = new PrefetchTaskRunner(SparkEnv.get, taskDesc)
+    logInfo(s"Accept prefetch tasks on executor ${executorId} of host ${executorHostname}")
     theadpoolexecutor_.execute(taskRunner)
   }
 }
