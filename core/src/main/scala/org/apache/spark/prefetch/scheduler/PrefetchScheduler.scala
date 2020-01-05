@@ -61,6 +61,9 @@ class PrefetchScheduler(val sc: SparkContext,
       logError("Reject all prefetch tasks.")
       pTasks_ = null
     }
+    if (!cgsb_.eq(null)) {
+      cgsb_.receivePrefetches(this)
+    }
   }
 
   def createPrefetchTasks(rdd: RDD[_]): Seq[PrefetchTask[_]] = {

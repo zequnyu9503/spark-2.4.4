@@ -26,7 +26,7 @@ class PrefetchSchedulerSuite extends SparkFunSuite {
 
   // scalastyle:off println
   test("getPreferredLocations") {
-    val rdd = sc.textFile("C:\\Users\\YZQ\\Desktop\\log.txt")
+    val rdd = sc.textFile("C:\\Users\\YZQ\\Documents\\prefetch.txt")
     sc.prefetchRDD(rdd)
   }
 }
