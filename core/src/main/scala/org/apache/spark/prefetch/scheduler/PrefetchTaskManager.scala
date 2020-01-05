@@ -21,8 +21,16 @@ import scala.collection.mutable.ArrayBuffer
 
 import org.apache.spark.SparkEnv
 import org.apache.spark.internal.Logging
-import org.apache.spark.prefetch.{PrefetchOffer, PrefetchTask, PrefetchTaskDescription}
-import org.apache.spark.scheduler.{ExecutorCacheTaskLocation, HDFSCacheTaskLocation, TaskLocality}
+import org.apache.spark.prefetch.{
+  PrefetchOffer,
+  PrefetchTask,
+  PrefetchTaskDescription
+}
+import org.apache.spark.scheduler.{
+  ExecutorCacheTaskLocation,
+  HDFSCacheTaskLocation,
+  TaskLocality
+}
 import org.apache.spark.scheduler.TaskLocality.TaskLocality
 
 class PrefetchTaskManager(
@@ -41,7 +49,8 @@ class PrefetchTaskManager(
   private val forNoRefs = new ArrayBuffer[PrefetchTask[_]]()
   private val forAll = new ArrayBuffer[PrefetchTask[_]]()
 
-  private val isScheduledforTasks = new mutable.HashMap[PrefetchTask[_], Boolean]()
+  private val isScheduledforTasks =
+    new mutable.HashMap[PrefetchTask[_], Boolean]()
 
   def isAllScheduled: Boolean = {
     !isScheduledforTasks.exists(_._2.equals(false))
@@ -120,13 +129,17 @@ class PrefetchTaskManager(
                           maxLocality: TaskLocality.TaskLocality)
     : Option[(PrefetchTask[_], TaskLocality.Value)] = {
     logInfo(s"ExecutorId=${executorId} host=${host}")
-    for (task <- dequeueTaskFromList(executorId,
-                                     host,
-                                     forExecutors.getOrElse(executorId, ArrayBuffer()))) {
+    for (task <- dequeueTaskFromList(
+           executorId,
+           host,
+           forExecutors.getOrElse(executorId, ArrayBuffer()))) {
       return Some((task, TaskLocality.PROCESS_LOCAL))
     }
     if (TaskLocality.isAllowed(maxLocality, TaskLocality.NODE_LOCAL)) {
-      for (task <- dequeueTaskFromList(executorId, host, forHosts.getOrElse(host, ArrayBuffer()))) {
+      for (task <- dequeueTaskFromList(
+             executorId,
+             host,
+             forHosts.getOrElse(host, ArrayBuffer()))) {
         return Some((task, TaskLocality.NODE_LOCAL))
       }
     }
@@ -164,10 +177,13 @@ class PrefetchTaskManager(
     // It's upper limit.
     val maxLocalityLevels = computeValidLocalityLevels()
     while (!isAllScheduled) {
-      for (currentMaxLocality <- maxLocalityLevels) {
-        for (offer <- offers) {
+      for (currentMaxLocalityIndex <- maxLocalityLevels.indices) {
+        for (offerIndex <- offers.indices) {
           // Find fittest tasks launched on every executor.
-          resourceOffer(offer.executorId, offer.host, currentMaxLocality) match {
+          val offer = offers(offerIndex)
+          resourceOffer(offer.executorId,
+                        offer.host,
+                        maxLocalityLevels(currentMaxLocalityIndex)) match {
             case Some(descs) => descriptions += descs
           }
         }
