@@ -40,7 +40,11 @@ class PrefetchTaskManager(
   private val forNoRefs = new ArrayBuffer[PrefetchTask[_]]()
   private val forAll = new ArrayBuffer[PrefetchTask[_]]()
 
-  private val isScheduled = new mutable.HashMap[PrefetchTask[_], Boolean]()
+  private val isScheduledforTasks = new mutable.HashMap[PrefetchTask[_], Boolean]()
+
+  def isAllScheduled: Boolean = {
+    !isScheduledforTasks.exists(_._2.equals(false))
+  }
 
   addPendingTasks()
 
@@ -81,7 +85,7 @@ class PrefetchTaskManager(
         forAll += pTasks(i)
         logInfo(s"Task [${pTasks(i).taskId}] added into forAll")
       }
-      isScheduled(pTasks(i)) = false
+      isScheduledforTasks(pTasks(i)) = false
     }
   }
 
@@ -146,8 +150,8 @@ class PrefetchTaskManager(
     while (index > 0) {
       index -= 1
       val task = tasks(index)
-      if (!isScheduled(task)) {
-        isScheduled(task) = true
+      if (!isScheduledforTasks(task)) {
+        isScheduledforTasks(task) = true
         return Option(task)
       }
     }

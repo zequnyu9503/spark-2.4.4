@@ -420,10 +420,11 @@ private[spark] class TaskSchedulerImpl(
         var launchedAnyTask = false
         // Record all the executor IDs assigned barrier tasks on.
         val addressesWithDescs = ArrayBuffer[(String, TaskDescription)]()
+        logInfo(s"YZQ shuffleOffers_1 has ${shuffledOffers.size}")
         for (currentMaxLocality <- taskSet.myLocalityLevels) {
+          logInfo(s"YZQ shuffleOffers_2 has ${shuffledOffers.size}")
           var launchedTaskAtCurrentMaxLocality = false
           do {
-            logInfo(s"YZQ shuffleOffers has ${shuffledOffers.size}")
             launchedTaskAtCurrentMaxLocality = resourceOfferSingleTaskSet(taskSet,
               currentMaxLocality, shuffledOffers, availableCpus, tasks, addressesWithDescs)
             launchedAnyTask |= launchedTaskAtCurrentMaxLocality
