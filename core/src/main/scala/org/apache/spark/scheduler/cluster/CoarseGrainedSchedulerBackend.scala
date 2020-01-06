@@ -493,7 +493,7 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
   }
 
   def receivePrefetches(prefetchScheduler: PrefetchScheduler): Unit = {
-    driverEndpoint.send(ReceivePrefetches(prefetchScheduler))
+    driverEndpoint.send(ReceivePrefetches())
   }
 
   override def reviveOffers() {
