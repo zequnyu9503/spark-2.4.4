@@ -117,7 +117,7 @@ class PrefetchTaskManager(
     dequeueTask(executorId, host, maxLocality) match {
       case Some(blend) =>
         logInfo(
-          s"Offer resource for ${blend._1.taskId}" +
+          s"Offer resource for ${blend._1.taskId} " +
             s"on executor ${executorId} belongs to host ${host}.")
         Some(new PrefetchTaskDescription(executorId, ser.serialize(blend._1)))
       case _ => None
@@ -128,7 +128,6 @@ class PrefetchTaskManager(
                           host: String,
                           maxLocality: TaskLocality.TaskLocality)
     : Option[(PrefetchTask[_], TaskLocality.Value)] = {
-    logInfo(s"ExecutorId=${executorId} host=${host}.")
     for (task <- dequeueTaskFromList(
            executorId,
            host,
@@ -179,7 +178,7 @@ class PrefetchTaskManager(
     var count: Long = 0L
     while (!isAllScheduled) {
       // Until All tasks are scheduled.
-      logInfo(s"MakeResources of ${count} times.")
+      logInfo(s"Make Resources of ${count} times.")
       for (taskLocality <- maxLocalityLevels) {
         for (offer <- offers) {
           // Find fittest tasks launched on every executor.
