@@ -21,8 +21,8 @@ import java.nio.ByteBuffer
 
 import org.apache.spark.util.{ByteBufferInputStream, ByteBufferOutputStream, Utils}
 
-class PrefetchTaskDescription(val executorId: String, val serializedTask: ByteBuffer) {
-
+class PrefetchTaskDescription(val executorId: String, val taskId: String,
+                              val serializedTask: ByteBuffer) {
 }
 
 object PrefetchTaskDescription {
@@ -31,6 +31,7 @@ object PrefetchTaskDescription {
     val dataOut = new DataOutputStream(bytesOut)
 
     dataOut.writeUTF(taskDescription.executorId)
+    dataOut.writeUTF(taskDescription.taskId)
     Utils.writeByteBuffer(taskDescription.serializedTask, bytesOut)
 
     dataOut.close()
@@ -41,7 +42,8 @@ object PrefetchTaskDescription {
   def decode(byteBuffer: ByteBuffer): PrefetchTaskDescription = {
     val dataIn = new DataInputStream(new ByteBufferInputStream(byteBuffer))
     val executorId = dataIn.readUTF()
+    val taskId = dataIn.readUTF()
     val serializedTask = byteBuffer.slice()
-    new PrefetchTaskDescription(executorId, serializedTask)
+    new PrefetchTaskDescription(executorId, taskId, serializedTask)
   }
 }

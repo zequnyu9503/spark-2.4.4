@@ -19,6 +19,7 @@ package org.apache.spark.prefetch
 import java.util.concurrent.{Executors, ThreadFactory, ThreadPoolExecutor}
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder
+
 import org.apache.spark.SparkEnv
 import org.apache.spark.executor.{CoarseGrainedExecutorBackend, ExecutorBackend}
 import org.apache.spark.internal.Logging
@@ -29,7 +30,7 @@ class Prefetcher(val executorId: String, val executorHostname: String, val backe
 
   logInfo(s"Starting prefetcher ${executorId} on host ${executorHostname}")
 
-  private val theadpoolexecutor_ : ThreadPoolExecutor = {
+  private val threadpoolexecutor_ : ThreadPoolExecutor = {
     val threadFactory = new ThreadFactoryBuilder()
       .setDaemon(false)
       .setNameFormat("Prefetch task launch p-%d")
@@ -44,7 +45,7 @@ class Prefetcher(val executorId: String, val executorHostname: String, val backe
   def acceptLaunchTask(taskDesc: PrefetchTaskDescription): Unit = {
     val taskRunner = new PrefetchTaskRunner(this, SparkEnv.get, taskDesc)
     logInfo(s"Accept prefetch tasks on executor ${executorId} of host ${executorHostname}")
-    theadpoolexecutor_.execute(taskRunner)
+    threadpoolexecutor_.execute(taskRunner)
   }
 
   def reportTaskFinished(nums: String): Unit = {

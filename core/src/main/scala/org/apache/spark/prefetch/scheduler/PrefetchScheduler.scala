@@ -18,20 +18,19 @@ package org.apache.spark.prefetch.scheduler
 
 import java.io.NotSerializableException
 
-import scala.collection.{Map, mutable}
+import scala.collection.{mutable, Map}
+import scala.collection.mutable.ArrayBuffer
+
 import org.apache.spark.{Partition, SparkContext, SparkEnv}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
 import org.apache.spark.network.util.JavaUtils
 import org.apache.spark.prefetch.{PrefetchOffer, PrefetchTask, PrefetchTaskDescription}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
 import org.apache.spark.scheduler.{DAGScheduler, SchedulerBackend, TaskLocation, TaskScheduler}
+import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
 import org.apache.spark.serializer.SerializerInstance
 import org.apache.spark.storage.StorageLevel
-
-import scala.collection.mutable.ArrayBuffer
-
 
 class PrefetchScheduler(val sc: SparkContext,
                         val backend: SchedulerBackend,
@@ -76,7 +75,7 @@ class PrefetchScheduler(val sc: SparkContext,
       taskBinaryBytes =
         JavaUtils.bufferToArray(PrefetchScheduler.closureSerializer.serialize(rdd: AnyRef))
     } catch {
-      case e: NotSerializableException =>
+      case _ : NotSerializableException =>
         logError("NotSerializableException for RDD.")
         return Seq()
     }

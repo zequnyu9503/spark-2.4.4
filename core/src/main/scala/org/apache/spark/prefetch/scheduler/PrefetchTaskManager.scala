@@ -64,36 +64,25 @@ class PrefetchTaskManager(
         loc match {
           case exe: ExecutorCacheTaskLocation =>
             // which means partition located on running executors.
-            forExecutors.getOrElseUpdate(
-              exe.executorId,
+            forExecutors.getOrElseUpdate(exe.executorId,
               new ArrayBuffer[PrefetchTask[_]]()) += pTasks(i)
-            logInfo(
-              s"Task [${pTasks(i).taskId}] added into forExecutors as ${exe.executorId}.")
           case hdfs: HDFSCacheTaskLocation =>
+            // Find executors which hold cached data.
             val executors = hostToExecutors(hdfs.host)
             if (executors.nonEmpty) {
-              executors.foreach { e =>
-                forExecutors.getOrElseUpdate(
-                  e,
-                  new ArrayBuffer[PrefetchTask[_]]()) += pTasks(i)
-                logInfo(
-                  s"Task [${pTasks(i).taskId}] added into forExecutors as ${e}.")
+              executors.foreach { e => forExecutors.getOrElseUpdate(
+                  e, new ArrayBuffer[PrefetchTask[_]]()) += pTasks(i)
               }
             } else {
               logError(s"Task [${pTasks(i).taskId}] preferred Executor lost.")
             }
-          case _ =>
+          case _ => // Nothing to do.
         }
-        forHosts.getOrElseUpdate(loc.host, new ArrayBuffer[PrefetchTask[_]]()) += pTasks(
-          i)
-        logInfo(
-          s"Task [${pTasks(i).taskId}] added into forHosts as ${loc.host}.")
+        forHosts.getOrElseUpdate(loc.host, new ArrayBuffer[PrefetchTask[_]]()) += pTasks(i)
         if (pTasks(i).locs == Nil) {
           forNoRefs += pTasks(i)
-          logInfo(s"Task [${pTasks(i).taskId}] added into forNoRefs.")
         }
         forAll += pTasks(i)
-        logInfo(s"Task [${pTasks(i).taskId}] added into forAll.")
       }
       isScheduledforTasks(pTasks(i)) = false
     }
@@ -106,7 +95,7 @@ class PrefetchTaskManager(
     if (forHosts.nonEmpty) levels += NODE_LOCAL
     if (forNoRefs.nonEmpty) levels += NO_PREF
     if (forAll.nonEmpty) levels += ANY
-    logInfo(s"Prefetch levels are ${levels.mkString(", ")}.")
+    logInfo(s"Prefetch levels are ${levels.mkString(", ")} .")
     levels.toArray
   }
 
@@ -116,10 +105,9 @@ class PrefetchTaskManager(
     : Option[PrefetchTaskDescription] = {
     dequeueTask(executorId, host, maxLocality) match {
       case Some(blend) =>
-        logInfo(
-          s"Offer resource for ${blend._1.taskId} " +
-            s"on executor ${executorId} belongs to host ${host}.")
-        Some(new PrefetchTaskDescription(executorId, ser.serialize(blend._1)))
+        logInfo(s"Offer resource for ${blend._1.taskId} which level is " +
+            s"${maxLocality.toString} on executor $executorId belongs to host $host .")
+        Some(new PrefetchTaskDescription(executorId, blend._1.taskId, ser.serialize(blend._1)))
       case _ => None
     }
   }
@@ -178,7 +166,6 @@ class PrefetchTaskManager(
     var count: Long = 0L
     while (!isAllScheduled) {
       // Until All tasks are scheduled.
-      logInfo(s"Make Resources of ${count} times.")
       for (taskLocality <- maxLocalityLevels) {
         for (offer <- offers) {
           // Find fittest tasks launched on every executor.
@@ -190,6 +177,8 @@ class PrefetchTaskManager(
       }
       count += 1
     }
+    logInfo(s"PrefetchTaskDescriptions are " +
+      s"${descriptions.toArray.map(d => d.taskId).mkString(", ")}")
     descriptions.toArray
   }
 }

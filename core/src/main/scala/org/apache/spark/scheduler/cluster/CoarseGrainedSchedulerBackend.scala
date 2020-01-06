@@ -347,7 +347,7 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
         for (task <- tasks) {
           val serializedTask = PrefetchTaskDescription.encode(task)
           val executorData = executorDataMap(task.executorId)
-          logInfo(s"Launch prefetch task to executor ${task.executorId}")
+          logInfo(s"Launch prefetch task [${task.taskId}] to executor ${task.executorId}")
           executorData.executorEndpoint.send(
             LaunchPrefetchTask(new SerializableBuffer(serializedTask)))
         }
