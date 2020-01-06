@@ -77,7 +77,7 @@ class PrefetchTaskManager(
                   e,
                   new ArrayBuffer[PrefetchTask[_]]()) += pTasks(i)
                 logInfo(
-                  s"Task [${pTasks(i).taskId}] added into forExecutors as ${e}")
+                  s"Task [${pTasks(i).taskId}] added into forExecutors as ${e}.")
               }
             } else {
               logError(s"Task [${pTasks(i).taskId}] preferred Executor lost.")
@@ -87,13 +87,13 @@ class PrefetchTaskManager(
         forHosts.getOrElseUpdate(loc.host, new ArrayBuffer[PrefetchTask[_]]()) += pTasks(
           i)
         logInfo(
-          s"Task [${pTasks(i).taskId}] added into forHosts as ${loc.host}")
+          s"Task [${pTasks(i).taskId}] added into forHosts as ${loc.host}.")
         if (pTasks(i).locs == Nil) {
           forNoRefs += pTasks(i)
-          logInfo(s"Task [${pTasks(i).taskId}] added into forNoRefs")
+          logInfo(s"Task [${pTasks(i).taskId}] added into forNoRefs.")
         }
         forAll += pTasks(i)
-        logInfo(s"Task [${pTasks(i).taskId}] added into forAll")
+        logInfo(s"Task [${pTasks(i).taskId}] added into forAll.")
       }
       isScheduledforTasks(pTasks(i)) = false
     }
@@ -106,7 +106,7 @@ class PrefetchTaskManager(
     if (forHosts.nonEmpty) levels += NODE_LOCAL
     if (forNoRefs.nonEmpty) levels += NO_PREF
     if (forAll.nonEmpty) levels += ANY
-    logInfo(s"Prefetch levels are ${levels.mkString(", ")}")
+    logInfo(s"Prefetch levels are ${levels.mkString(", ")}.")
     levels.toArray
   }
 
@@ -118,7 +118,7 @@ class PrefetchTaskManager(
       case Some(blend) =>
         logInfo(
           s"Offer resource for ${blend._1.taskId}" +
-            s"on executor ${executorId} belongs to host ${host}")
+            s"on executor ${executorId} belongs to host ${host}.")
         Some(new PrefetchTaskDescription(executorId, ser.serialize(blend._1)))
       case _ => None
     }
@@ -128,7 +128,7 @@ class PrefetchTaskManager(
                           host: String,
                           maxLocality: TaskLocality.TaskLocality)
     : Option[(PrefetchTask[_], TaskLocality.Value)] = {
-    logInfo(s"ExecutorId=${executorId} host=${host}")
+    logInfo(s"ExecutorId=${executorId} host=${host}.")
     for (task <- dequeueTaskFromList(
            executorId,
            host,
@@ -176,18 +176,19 @@ class PrefetchTaskManager(
     val descriptions = new ArrayBuffer[PrefetchTaskDescription]()
     // It's upper limit.
     val maxLocalityLevels = computeValidLocalityLevels()
+    var count: Long = 0L
     while (!isAllScheduled) {
-      for (currentMaxLocalityIndex <- maxLocalityLevels.indices) {
-        for (offerIndex <- offers.indices) {
+      // Until All tasks are scheduled.
+      logInfo(s"MakeResources of ${count} times.")
+      for (taskLocality <- maxLocalityLevels) {
+        for (offer <- offers) {
           // Find fittest tasks launched on every executor.
-          val offer = offers(offerIndex)
-          resourceOffer(offer.executorId,
-                        offer.host,
-                        maxLocalityLevels(currentMaxLocalityIndex)) match {
+          resourceOffer(offer.executorId, offer.host, taskLocality) match {
             case Some(descs) => descriptions += descs
           }
         }
       }
+      count += 1
     }
     descriptions.toArray
   }
