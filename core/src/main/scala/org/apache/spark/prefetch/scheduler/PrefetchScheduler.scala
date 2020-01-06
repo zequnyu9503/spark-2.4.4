@@ -47,7 +47,9 @@ class PrefetchScheduler(val sc: SparkContext,
   private val cgsb_ : CoarseGrainedSchedulerBackend = {
     backend match {
       case backend: CoarseGrainedSchedulerBackend =>
-        backend.asInstanceOf[CoarseGrainedSchedulerBackend]
+        val coarse = backend.asInstanceOf[CoarseGrainedSchedulerBackend]
+        coarse.prefetchScheduler(this)
+        coarse
       case _ =>
         null
     }
