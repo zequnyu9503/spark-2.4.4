@@ -30,10 +30,16 @@ class PrefetchTaskRunner(val prefetcher: Prefetcher,
 
   override def run(): Unit = {
     try {
-      val task = ser.deserialize[PrefetchTask[Any]](
+      // This time stamp includes deserialize process
+      // as well as computation.
+      val startTime = System.currentTimeMillis()
+      val task = ser.deserialize[SinglePrefetchTask[Any]](
         taskDescription.serializedTask,
         Thread.currentThread.getContextClassLoader)
-      prefetcher.reportTaskFinished(task.startTask(TaskContext.empty()).toString)
+      val elements = task.startTask(TaskContext.empty())
+      val endTime = System.currentTimeMillis()
+      val reporter = PrefetchReporter(task.taskId, elements, endTime - startTime)
+      prefetcher.reportTaskFinished(reporter)
     } catch {
       case t: Throwable =>
         logError(s"Exception in  prefetching", t)

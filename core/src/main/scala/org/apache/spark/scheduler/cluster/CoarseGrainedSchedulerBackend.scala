@@ -26,7 +26,7 @@ import scala.collection.mutable.{ArrayBuffer, HashMap, HashSet}
 import scala.concurrent.Future
 import org.apache.spark.{ExecutorAllocationClient, SparkEnv, SparkException, TaskState}
 import org.apache.spark.internal.Logging
-import org.apache.spark.prefetch.{PrefetchOffer, PrefetchTaskDescription}
+import org.apache.spark.prefetch.{PrefetchOffer, PrefetchReporter, PrefetchTaskDescription}
 import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rpc._
 import org.apache.spark.scheduler._
@@ -137,11 +137,11 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
       case ReviveOffers =>
         makeOffers()
 
-      case ReceivePrefetches(prefetchScheduler: PrefetchScheduler) =>
-        makePrefetches(prefetchScheduler)
+      case ReceivePrefetches() =>
+        makePrefetches()
 
-      case PrefetchStatusUpdate(string) =>
-        reportPrefetchFinished(string)
+      case PrefetchTaskFinished(reporter: PrefetchReporter) =>
+        prefetchTaskFinished(reporter)
 
       case KillTask(taskId, executorId, interruptThread, reason) =>
         executorDataMap.get(executorId) match {
@@ -261,22 +261,22 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
     }
 
     // Make resource offers for prefetching RDD.
-    def makePrefetches(prefetchScheduler: PrefetchScheduler): Unit = {
+    def makePrefetches(): Unit = {
       val prefetchers = withLock {
         val activeExecutors = executorDataMap.filterKeys(executorIsAlive)
         val prefetchOffers = activeExecutors.map {
           case (id, executorData) =>
             PrefetchOffer(id, executorData.executorHost)
         }.toSeq
-        prefetchScheduler.resourceOffers(prefetchOffers)
+        prefetchScheduler_.resourceOffers(prefetchOffers)
       }
       if (prefetchers.nonEmpty) {
         launchPrefetchTasks(prefetchers)
       }
     }
 
-    def reportPrefetchFinished(string: String): Unit = {
-      logInfo(s"Prefetch ${string}")
+    def prefetchTaskFinished(reporter: PrefetchReporter): Unit = {
+      prefetchScheduler_.prefetchTaskFinished(reporter)
     }
 
     override def onDisconnected(remoteAddress: RpcAddress): Unit = {
@@ -419,6 +419,13 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
   var driverEndpoint: RpcEndpointRef = null
 
   protected def minRegisteredRatio: Double = _minRegisteredRatio
+
+  private var prefetchScheduler_ : PrefetchScheduler = _
+
+  // This method used for initialize prefetchScheduler_ in SparkContext.
+  def prefetchScheduler(scheduler: PrefetchScheduler): Unit = {
+    prefetchScheduler_ = scheduler
+  }
 
   override def start() {
     val properties = new ArrayBuffer[(String, String)]

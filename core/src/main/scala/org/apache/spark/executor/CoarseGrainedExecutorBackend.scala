@@ -25,12 +25,13 @@ import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
+
 import org.apache.spark._
 import org.apache.spark.TaskState.TaskState
 import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.deploy.worker.WorkerWatcher
 import org.apache.spark.internal.Logging
-import org.apache.spark.prefetch.{PrefetchTaskDescription, Prefetcher}
+import org.apache.spark.prefetch.{Prefetcher, PrefetchReporter, PrefetchTaskDescription}
 import org.apache.spark.rpc._
 import org.apache.spark.scheduler.{ExecutorLossReason, TaskDescription}
 import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages._
@@ -157,11 +158,11 @@ private[spark] class CoarseGrainedExecutorBackend(
     }
   }
 
-  def prefetchStatusUpdate(string: String): Unit = {
-    val msg = PrefetchStatusUpdate(string)
+  def prefetchTaskFinished(reporter: PrefetchReporter): Unit = {
+    val msg = PrefetchTaskFinished(reporter)
     driver match {
       case Some(driverRef) => driverRef.send(msg)
-      case None => logWarning(s"Drop $msg because has not yet connected to driver")
+      case _ => logWarning(s"Drop $msg because has not yet connected to driver")
     }
   }
 

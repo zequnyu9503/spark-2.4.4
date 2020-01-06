@@ -28,7 +28,9 @@ import org.apache.spark.util.UninterruptibleThread
 class Prefetcher(val executorId: String, val executorHostname: String, val backend: ExecutorBackend)
     extends Logging {
 
-  logInfo(s"Starting prefetcher ${executorId} on host ${executorHostname}")
+  val prefetcherId: String = executorId
+
+  logInfo(s"Starting prefetcher [$prefetcherId] on host $executorHostname")
 
   private val threadpoolexecutor_ : ThreadPoolExecutor = {
     val threadFactory = new ThreadFactoryBuilder()
@@ -44,14 +46,15 @@ class Prefetcher(val executorId: String, val executorHostname: String, val backe
 
   def acceptLaunchTask(taskDesc: PrefetchTaskDescription): Unit = {
     val taskRunner = new PrefetchTaskRunner(this, SparkEnv.get, taskDesc)
-    logInfo(s"Accept prefetch tasks on executor ${executorId} of host ${executorHostname}")
+    logInfo(s"Accept prefetch task [${taskDesc.taskId}]" +
+      s" on executor $executorId of host $executorHostname")
     threadpoolexecutor_.execute(taskRunner)
   }
 
-  def reportTaskFinished(nums: String): Unit = {
+  def reportTaskFinished(reporter: PrefetchReporter): Unit = {
     backend match {
       case backend: CoarseGrainedExecutorBackend =>
-        backend.prefetchStatusUpdate(nums)
+        backend.prefetchTaskFinished(reporter)
       case _ => logError("Report failed for prefetching process.")
     }
   }

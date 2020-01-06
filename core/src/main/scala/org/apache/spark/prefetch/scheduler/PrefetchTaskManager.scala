@@ -23,7 +23,7 @@ import org.apache.spark.SparkEnv
 import org.apache.spark.internal.Logging
 import org.apache.spark.prefetch.{
   PrefetchOffer,
-  PrefetchTask,
+  SinglePrefetchTask,
   PrefetchTaskDescription
 }
 import org.apache.spark.scheduler.{
@@ -36,21 +36,21 @@ import org.apache.spark.scheduler.TaskLocality.TaskLocality
 class PrefetchTaskManager(
     offers: Seq[PrefetchOffer],
     hostToExecutors: mutable.HashMap[String, ArrayBuffer[String]],
-    pTasks: Seq[PrefetchTask[_]])
+    pTasks: Seq[SinglePrefetchTask[_]])
     extends Logging {
 
   private val env = SparkEnv.get
   private val ser = env.closureSerializer.newInstance()
 
   private val forExecutors =
-    new mutable.HashMap[String, ArrayBuffer[PrefetchTask[_]]]()
+    new mutable.HashMap[String, ArrayBuffer[SinglePrefetchTask[_]]]()
   private val forHosts =
-    new mutable.HashMap[String, ArrayBuffer[PrefetchTask[_]]]()
-  private val forNoRefs = new ArrayBuffer[PrefetchTask[_]]()
-  private val forAll = new ArrayBuffer[PrefetchTask[_]]()
+    new mutable.HashMap[String, ArrayBuffer[SinglePrefetchTask[_]]]()
+  private val forNoRefs = new ArrayBuffer[SinglePrefetchTask[_]]()
+  private val forAll = new ArrayBuffer[SinglePrefetchTask[_]]()
 
   private val isScheduledforTasks =
-    new mutable.HashMap[PrefetchTask[_], Boolean]()
+    new mutable.HashMap[SinglePrefetchTask[_], Boolean]()
 
   def isAllScheduled: Boolean = {
     !isScheduledforTasks.exists(_._2.equals(false))
@@ -65,20 +65,20 @@ class PrefetchTaskManager(
           case exe: ExecutorCacheTaskLocation =>
             // which means partition located on running executors.
             forExecutors.getOrElseUpdate(exe.executorId,
-              new ArrayBuffer[PrefetchTask[_]]()) += pTasks(i)
+              new ArrayBuffer[SinglePrefetchTask[_]]()) += pTasks(i)
           case hdfs: HDFSCacheTaskLocation =>
             // Find executors which hold cached data.
             val executors = hostToExecutors(hdfs.host)
             if (executors.nonEmpty) {
               executors.foreach { e => forExecutors.getOrElseUpdate(
-                  e, new ArrayBuffer[PrefetchTask[_]]()) += pTasks(i)
+                  e, new ArrayBuffer[SinglePrefetchTask[_]]()) += pTasks(i)
               }
             } else {
               logError(s"Task [${pTasks(i).taskId}] preferred Executor lost.")
             }
           case _ => // Nothing to do.
         }
-        forHosts.getOrElseUpdate(loc.host, new ArrayBuffer[PrefetchTask[_]]()) += pTasks(i)
+        forHosts.getOrElseUpdate(loc.host, new ArrayBuffer[SinglePrefetchTask[_]]()) += pTasks(i)
         if (pTasks(i).locs == Nil) {
           forNoRefs += pTasks(i)
         }
@@ -115,7 +115,7 @@ class PrefetchTaskManager(
   private def dequeueTask(executorId: String,
                           host: String,
                           maxLocality: TaskLocality.TaskLocality)
-    : Option[(PrefetchTask[_], TaskLocality.Value)] = {
+    : Option[(SinglePrefetchTask[_], TaskLocality.Value)] = {
     for (task <- dequeueTaskFromList(
            executorId,
            host,
@@ -146,7 +146,7 @@ class PrefetchTaskManager(
   private def dequeueTaskFromList(
       executorId: String,
       host: String,
-      tasks: ArrayBuffer[PrefetchTask[_]]): Option[PrefetchTask[_]] = {
+      tasks: ArrayBuffer[SinglePrefetchTask[_]]): Option[SinglePrefetchTask[_]] = {
     var index = tasks.size
     while (index > 0) {
       index -= 1

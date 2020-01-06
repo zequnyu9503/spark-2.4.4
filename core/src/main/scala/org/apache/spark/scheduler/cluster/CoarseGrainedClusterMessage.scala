@@ -20,6 +20,7 @@ package org.apache.spark.scheduler.cluster
 import java.nio.ByteBuffer
 
 import org.apache.spark.TaskState.TaskState
+import org.apache.spark.prefetch.PrefetchReporter
 import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rpc.RpcEndpointRef
 import org.apache.spark.scheduler.ExecutorLossReason
@@ -72,7 +73,7 @@ private[spark] object CoarseGrainedClusterMessages {
   case class StatusUpdate(executorId: String, taskId: Long, state: TaskState,
     data: SerializableBuffer) extends CoarseGrainedClusterMessage
 
-  case class PrefetchStatusUpdate(string: String) extends CoarseGrainedClusterMessage
+  case class PrefetchTaskFinished(reporter: PrefetchReporter) extends CoarseGrainedClusterMessage
 
   object StatusUpdate {
     /** Alternate factory method that takes a ByteBuffer directly for the data field */
@@ -91,7 +92,7 @@ private[spark] object CoarseGrainedClusterMessages {
 
   case object StopExecutors extends CoarseGrainedClusterMessage
 
-  case class ReceivePrefetches(prefetchScheduler: PrefetchScheduler)
+  case class ReceivePrefetches()
     extends CoarseGrainedClusterMessage
 
   case class RemoveExecutor(executorId: String, reason: ExecutorLossReason)

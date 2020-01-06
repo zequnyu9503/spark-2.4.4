@@ -25,7 +25,7 @@ import org.apache.spark.{Partition, SparkContext, SparkEnv}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
 import org.apache.spark.network.util.JavaUtils
-import org.apache.spark.prefetch.{PrefetchOffer, PrefetchTask, PrefetchTaskDescription}
+import org.apache.spark.prefetch.{PrefetchOffer, PrefetchReporter, PrefetchTaskDescription, SinglePrefetchTask}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.{DAGScheduler, SchedulerBackend, TaskLocation, TaskScheduler}
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
@@ -40,7 +40,9 @@ class PrefetchScheduler(val sc: SparkContext,
 
   logInfo("Initialize PrefetchScheduler.")
 
-  private var pTasks_ : Seq[PrefetchTask[_]] = _
+  private var pTasks_ : Seq[SinglePrefetchTask[_]] = _
+
+  private val pTaskStatus_ = new mutable.HashMap[String, Boolean]()
 
   private val cgsb_ : CoarseGrainedSchedulerBackend = {
     backend match {
@@ -57,16 +59,22 @@ class PrefetchScheduler(val sc: SparkContext,
     if (pTasks.nonEmpty) {
       logInfo(s"Create ${pTasks.size} prefetch tasks.")
       pTasks_ = pTasks
+      pTasks.foreach(task => pTaskStatus_(task.taskId) = false)
     } else {
       logError("Reject all prefetch tasks.")
       pTasks_ = null
+      pTaskStatus_.clear()
     }
     if (!cgsb_.eq(null)) {
       cgsb_.receivePrefetches(this)
     }
   }
 
-  def createPrefetchTasks(rdd: RDD[_]): Seq[PrefetchTask[_]] = {
+  def prefetchTaskFinished(reporter: PrefetchReporter): Unit = {
+    pTaskStatus_(reporter.taskId) = true
+  }
+
+  private def createPrefetchTasks(rdd: RDD[_]): Seq[SinglePrefetchTask[_]] = {
     var taskBinary: Broadcast[Array[Byte]] = null
     val partitions: Array[Partition] = rdd.partitions
     var taskBinaryBytes: Array[Byte] = null
@@ -86,7 +94,7 @@ class PrefetchScheduler(val sc: SparkContext,
     ).toMap
     // Create prefetch tasks waiting to be launched.
    partitions.map(partition =>
-      new PrefetchTask(taskBinary, partition, taskIdToLocations(partition))).toSeq
+      new SinglePrefetchTask(taskBinary, partition, taskIdToLocations(partition))).toSeq
   }
 
   def resourceOffers(offers: Seq[PrefetchOffer]): Array[PrefetchTaskDescription] = {

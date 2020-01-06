@@ -23,9 +23,9 @@ import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.TaskLocation
 
-class PrefetchTask[T](taskBinary: Broadcast[Array[Byte]],
-                      partition_ : Partition,
-                      locs_ : Seq[TaskLocation])
+class SinglePrefetchTask[T](taskBinary: Broadcast[Array[Byte]],
+                            partition_ : Partition,
+                            locs_ : Seq[TaskLocation])
     extends Serializable {
 
   val taskId: String = partition_.index.toString
