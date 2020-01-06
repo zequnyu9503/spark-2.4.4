@@ -185,6 +185,7 @@ class PrefetchTaskManager(
           // Find fittest tasks launched on every executor.
           resourceOffer(offer.executorId, offer.host, taskLocality) match {
             case Some(descs) => descriptions += descs
+            case _ =>
           }
         }
       }
