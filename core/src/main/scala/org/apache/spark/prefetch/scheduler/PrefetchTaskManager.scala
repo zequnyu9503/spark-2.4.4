@@ -21,15 +21,9 @@ import scala.collection.mutable.ArrayBuffer
 
 import org.apache.spark.SparkEnv
 import org.apache.spark.internal.Logging
-import org.apache.spark.prefetch.{
-  PrefetchOffer,
-  SinglePrefetchTask,
-  PrefetchTaskDescription
-}
-import org.apache.spark.scheduler.{
-  ExecutorCacheTaskLocation,
-  HDFSCacheTaskLocation,
-  TaskLocality
+import org.apache.spark.prefetch.{PrefetchOffer, PrefetchTaskDescription, SinglePrefetchTask}
+import org.apache.spark.scheduler.{ExecutorCacheTaskLocation,
+  HDFSCacheTaskLocation, TaskLocality
 }
 import org.apache.spark.scheduler.TaskLocality.TaskLocality
 
