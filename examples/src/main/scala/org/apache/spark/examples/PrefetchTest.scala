@@ -16,10 +16,22 @@
  */
 package org.apache.spark.examples
 
+import org.apache.spark.{SparkConf, SparkContext}
+
 object PrefetchTest {
 
   def main(args: Array[String]): Unit = {
     val input = args(0)
+    val prefetched = args(1)
 
+    val conf = new SparkConf().setAppName("PrefetchTest-" + System.currentTimeMillis())
+    val sc = new SparkContext(conf)
+
+    val rdd_0 = sc.textFile(input)
+    val rdd_1 = sc.textFile(prefetched)
+
+    // scalastyle:off println
+    System.err.println(rdd_0.count())
+    sc.prefetchRDD(rdd_1)
   }
 }
