@@ -276,7 +276,7 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
     }
 
     def prefetchTaskFinished(reporter: PrefetchReporter): Unit = {
-      prefetchScheduler_.prefetchTaskFinished(reporter)
+      prefetchScheduler_.markPrefetchTaskFinished(reporter)
     }
 
     override def onDisconnected(remoteAddress: RpcAddress): Unit = {

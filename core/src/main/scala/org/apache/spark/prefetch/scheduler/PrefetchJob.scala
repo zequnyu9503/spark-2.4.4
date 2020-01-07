@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.examples
+package org.apache.spark.prefetch.scheduler
 
-import org.apache.spark.{SparkConf, SparkContext}
+import scala.collection.mutable
 
-object PrefetchTest {
+import org.apache.spark.prefetch.{PrefetchReporter, SinglePrefetchTask}
+import org.apache.spark.rdd.RDD
 
-  def main(args: Array[String]): Unit = {
-    val input = args(0)
-    val prefetched = args(1)
+class PrefetchJob(val rdd: RDD[_],
+                  val tasks: mutable.HashMap[SinglePrefetchTask[_], PrefetchReporter],
+                  val callback: Seq[PrefetchReporter] => Unit = null) {
 
-    val conf = new SparkConf().setAppName("PrefetchTest-" + System.currentTimeMillis())
-    val sc = new SparkContext(conf)
+  def isAllFinished: Boolean = tasks.exists(_._2.equals(null))
 
-    val rdd_0 = sc.textFile(input)
-    val rdd_1 = sc.textFile(prefetched)
+  def count: Long = tasks.size
 
-    // scalastyle:off println
-    sc.prefetchRDD(rdd_1)
-    System.err.println(rdd_0.count())
-    // Make sure that rdd_1 cached in memory.
-    System.err.println(rdd_1.count())
+  def updateTaskStatusById(taskId: String, reporter: PrefetchReporter): Unit = {
+    tasks.find(_._1.taskId.equals(taskId)) match {
+      case Some(task) =>
+        tasks(task._1) = reporter
+      case _ =>
+    }
   }
 }

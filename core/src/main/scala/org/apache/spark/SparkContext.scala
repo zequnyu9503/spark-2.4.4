@@ -48,11 +48,12 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
 import org.apache.spark.io.CompressionCodec
 import org.apache.spark.partial.{ApproximateEvaluator, PartialResult}
+import org.apache.spark.prefetch.PrefetchReporter
 import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rdd._
 import org.apache.spark.rpc.RpcEndpointRef
 import org.apache.spark.scheduler._
-import org.apache.spark.scheduler.cluster.{StandaloneSchedulerBackend}
+import org.apache.spark.scheduler.cluster.StandaloneSchedulerBackend
 import org.apache.spark.scheduler.local.LocalSchedulerBackend
 import org.apache.spark.status.AppStatusStore
 import org.apache.spark.status.api.v1.ThreadStackTrace
@@ -2439,8 +2440,8 @@ class SparkContext(config: SparkConf) extends Logging {
   SparkContext.setActiveContext(this, allowMultipleContexts)
 
   // prefetch RDD API.
-  def prefetchRDD(rdd: RDD[_]): Unit = {
-    _prefetchScheduler.prefetch(rdd)
+  def prefetchRDD(rdd: RDD[_], callback: Seq[PrefetchReporter] => Unit = null): Unit = {
+    _prefetchScheduler.prefetch(rdd, callback)
   }
 }
 

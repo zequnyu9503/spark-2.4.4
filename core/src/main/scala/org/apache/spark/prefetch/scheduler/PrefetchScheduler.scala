@@ -40,9 +40,7 @@ class PrefetchScheduler(val sc: SparkContext,
 
   logInfo("Initialize PrefetchScheduler.")
 
-  private var pTasks_ : Seq[SinglePrefetchTask[_]] = _
-
-  private val pTaskStatus_ = new mutable.HashMap[String, Boolean]()
+  private var prefetchJob_ : PrefetchJob = _
 
   private val cgsb_ : CoarseGrainedSchedulerBackend = {
     backend match {
@@ -56,24 +54,25 @@ class PrefetchScheduler(val sc: SparkContext,
   }
 
   // core function.
-  def prefetch(rdd: RDD[_]): Unit = {
+  def prefetch(rdd: RDD[_], callback: Seq[PrefetchReporter] => Unit = null): Unit = {
+    if (!prefetchJob_.eq(null)) {
+      logError(s"There is a prefetchJob running for RDD[${prefetchJob_.rdd.name}].")
+      return
+    }
     val pTasks = createPrefetchTasks(rdd.persist(StorageLevel.MEMORY_ONLY))
     if (pTasks.nonEmpty) {
-      logInfo(s"Create ${pTasks.size} prefetch tasks.")
-      pTasks_ = pTasks
-      pTasks.foreach(task => pTaskStatus_(task.taskId) = false)
+      val tasks = new mutable.HashMap[SinglePrefetchTask[_], PrefetchReporter]()
+      pTasks.foreach(e => tasks(e) = null)
+      prefetchJob_ = new PrefetchJob(rdd, tasks, callback)
+      logInfo(s"Create prefetch job include ${prefetchJob_.count} tasks.")
     } else {
-      logError("Reject all prefetch tasks.")
-      pTasks_ = null
-      pTaskStatus_.clear()
+      logInfo("Failed to create prefetch job for 0 task.")
+      prefetchJob_ = null
+      return
     }
     if (!cgsb_.eq(null)) {
       cgsb_.receivePrefetches(this)
     }
-  }
-
-  def prefetchTaskFinished(reporter: PrefetchReporter): Unit = {
-    pTaskStatus_(reporter.taskId) = true
   }
 
   private def createPrefetchTasks(rdd: RDD[_]): Seq[SinglePrefetchTask[_]] = {
@@ -99,13 +98,29 @@ class PrefetchScheduler(val sc: SparkContext,
       new SinglePrefetchTask(taskBinary, partition, taskIdToLocations(partition))).toSeq
   }
 
-  def resourceOffers(offers: Seq[PrefetchOffer]): Array[PrefetchTaskDescription] = {
+  protected [spark] def resourceOffers(offers: Seq[PrefetchOffer]):
+  Array[PrefetchTaskDescription] = {
+    if (prefetchJob_.eq(null)) return Array()
     val hostToExecutors = new mutable.HashMap[String, ArrayBuffer[String]]()
     for (o <- offers) {
       hostToExecutors.getOrElseUpdate(o.host, new ArrayBuffer[String]()) += o.executorId
     }
-    val prefetchTaskManager = new PrefetchTaskManager(offers, hostToExecutors, pTasks_)
+    val prefetchTaskManager = new PrefetchTaskManager(offers,
+      hostToExecutors, prefetchJob_.tasks.keys.toSeq)
     prefetchTaskManager.makeResources()
+  }
+
+  protected [spark] def markPrefetchTaskFinished(reporter: PrefetchReporter): Unit = {
+    if (!prefetchJob_.eq(null)) {
+      prefetchJob_.updateTaskStatusById(reporter.taskId, reporter)
+    }
+    if (prefetchJob_.isAllFinished) {
+      if (!prefetchJob_.callback.eq(null)) {
+        // Execute function of callback.
+        prefetchJob_.callback(prefetchJob_.tasks.values.toSeq)
+      }
+      prefetchJob_ = null
+    }
   }
 }
 
