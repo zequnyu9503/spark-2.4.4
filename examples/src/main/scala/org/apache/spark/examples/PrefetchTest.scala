@@ -35,7 +35,7 @@ object PrefetchTest {
 
     // Make sure that rdd_1 cached in memory.
     sc.prefetchRDD(rdd_1, (reporters: Seq[PrefetchReporter]) => {
-      System.err.println(s"Longest prefetch duration is ${reporters.max.duration}")
+      System.err.println(s"Longest prefetch duration is ${reporters.maxBy(_.duration)}")
       System.err.println(s"Largest prefetch size is ${reporters.max.elements}")
       System.err.println("RDD_1 has" + rdd_1.count() + "elements.")
     })
