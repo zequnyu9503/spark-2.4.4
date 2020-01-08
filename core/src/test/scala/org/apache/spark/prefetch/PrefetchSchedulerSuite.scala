@@ -16,6 +16,8 @@
  */
 package org.apache.spark.prefetch
 
+import scala.collection.mutable
+
 import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
 
 class PrefetchSchedulerSuite extends SparkFunSuite {
@@ -27,5 +29,12 @@ class PrefetchSchedulerSuite extends SparkFunSuite {
   // scalastyle:off println
   test("getPreferredLocations") {
     System.err.println("YZQ")
+  }
+
+  test ("HashMap") {
+    val map = new mutable.HashMap[Int, String]()
+    map(0) = "asd"
+    map(1) = null
+    System.err.println(map.exists(_._2.eq(null)))
   }
 }

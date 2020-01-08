@@ -112,14 +112,17 @@ class PrefetchScheduler(val sc: SparkContext,
 
   protected [spark] def markPrefetchTaskFinished(reporter: PrefetchReporter): Unit = {
     if (!prefetchJob_.eq(null)) {
+      // Method called means that a prefetch task was finished.
       prefetchJob_.updateTaskStatusById(reporter.taskId, reporter)
-    }
-    if (prefetchJob_.isAllFinished) {
-      if (!prefetchJob_.callback.eq(null)) {
-        // Execute function of callback.
-        prefetchJob_.callback(prefetchJob_.tasks.values.toSeq)
+      if (prefetchJob_.isAllFinished) {
+        if (!prefetchJob_.callback.eq(null)) {
+          // Execute function of callback.
+          prefetchJob_.callback(prefetchJob_.tasks.values.toSeq)
+        }
+        prefetchJob_ = null
       }
-      prefetchJob_ = null
+    } else {
+      logError("A prefetch task was finished without the corresponding job.")
     }
   }
 }
