@@ -37,7 +37,6 @@ object PrefetchTest {
     sc.prefetchRDD(rdd_1, (reporters: Seq[PrefetchReporter]) => {
       System.err.println(s"Longest prefetch duration is ${reporters.maxBy(_.duration)}")
       System.err.println(s"Largest prefetch size is ${reporters.maxBy(_.elements)}")
-      System.err.println("RDD_1 has" + rdd_1.count() + "elements.")
     })
     System.err.println("RDD_0 has" + rdd_0.count() + "elements.")
   }
