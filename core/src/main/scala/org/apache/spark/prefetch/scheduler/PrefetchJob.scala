@@ -25,7 +25,7 @@ class PrefetchJob(val rdd: RDD[_],
                   val tasks: mutable.HashMap[SinglePrefetchTask[_], PrefetchReporter],
                   val callback: Seq[PrefetchReporter] => Unit = null) {
 
-  def isAllFinished: Boolean = tasks.exists(_._2.eq(null))
+  def isAllFinished: Boolean = !tasks.exists(_._2.eq(null))
 
   def count: Long = tasks.size
 
