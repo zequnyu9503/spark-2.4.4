@@ -17,6 +17,7 @@
 package org.apache.spark.examples
 
 import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.prefetch.PrefetchReporter
 
 object PrefetchTest {
 
@@ -31,9 +32,13 @@ object PrefetchTest {
     val rdd_1 = sc.textFile(prefetched)
 
     // scalastyle:off println
-    sc.prefetchRDD(rdd_1)
-    System.err.println(rdd_0.count())
+
     // Make sure that rdd_1 cached in memory.
-    System.err.println(rdd_1.count())
+    sc.prefetchRDD(rdd_1, (reporters: Seq[PrefetchReporter]) => {
+      System.err.println(s"Longest prefetch duration is ${reporters.max.duration}")
+      System.err.println(s"Largest prefetch size is ${reporters.max.elements}")
+      System.err.println("RDD_1 has" + rdd_1.count() + "elements.")
+    })
+    System.err.println("RDD_0 has" + rdd_0.count() + "elements.")
   }
 }
