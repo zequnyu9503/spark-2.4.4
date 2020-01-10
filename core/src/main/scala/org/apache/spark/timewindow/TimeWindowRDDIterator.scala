@@ -14,20 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.prefetch
 
-import scala.collection.mutable
+package org.apache.spark.timewindow
 
-import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
+import org.apache.spark.rdd.RDD
 
-class PrefetchSchedulerSuite extends SparkFunSuite {
+class TimeWindowRDDIterator[T, V](twr: TimeWindowRDD[T, V])
+    extends Iterator[RDD[(T, V)]] {
 
-  val conf =
-    new SparkConf().setMaster("local").setAppName("PrefetchSchedulerSuite")
-  val sc = new SparkContext(conf)
+  override def hasNext: Boolean = !twr.isNextEmpty
 
-  // scalastyle:off println
-  test("getPreferredLocations") {
-    System.err.println("YZQ")
-  }
+  override def next(): RDD[(T, V)] = twr.nextWinRDD()
 }

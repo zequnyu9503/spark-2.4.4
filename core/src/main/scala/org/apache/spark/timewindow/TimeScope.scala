@@ -14,20 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.prefetch
 
-import scala.collection.mutable
+package org.apache.spark.timewindow
 
-import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
+sealed case class TimeScope(start: Long = 0L, end: Long = Long.MaxValue) {
 
-class PrefetchSchedulerSuite extends SparkFunSuite {
+  def isDefault: Boolean = end == Long.MaxValue
 
-  val conf =
-    new SparkConf().setMaster("local").setAppName("PrefetchSchedulerSuite")
-  val sc = new SparkContext(conf)
-
-  // scalastyle:off println
-  test("getPreferredLocations") {
-    System.err.println("YZQ")
-  }
+  def isLegal(winStart: Long): Boolean =
+    winStart >= start.asInstanceOf[Long] && winStart < end.asInstanceOf[Long]
 }

@@ -14,20 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.prefetch
 
-import scala.collection.mutable
+package org.apache.spark.prefetch.controller
 
-import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
-
-class PrefetchSchedulerSuite extends SparkFunSuite {
-
-  val conf =
-    new SparkConf().setMaster("local").setAppName("PrefetchSchedulerSuite")
-  val sc = new SparkContext(conf)
-
-  // scalastyle:off println
-  test("getPreferredLocations") {
-    System.err.println("YZQ")
-  }
-}
+case class TimeWindowStatus(isRunning: Boolean, isFinished: Boolean)

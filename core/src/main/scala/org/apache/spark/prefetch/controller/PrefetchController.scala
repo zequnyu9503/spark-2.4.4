@@ -14,20 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.prefetch
+package org.apache.spark.prefetch.controller
 
-import scala.collection.mutable
+import java.util
 
-import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
+import org.apache.spark.timewindow.TimeWindowRDD
 
-class PrefetchSchedulerSuite extends SparkFunSuite {
+class PrefetchController[T, V] {
 
-  val conf =
-    new SparkConf().setMaster("local").setAppName("PrefetchSchedulerSuite")
-  val sc = new SparkContext(conf)
+  private val twRDDs =
+    new util.LinkedHashMap[TimeWindowRDD[T, V],
+      TimeWindowStatus](32, 0.75f, true)
 
-  // scalastyle:off println
-  test("getPreferredLocations") {
-    System.err.println("YZQ")
+  protected [prefetch] def prefetchWhich(): TimeWindowRDD[T, V] = {
+    null
   }
+
+  protected [prefetch] def prefetchRDD(): Unit = {
+
+  }
+}
+
+object PrefetchController {
+
 }

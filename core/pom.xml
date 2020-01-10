@@ -412,7 +412,14 @@
       <scope>provided</scope>
     </dependency>
 
+    <!-- Used for Time Window Forecast-->
+    <dependency>
+      <groupId>com.github.signaflo</groupId>
+      <artifactId>timeseries</artifactId>
+      <version>0.4</version>
+    </dependency>
   </dependencies>
+
   <build>
     <outputDirectory>target/scala-${scala.binary.version}/classes</outputDirectory>
     <testOutputDirectory>target/scala-${scala.binary.version}/test-classes</testOutputDirectory>

@@ -14,20 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.prefetch
-
-import scala.collection.mutable
+package org.apache.spark.timewindow
 
 import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
 
-class PrefetchSchedulerSuite extends SparkFunSuite {
+class TimeWindowSuite extends SparkFunSuite{
 
-  val conf =
-    new SparkConf().setMaster("local").setAppName("PrefetchSchedulerSuite")
-  val sc = new SparkContext(conf)
-
-  // scalastyle:off println
-  test("getPreferredLocations") {
-    System.err.println("YZQ")
+  test ("Example") {
+    val conf = new SparkConf().setMaster("local").setAppName(s"Exp1")
+    val sc = new SparkContext(conf)
+    val itr = new TimeWindowRDD [Long, Long] (sc, 10, 10, (startTime: Long, endTime: Long) => {
+      sc.parallelize(Array.range(startTime.toInt, endTime.toInt)).map(e => (e.toLong, e.toLong))
+    }).iterator()
+    while (itr.hasNext) {
+      val rdd = itr.next()
+      val count = rdd.map(e => e._2).count()
+    }
   }
 }
