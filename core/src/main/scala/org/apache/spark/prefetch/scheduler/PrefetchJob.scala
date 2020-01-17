@@ -27,7 +27,7 @@ class PrefetchJob(val rdd: RDD[_],
 
   def isAllFinished: Boolean = !tasks.exists(_._2.eq(null))
 
-  def count: Long = tasks.size
+  def taskCount: Long = tasks.size
 
   def updateTaskStatusById(taskId: String, reporter: PrefetchReporter): Unit = {
     tasks.find(_._1.taskId.equals(taskId)) match {

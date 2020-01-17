@@ -17,14 +17,14 @@
 package org.apache.spark.prefetch
 
 import org.apache.spark.SparkFunSuite
-import org.apache.spark.prefetch.controller.TimeConstraints
 
-class TimeConstraintSuite extends SparkFunSuite{
+class DataSizeForecastSuite extends SparkFunSuite{
 
+  val timeConstraint = new DataSizeForecast()
   // scalastyle:off println
 
   test("Forecast next time window data size") {
-    val series = Seq(
+    val series = Array(
       1824755,
       2915405,
       2373731,
@@ -1024,8 +1024,13 @@ class TimeConstraintSuite extends SparkFunSuite{
     2741915,
     3073228,
     1895562
-    ).map(tv => tv.toLong)
-    val timeConstraint = new TimeConstraints()
-    println(s"next is ${timeConstraint.nextTimeWindowDataSize(series)}")
+    ).map(tv => java.lang.Long.valueOf(tv))
+    println(s"next is ${timeConstraint.forecastNext(series)}")
+  }
+
+  test("Forecast next n time windows data size") {
+    val series = Array(10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
+      .map(tv => java.lang.Long.valueOf(tv))
+    println(s"next n(${5}) are ${timeConstraint.forecastNextN(series, 5)}")
   }
 }

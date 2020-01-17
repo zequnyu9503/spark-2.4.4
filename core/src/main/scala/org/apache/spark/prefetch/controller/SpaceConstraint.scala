@@ -14,30 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.timewindow
+package org.apache.spark.prefetch.controller
 
-import scala.collection.mutable.ArrayBuffer
+class SpaceConstraint {
 
-import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
-
-class TimeWindowSuite extends SparkFunSuite{
-  // scalastyle:off println
-
-  test("Time Window") {
-    val conf = new SparkConf().setMaster("local").setAppName("TimeWindow")
-    val sc = new SparkContext(conf)
-
-    val iterator = new TimeWindowRDD[Long, Long](sc, 10, 10, (start: Long, end: Long) => {
-      val seq = new ArrayBuffer[(Long, Long)]()
-      for (t <- start until end) {
-        seq.+=((t, Math.random().toLong))
-      }
-      sc.parallelize(seq)
-    }).iterator()
-
-    while (iterator.hasNext) {
-      val timeWindowRDD = iterator.next()
-      println(timeWindowRDD.count())
-    }
-  }
 }

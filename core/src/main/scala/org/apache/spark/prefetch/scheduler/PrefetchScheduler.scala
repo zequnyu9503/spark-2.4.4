@@ -64,7 +64,7 @@ class PrefetchScheduler(val sc: SparkContext,
       val tasks = new mutable.HashMap[SinglePrefetchTask[_], PrefetchReporter]()
       pTasks.foreach(e => tasks(e) = null)
       prefetchJob_ = new PrefetchJob(rdd, tasks, callback)
-      logInfo(s"Create prefetch job include ${prefetchJob_.count} tasks.")
+      logInfo(s"Create prefetch job include ${prefetchJob_.taskCount} tasks.")
     } else {
       logInfo("Failed to create prefetch job for 0 task.")
       prefetchJob_ = null

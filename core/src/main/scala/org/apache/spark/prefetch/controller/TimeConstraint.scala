@@ -14,30 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.timewindow
+package org.apache.spark.prefetch.controller
 
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable
 
-import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
+class TimeConstraint {
 
-class TimeWindowSuite extends SparkFunSuite{
-  // scalastyle:off println
+  private val prefetch_ = new mutable.HashMap[String, (Long, Long)]()
+  private val computation_ = new mutable.HashMap[String, (Long, Long)]()
 
-  test("Time Window") {
-    val conf = new SparkConf().setMaster("local").setAppName("TimeWindow")
-    val sc = new SparkContext(conf)
-
-    val iterator = new TimeWindowRDD[Long, Long](sc, 10, 10, (start: Long, end: Long) => {
-      val seq = new ArrayBuffer[(Long, Long)]()
-      for (t <- start until end) {
-        seq.+=((t, Math.random().toLong))
-      }
-      sc.parallelize(seq)
-    }).iterator()
-
-    while (iterator.hasNext) {
-      val timeWindowRDD = iterator.next()
-      println(timeWindowRDD.count())
-    }
+  private def prefetchTime(): Long = {
+    0L
   }
+
+  private def waitingTime(): Long = {
+    0L
+  }
+
+  protected def updatePrefetchTime(jobId: String, size: Long, duration: Long): Unit = {
+    prefetch_(jobId) = (size, duration)
+  }
+
+  protected def updateComputationTime(jobId: String, size: Long, duration: Long): Unit = {
+    computation_(jobId) = (size, duration)
+  }
+
+  protected def isAllowed: Boolean = waitingTime() >= prefetchTime()
 }

@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.prefetch
 
-import scala.collection.mutable
+package org.apache.spark.prefetch
 
 import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
 
