@@ -25,18 +25,20 @@ import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
-
 import org.apache.spark._
 import org.apache.spark.TaskState.TaskState
 import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.deploy.worker.WorkerWatcher
 import org.apache.spark.internal.Logging
-import org.apache.spark.prefetch.{Prefetcher, PrefetchReporter, PrefetchTaskDescription}
+import org.apache.spark.migration.{Migrant, Migration}
+import org.apache.spark.prefetch.{PrefetchReporter, PrefetchTaskDescription, Prefetcher}
 import org.apache.spark.rpc._
 import org.apache.spark.scheduler.{ExecutorLossReason, TaskDescription}
 import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages._
 import org.apache.spark.serializer.SerializerInstance
 import org.apache.spark.util.{ThreadUtils, Utils}
+
+import scala.reflect.ClassTag
 
 private[spark] class CoarseGrainedExecutorBackend(
     override val rpcEnv: RpcEnv,
@@ -51,6 +53,7 @@ private[spark] class CoarseGrainedExecutorBackend(
   private[this] val stopping = new AtomicBoolean(false)
   var executor: Executor = null
   var prefetcher: Prefetcher = null
+  var migrant: Migrant = null
   @volatile var driver: Option[RpcEndpointRef] = None
 
   // If this CoarseGrainedExecutorBackend is changed to support multiple threads, then this may need
@@ -84,6 +87,7 @@ private[spark] class CoarseGrainedExecutorBackend(
       try {
         executor = new Executor(executorId, hostname, env, userClassPath, isLocal = false)
         prefetcher = new Prefetcher(executorId, hostname, this)
+        migrant = new Migrant(executorId, hostname, env, this)
       } catch {
         case NonFatal(e) =>
           exitExecutor(1, "Unable to create executor due to " + e.getMessage, e)
@@ -106,6 +110,13 @@ private[spark] class CoarseGrainedExecutorBackend(
         val taskDesc = PrefetchTaskDescription.decode(data.value)
         logInfo("Got prefetch assigned task ")
         prefetcher.acceptLaunchTask(taskDesc)
+      }
+
+    case MigrateBlock(migration: Migration[_]) =>
+      if (!executor.eq(null)) {
+        logInfo(s"Got migration [${migration.blockId}] " +
+          s"${migration.sourceId} -> ${migration.destinationId}")
+        migrant.acceptMigrant(migration)
       }
 
     case KillTask(taskId, _, interruptThread, reason) =>

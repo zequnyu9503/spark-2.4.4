@@ -28,9 +28,8 @@ import scala.collection.Map
 import scala.collection.generic.Growable
 import scala.collection.mutable.HashMap
 import scala.language.implicitConversions
-import scala.reflect.{classTag, ClassTag}
+import scala.reflect.{ClassTag, classTag}
 import scala.util.control.NonFatal
-
 import com.google.common.collect.MapMaker
 import org.apache.commons.lang3.SerializationUtils
 import org.apache.hadoop.conf.Configuration
@@ -39,7 +38,6 @@ import org.apache.hadoop.io.{ArrayWritable, BooleanWritable, BytesWritable, Doub
 import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, SequenceFileInputFormat, TextInputFormat}
 import org.apache.hadoop.mapreduce.{InputFormat => NewInputFormat, Job => NewHadoopJob}
 import org.apache.hadoop.mapreduce.lib.input.{FileInputFormat => NewFileInputFormat}
-
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.deploy.{LocalSparkCluster, SparkHadoopUtil}
@@ -47,6 +45,7 @@ import org.apache.spark.input.{FixedLengthBinaryInputFormat, PortableDataStream,
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
 import org.apache.spark.io.CompressionCodec
+import org.apache.spark.migration.MigrateScheduler
 import org.apache.spark.partial.{ApproximateEvaluator, PartialResult}
 import org.apache.spark.prefetch.PrefetchReporter
 import org.apache.spark.prefetch.scheduler.PrefetchScheduler
@@ -206,6 +205,7 @@ class SparkContext(config: SparkConf) extends Logging {
   private var _heartbeatReceiver: RpcEndpointRef = _
   @volatile private var _dagScheduler: DAGScheduler = _
   private var _prefetchScheduler: PrefetchScheduler = _
+  private var _migrateScheduler: MigrateScheduler = _
   private var _applicationId: String = _
   private var _applicationAttemptId: Option[String] = None
   private var _eventLogger: Option[EventLoggingListener] = None
@@ -499,6 +499,7 @@ class SparkContext(config: SparkConf) extends Logging {
     _dagScheduler = new DAGScheduler(this)
     _prefetchScheduler = new PrefetchScheduler(this, _schedulerBackend,
       _taskScheduler, _dagScheduler)
+    _migrateScheduler = new MigrateScheduler(_schedulerBackend)
     _heartbeatReceiver.ask[Boolean](TaskSchedulerIsSet)
 
     // start TaskScheduler after taskScheduler sets DAGScheduler reference in DAGScheduler's
@@ -2442,6 +2443,11 @@ class SparkContext(config: SparkConf) extends Logging {
   // prefetch RDD API.
   def prefetchRDD(rdd: RDD[_], callback: Seq[PrefetchReporter] => Unit = null): Unit = {
     _prefetchScheduler.prefetch(rdd, callback)
+  }
+
+  def migrateBlock[T: ClassTag](rdd: RDD[_], blockId: Int,
+                                sourceId: String, destinationId: String): Unit = {
+    _migrateScheduler.migrate[T](rdd.id, blockId, sourceId, destinationId)
   }
 }
 

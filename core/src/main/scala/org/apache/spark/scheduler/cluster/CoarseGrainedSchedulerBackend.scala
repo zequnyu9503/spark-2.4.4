@@ -19,13 +19,14 @@ package org.apache.spark.scheduler.cluster
 
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+
 import javax.annotation.concurrent.GuardedBy
 
 import scala.collection.mutable.{ArrayBuffer, HashMap, HashSet}
 import scala.concurrent.Future
-
 import org.apache.spark.{ExecutorAllocationClient, SparkEnv, SparkException, TaskState}
 import org.apache.spark.internal.Logging
+import org.apache.spark.migration.{MigrateScheduler, Migration}
 import org.apache.spark.prefetch.{PrefetchOffer, PrefetchReporter, PrefetchTaskDescription}
 import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rpc._
@@ -33,6 +34,8 @@ import org.apache.spark.scheduler._
 import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages._
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend.ENDPOINT_NAME
 import org.apache.spark.util.{RpcUtils, SerializableBuffer, ThreadUtils, Utils}
+
+import scala.reflect.ClassTag
 
 /**
  * A scheduler backend that waits for coarse-grained executors to connect.
@@ -139,6 +142,8 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
 
       case ReceivePrefetches() =>
         makePrefetches()
+
+      case ReceiveMigration(migration) => doMigration(migration)
 
       case PrefetchTaskFinished(reporter: PrefetchReporter) =>
         prefetchTaskFinished(reporter)
@@ -354,6 +359,13 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
       }
     }
 
+    private def doMigration[T: ClassTag](migration: Migration[T]): Unit = {
+      if (executorDataMap.contains(migration.sourceId) &&
+      executorDataMap.contains(migration.destinationId)) {
+          executorDataMap(migration.sourceId).executorEndpoint.send(MigrateBlock(migration))
+      }
+    }
+
     // Remove a disconnected slave from the cluster
     private def removeExecutor(executorId: String, reason: ExecutorLossReason): Unit = {
       logDebug(s"Asked to remove executor $executorId with reason $reason")
@@ -427,6 +439,13 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
     prefetchScheduler_ = scheduler
   }
 
+  private var migrateScheduler_ : MigrateScheduler = _
+
+  // This method used for initialize migrateScheduler_ in SparkContext.
+  def migrateScheduler(scheduler: MigrateScheduler): Unit = {
+    migrateScheduler_ = scheduler
+  }
+
   override def start() {
     val properties = new ArrayBuffer[(String, String)]
     for ((key, value) <- scheduler.sc.conf.getAll) {
@@ -494,6 +513,10 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
 
   def receivePrefetches(prefetchScheduler: PrefetchScheduler): Unit = {
     driverEndpoint.send(ReceivePrefetches())
+  }
+
+  def receiveMigration[T: ClassTag](migration: Migration[T]): Unit = {
+    driverEndpoint.send(ReceiveMigration(migration))
   }
 
   override def reviveOffers() {
