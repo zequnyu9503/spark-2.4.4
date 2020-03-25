@@ -62,7 +62,7 @@ private [spark] class MigrationHelper(backend: CoarseGrainedExecutorBackend,
 
   private [spark] def reportSourceToExecutor[T: ClassTag](migration: Migration[T]): Unit = {
     val newMigration = Migration[T](migration.blockId, migration.sourceId, migration.destinationId,
-      migration.source, !migration.destination)
+      !migration.source, migration.destination)
     backend.migrationFinished(newMigration)
   }
 }

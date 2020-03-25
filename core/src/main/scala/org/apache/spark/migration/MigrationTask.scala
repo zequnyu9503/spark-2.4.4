@@ -31,7 +31,7 @@ class MigrationTask[T](val executorId: String, val env: SparkEnv,
     migrationHelper.reportDestinationToExecutor(migration.blockId, size)
     logInfo(s"We possess 2x replicated block [${migration.blockId}] on executors.")
     val newMigration = Migration(migration.blockId, migration.sourceId,
-      migration.destinationId, !migration.source, migration.destination)
+      migration.destinationId, migration.source, !migration.destination)
     migrationHelper.reportDestinationToExecutor(newMigration)
   }
 
