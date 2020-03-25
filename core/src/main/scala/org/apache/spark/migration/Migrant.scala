@@ -37,7 +37,7 @@ class Migrant(val executorId: String, val executorHostname: String,
           backend, migrationHelper, migration)
         new Thread(migrationTask).start()
       case migration.sourceId =>
-        migrationHelper.removeReplicated()
+        migrationHelper.removeReplicated(migration.blockId)
         migrationHelper.reportSourceToExecutor(migration)
     }
   }
