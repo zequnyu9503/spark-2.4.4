@@ -16,28 +16,45 @@
  */
 package org.apache.spark.migration
 
+import scala.reflect.ClassTag
+
 import org.apache.spark.SparkEnv
 import org.apache.spark.executor.{DataReadMethod, ExecutorBackend}
 import org.apache.spark.internal.Logging
-import org.apache.spark.storage.BlockResult
+import org.apache.spark.storage.{BlockResult, MigrationHelper}
 
 class Migrant(val executorId: String, val executorHostname: String,
-              val env: SparkEnv, val backend: ExecutorBackend) extends Logging{
+              val env: SparkEnv, val backend: ExecutorBackend)
+    extends Logging {
 
-  def acceptMigrant(migration: Migration[_]): Unit = {
+  private val migrationHelper =
+    new MigrationHelper(env.blockManager, env.blockManager.memoryStore)
+
+  def acceptMigrant[T](migration: Migration[T]): Unit = {
+    cacheBlock(migration, getIterator(migration))
+  }
+
+  private def getIterator[T](migration: Migration[T]): Iterator[T] = {
     val remote = env.blockManager.getRemoteBytes(migration.blockId)
-    if (remote.isEmpty) logError(s"Migrate block [${migration.blockId}] failed")
+    if (remote.isEmpty) {
+      logError(s"Migrate block [${migration.blockId}] failed")
+      return null;
+    }
 
-    // Data type used for transformation.
-    val ct = migration.elementClassTag
-    val data = remote.map { data =>
-      val values = env.serializerManager.
-        dataDeserializeStream(migration.blockId, data.toInputStream(dispose = true))(ct)
+    remote.map { data =>
+      val values = env.serializerManager.dataDeserializeStream(
+        migration.blockId,
+        data.toInputStream(dispose = true))(migration.elementClassTag)
       new BlockResult(values, DataReadMethod.Network, data.size)
     } match {
-      case Some(block) => block
+      case Some(blockResult) => blockResult.data.asInstanceOf[Iterator[T]]
       case _ => null
     }
-    logInfo(s"Migration size is ${data.bytes}")
+  }
+
+  private def cacheBlock[T](migration: Migration[T], itr: Iterator[T]): Unit = {
+    val size = migrationHelper.putItreatorAsValue(migration.blockId,
+                                                  itr, migration.elementClassTag)
+    migrationHelper.reportToMaster(migration.blockId, size)
   }
 }
