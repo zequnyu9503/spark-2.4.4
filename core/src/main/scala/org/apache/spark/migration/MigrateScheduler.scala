@@ -16,9 +16,9 @@
  */
 package org.apache.spark.migration
 
-import org.apache.spark.internal.Logging
-
 import scala.reflect.ClassTag
+
+import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.SchedulerBackend
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
 import org.apache.spark.storage.RDDBlockId
