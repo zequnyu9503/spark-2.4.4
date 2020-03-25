@@ -176,6 +176,14 @@ private[spark] class CoarseGrainedExecutorBackend(
     }
   }
 
+  def migrationFinished(migration: Migration[_]): Unit = {
+    val msg = MigrationFinished(migration)
+    driver match {
+      case Some(driverRef) => driverRef.send(msg)
+      case _ => logWarning(s"Drop $msg because has not yet connected to driver")
+    }
+  }
+
   /**
    * This function can be overloaded by other child classes to handle
    * executor exits differently. For e.g. when an executor goes down,

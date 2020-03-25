@@ -16,10 +16,8 @@
  */
 package org.apache.spark.migration
 
-import scala.reflect.ClassTag
-
 import org.apache.spark.SparkEnv
-import org.apache.spark.executor.ExecutorBackend
+import org.apache.spark.executor.{CoarseGrainedExecutorBackend, ExecutorBackend}
 import org.apache.spark.internal.Logging
 import org.apache.spark.storage.MigrationHelper
 
@@ -27,8 +25,9 @@ class Migrant(val executorId: String, val executorHostname: String,
               val env: SparkEnv, val backend: ExecutorBackend)
     extends Logging {
 
-  private val migrationHelper =
-    new MigrationHelper(env.blockManager, env.blockManager.memoryStore)
+  private val migrationHelper = new MigrationHelper(
+    backend.asInstanceOf[CoarseGrainedExecutorBackend],
+  env.blockManager, env.blockManager.memoryStore)
 
   def acceptMigrant(migration: Migration[_]): Unit = {
     executorId match {
@@ -38,11 +37,8 @@ class Migrant(val executorId: String, val executorHostname: String,
           backend, migrationHelper, migration)
         new Thread(migrationTask).start()
       case migration.sourceId =>
-        migrationHelper.removeReplicated(migration.blockId)
+        migrationHelper.removeReplicated()
         migrationHelper.reportSourceToExecutor(migration)
     }
-
   }
-
-
 }

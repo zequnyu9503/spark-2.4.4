@@ -18,12 +18,13 @@ package org.apache.spark.storage
 
 import scala.reflect.ClassTag
 
+import org.apache.spark.executor.CoarseGrainedExecutorBackend
 import org.apache.spark.internal.Logging
 import org.apache.spark.migration.Migration
-import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages.MigrationFinished
 import org.apache.spark.storage.memory.MemoryStore
 
-private [spark] class MigrationHelper(blockManager: BlockManager,
+private [spark] class MigrationHelper(backend: CoarseGrainedExecutorBackend,
+                                      blockManager: BlockManager,
                                       memoryStore: MemoryStore) extends Logging{
 
   private val master = blockManager.master
@@ -51,7 +52,7 @@ private [spark] class MigrationHelper(blockManager: BlockManager,
   // because the block has already been migrated to a new executor. It's
   // necessary to deliver messages through master.
   private [spark] def reportDestinationToExecutor(migration: Migration[_]): Unit = {
-    master.driverEndpoint.send(MigrationFinished(migration))
+    backend.migrationFinished(migration)
   }
 
   private [spark] def removeReplicated(blockId: BlockId): Unit = {
@@ -62,6 +63,6 @@ private [spark] class MigrationHelper(blockManager: BlockManager,
   private [spark] def reportSourceToExecutor[T: ClassTag](migration: Migration[T]): Unit = {
     val newMigration = Migration[T](migration.blockId, migration.sourceId, migration.destinationId,
       migration.source, true)
-    master.driverEndpoint.send(MigrationFinished(newMigration))
+    backend.migrationFinished(newMigration)
   }
 }
