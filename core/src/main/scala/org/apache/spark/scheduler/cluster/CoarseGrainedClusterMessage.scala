@@ -19,6 +19,8 @@ package org.apache.spark.scheduler.cluster
 
 import java.nio.ByteBuffer
 
+import scala.reflect.ClassTag
+
 import org.apache.spark.TaskState.TaskState
 import org.apache.spark.migration.Migration
 import org.apache.spark.prefetch.PrefetchReporter
@@ -26,7 +28,6 @@ import org.apache.spark.rpc.RpcEndpointRef
 import org.apache.spark.scheduler.ExecutorLossReason
 import org.apache.spark.util.SerializableBuffer
 
-import scala.reflect.ClassTag
 
 private[spark] sealed trait CoarseGrainedClusterMessage extends Serializable
 
