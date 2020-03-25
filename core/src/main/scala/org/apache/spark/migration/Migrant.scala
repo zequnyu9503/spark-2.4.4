@@ -17,25 +17,27 @@
 package org.apache.spark.migration
 
 import org.apache.spark.SparkEnv
-import org.apache.spark.executor.ExecutorBackend
+import org.apache.spark.executor.{DataReadMethod, ExecutorBackend}
 import org.apache.spark.internal.Logging
+import org.apache.spark.storage.BlockResult
 
-class Migrant(val executorId: String,
-              val executorHostname: String,
-              val env: SparkEnv,
-              val backend: ExecutorBackend) extends Logging{
+class Migrant(val executorId: String, val executorHostname: String,
+              val env: SparkEnv, val backend: ExecutorBackend) extends Logging{
 
   def acceptMigrant(migration: Migration[_]): Unit = {
-//    val remote = env.blockManager.getRemoteBytes(migration.blockId)
-//    if (remote.isEmpty) logError(s"Migrate block [${migration.blockId}] failed")
+    val remote = env.blockManager.getRemoteBytes(migration.blockId)
+    if (remote.isEmpty) logError(s"Migrate block [${migration.blockId}] failed")
 
+    // Data type used for transformation.
     val ct = migration.elementClassTag
-//    val res = remote.map { data =>
-//      val values = env.serializerManager.
-//        dataDeserializeStream(migration.blockId, data.toInputStream(dispose = true))(ct)
-//      new BlockResult(values, DataReadMethod.Network, data.size)
-//    }
-
-    logInfo(s"Class is ${ct}")
+    val data = remote.map { data =>
+      val values = env.serializerManager.
+        dataDeserializeStream(migration.blockId, data.toInputStream(dispose = true))(ct)
+      new BlockResult(values, DataReadMethod.Network, data.size)
+    } match {
+      case Some(block) => block
+      case _ => null
+    }
+    logInfo(s"Migration size is ${data.bytes}")
   }
 }
