@@ -363,8 +363,9 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
     private def doMigration(migration: Migration[_]): Unit = {
       if (executorDataMap.contains(migration.sourceId) &&
       executorDataMap.contains(migration.destinationId)) {
+        // We prefer pull mode for migration but reserve push mode as alternative.
+        executorDataMap(migration.destinationId).executorEndpoint.send(MigrateBlock(migration))
         logInfo(s"Send an order to ${migration.sourceId} for pulling mode migration.")
-          executorDataMap(migration.sourceId).executorEndpoint.send(MigrateBlock(migration))
       }
     }
 
