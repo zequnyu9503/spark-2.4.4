@@ -16,8 +16,6 @@
  */
 package org.apache.spark.migration
 
-import scala.reflect.ClassTag
-
 import org.apache.spark.SparkEnv
 import org.apache.spark.executor.{DataReadMethod, ExecutorBackend}
 import org.apache.spark.internal.Logging
