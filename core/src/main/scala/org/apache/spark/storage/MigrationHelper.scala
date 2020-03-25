@@ -50,7 +50,7 @@ private [spark] class MigrationHelper(blockManager: BlockManager,
   // Here we try to tell the source executor to remove the origin block
   // because the block has already been migrated to a new executor. It's
   // necessary to deliver messages through master.
-  private [spark] def reportDestinationToExecutor[T](migration: Migration[T]): Unit = {
+  private [spark] def reportDestinationToExecutor(migration: Migration[_]): Unit = {
     master.driverEndpoint.send(MigrationFinished(migration))
   }
 
@@ -59,9 +59,9 @@ private [spark] class MigrationHelper(blockManager: BlockManager,
     blockManager.removeBlock(blockId)
   }
 
-  private [spark] def reportSourceToExecutor[T](migration: Migration[T]): Unit = {
+  private [spark] def reportSourceToExecutor[T: ClassTag](migration: Migration[T]): Unit = {
     val newMigration = Migration[T](migration.blockId, migration.sourceId, migration.destinationId,
-      source = migration.source, destination = true)
+      migration.source, true)
     master.driverEndpoint.send(MigrationFinished(newMigration))
   }
 }

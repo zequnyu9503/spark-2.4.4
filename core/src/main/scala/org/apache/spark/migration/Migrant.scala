@@ -16,6 +16,8 @@
  */
 package org.apache.spark.migration
 
+import scala.reflect.ClassTag
+
 import org.apache.spark.SparkEnv
 import org.apache.spark.executor.ExecutorBackend
 import org.apache.spark.internal.Logging
@@ -28,10 +30,11 @@ class Migrant(val executorId: String, val executorHostname: String,
   private val migrationHelper =
     new MigrationHelper(env.blockManager, env.blockManager.memoryStore)
 
-  def acceptMigrant[T](migration: Migration[T]): Unit = {
+  def acceptMigrant(migration: Migration[_]): Unit = {
     executorId match {
       case migration.sourceId =>
-        val migrationTask = new MigrationTask[T](executorId, env,
+        val ct = migration.elementClassTag
+        val migrationTask = new MigrationTask(executorId, env,
           backend, migrationHelper, migration)
         new Thread(migrationTask).start()
       case migration.destinationId =>

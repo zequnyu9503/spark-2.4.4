@@ -16,14 +16,15 @@
  */
 package org.apache.spark.migration
 
-import java.util
-
+import scala.collection.mutable
 import scala.reflect.ClassTag
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.SchedulerBackend
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
 import org.apache.spark.storage.{BlockId, RDDBlockId}
+
+
 
 class MigrateScheduler(val backend: SchedulerBackend) extends Logging{
 
@@ -38,12 +39,12 @@ class MigrateScheduler(val backend: SchedulerBackend) extends Logging{
     }
   }
 
-  private val migrations = new util.LinkedHashMap[BlockId, Migration[_]](32, 0.75f, true)
+  private val migrations = new mutable.LinkedHashMap[BlockId, Migration[_]]()
 
   def migrate[T: ClassTag](rddId: Int, partitionId: Int,
                            sourceId: String, destinationId: String): Unit = {
     val blockId = RDDBlockId(rddId, partitionId)
-    if (migrations.containsKey(blockId)) {
+    if (migrations.contains(blockId)) {
       logError(s"Block [${blockId}] exists.")
       return
     } else {
@@ -51,10 +52,9 @@ class MigrateScheduler(val backend: SchedulerBackend) extends Logging{
     }
   }
 
-  private [spark] def doMigration[T](blockId: BlockId,
+  private [spark] def doMigration[T: ClassTag](blockId: BlockId,
                                      sourceId: String, destinationId: String): Unit = {
-    val migration = Migration[T](blockId, sourceId, destinationId,
-      source = false, destination = false)
+    val migration = Migration[T](blockId, sourceId, destinationId, false, false)
     migrations(blockId) = migration
     logInfo(s"Create a migration for block ${blockId} from ${sourceId} to ${destinationId}")
     cgsb_.receiveMigration(migration)
@@ -75,10 +75,16 @@ class MigrateScheduler(val backend: SchedulerBackend) extends Logging{
   }
 
   private [spark] def isMigrationFinished(blockId: BlockId): Boolean = {
-    if (migrations.containsKey(blockId)) {
-      val migration = migrations.get(blockId)
-      return migration.source && migration.destination
+    if (migrations.contains(blockId)) {
+      migrations.get(blockId) match {
+        case Some(migration) => return migration.source && migration.destination
+        case _ =>
+      }
     }
     false
   }
+}
+
+object MigrateScheduler {
+  val default = Migration(null, null, null, false, false)
 }

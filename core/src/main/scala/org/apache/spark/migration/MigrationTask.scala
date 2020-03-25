@@ -22,17 +22,17 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.storage.{BlockResult, MigrationHelper}
 
 class MigrationTask[T](val executorId: String, val env: SparkEnv,
-                    val backend: ExecutorBackend,
-                    val migrationHelper: MigrationHelper,
-                    val migration: Migration[T]) extends Runnable with Logging{
+                                 val backend: ExecutorBackend,
+                                 val migrationHelper: MigrationHelper,
+                                 val migration: Migration[T]) extends Runnable with Logging{
 
   override def run(): Unit = {
     val size = cacheBlock(migration, getIterator(migration))
     migrationHelper.reportDestinationToExecutor(migration.blockId, size)
     logInfo(s"We possess 2x replicated block [${migration.blockId}] on executors.")
-    val newMigration = Migration[T](migration.blockId, migration.sourceId,
-      migration.destinationId, source = false, destination = migration.destination)
-    migrationHelper.reportDestinationToExecutor[T](newMigration)
+    val newMigration = Migration(migration.blockId, migration.sourceId,
+      migration.destinationId, false, migration.destination)
+    migrationHelper.reportDestinationToExecutor(newMigration)
   }
 
   private def getIterator[T](migration: Migration[T]): Iterator[T] = {
