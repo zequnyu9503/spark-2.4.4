@@ -16,13 +16,14 @@
  */
 package org.apache.spark.migration
 
-import scala.reflect.ClassTag
+import org.apache.spark.internal.Logging
 
+import scala.reflect.ClassTag
 import org.apache.spark.scheduler.SchedulerBackend
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
 import org.apache.spark.storage.RDDBlockId
 
-class MigrateScheduler(val backend: SchedulerBackend) {
+class MigrateScheduler(val backend: SchedulerBackend) extends Logging{
 
   private val cgsb_ : CoarseGrainedSchedulerBackend = {
     backend match {
@@ -38,6 +39,7 @@ class MigrateScheduler(val backend: SchedulerBackend) {
   def migrate[T: ClassTag](rddId: Int, partitionId: Int,
                            sourceId: String, destinationId: String): Unit = {
     val migration = Migration[T](RDDBlockId(rddId, partitionId), sourceId, destinationId)
-    cgsb_.receiveMigration[T](migration)
+    logInfo(s"Create a migration for block ${partitionId} from ${sourceId} to ${destinationId}")
+    cgsb_.receiveMigration(migration)
   }
 }

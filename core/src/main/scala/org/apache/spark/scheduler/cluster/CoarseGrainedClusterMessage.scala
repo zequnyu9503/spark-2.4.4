@@ -19,8 +19,6 @@ package org.apache.spark.scheduler.cluster
 
 import java.nio.ByteBuffer
 
-import scala.reflect.ClassTag
-
 import org.apache.spark.TaskState.TaskState
 import org.apache.spark.migration.Migration
 import org.apache.spark.prefetch.PrefetchReporter
@@ -48,7 +46,7 @@ private[spark] object CoarseGrainedClusterMessages {
 
   case class LaunchPrefetchTask(data: SerializableBuffer) extends CoarseGrainedClusterMessage
 
-  case class MigrateBlock[T: ClassTag](migration: Migration[T]) extends CoarseGrainedClusterMessage
+  case class MigrateBlock(migration: Migration[_]) extends CoarseGrainedClusterMessage
 
   case class KillTask(taskId: Long, executor: String, interruptThread: Boolean, reason: String)
     extends CoarseGrainedClusterMessage
@@ -100,8 +98,7 @@ private[spark] object CoarseGrainedClusterMessages {
   case class ReceivePrefetches()
     extends CoarseGrainedClusterMessage
 
-  case class ReceiveMigration[T: ClassTag](migration: Migration[T])
-    extends CoarseGrainedClusterMessage
+  case class ReceiveMigration(migration: Migration[_]) extends CoarseGrainedClusterMessage
 
   case class RemoveExecutor(executorId: String, reason: ExecutorLossReason)
     extends CoarseGrainedClusterMessage

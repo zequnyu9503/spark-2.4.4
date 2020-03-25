@@ -16,6 +16,11 @@
  */
 package org.apache.spark.migration
 
+import scala.reflect.{classTag, ClassTag}
+
 import org.apache.spark.storage.BlockId
 
-case class Migration[T] (blockId: BlockId, sourceId: String, destinationId: String)
+case class Migration[T: ClassTag](blockId: BlockId, sourceId: String,
+                        destinationId: String) extends Serializable {
+  def elementClassTag: ClassTag[T] = classTag[T]
+}

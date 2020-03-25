@@ -360,9 +360,10 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
       }
     }
 
-    private def doMigration[T: ClassTag](migration: Migration[T]): Unit = {
+    private def doMigration(migration: Migration[_]): Unit = {
       if (executorDataMap.contains(migration.sourceId) &&
       executorDataMap.contains(migration.destinationId)) {
+        logInfo(s"Send an order to ${migration.sourceId} for pulling mode migration.")
           executorDataMap(migration.sourceId).executorEndpoint.send(MigrateBlock(migration))
       }
     }
@@ -516,7 +517,7 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
     driverEndpoint.send(ReceivePrefetches())
   }
 
-  def receiveMigration[T: ClassTag](migration: Migration[T]): Unit = {
+  def receiveMigration(migration: Migration[_]): Unit = {
     driverEndpoint.send(ReceiveMigration(migration))
   }
 

@@ -16,26 +16,18 @@
  */
 package org.apache.spark.migration
 
-import org.apache.spark.SparkEnv
-import org.apache.spark.executor.ExecutorBackend
-import org.apache.spark.internal.Logging
+import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
 
-class Migrant(val executorId: String,
-              val executorHostname: String,
-              val env: SparkEnv,
-              val backend: ExecutorBackend) extends Logging{
+class MigrantSuite extends SparkFunSuite{
 
-  def acceptMigrant(migration: Migration[_]): Unit = {
-//    val remote = env.blockManager.getRemoteBytes(migration.blockId)
-//    if (remote.isEmpty) logError(s"Migrate block [${migration.blockId}] failed")
+  // scalastyle:off println
 
-    val ct = migration.elementClassTag
-//    val res = remote.map { data =>
-//      val values = env.serializerManager.
-//        dataDeserializeStream(migration.blockId, data.toInputStream(dispose = true))(ct)
-//      new BlockResult(values, DataReadMethod.Network, data.size)
-//    }
+  test("about data type") {
+    val conf = new SparkConf().setAppName("DataType").setMaster("local")
+    val sc = new SparkContext(conf)
 
-    logInfo(s"Class is ${ct}")
+    val rdd = sc.parallelize(Seq(1, 1, 1)).cache()
+    println(s"count -> ${rdd.count()}")
+    println(rdd.elementClassTag)
   }
 }
