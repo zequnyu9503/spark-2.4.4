@@ -16,11 +16,11 @@
  */
 package org.apache.spark.migration
 
+import scala.reflect.ClassTag
+
 import org.apache.spark.scheduler.SchedulerBackend
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
 import org.apache.spark.storage.RDDBlockId
-
-import scala.reflect.ClassTag
 
 class MigrateScheduler(val backend: SchedulerBackend) {
 
