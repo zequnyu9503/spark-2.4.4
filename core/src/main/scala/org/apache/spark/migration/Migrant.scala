@@ -32,12 +32,12 @@ class Migrant(val executorId: String, val executorHostname: String,
 
   def acceptMigrant(migration: Migration[_]): Unit = {
     executorId match {
-      case migration.sourceId =>
+      case migration.destinationId =>
         val ct = migration.elementClassTag
         val migrationTask = new MigrationTask(executorId, env,
           backend, migrationHelper, migration)
         new Thread(migrationTask).start()
-      case migration.destinationId =>
+      case migration.sourceId =>
         migrationHelper.removeReplicated(migration.blockId)
         migrationHelper.reportSourceToExecutor(migration)
     }

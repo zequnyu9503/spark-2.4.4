@@ -30,9 +30,9 @@ class MigrationTask[T](val executorId: String, val env: SparkEnv,
     val size = cacheBlock(migration, getIterator(migration))
     migrationHelper.reportDestinationToExecutor(migration.blockId, size)
     logInfo(s"We possess 2x replicated block [${migration.blockId}] on executors.")
-//    val newMigration = Migration(migration.blockId, migration.sourceId,
-//      migration.destinationId, false, migration.destination)
-//    migrationHelper.reportDestinationToExecutor(newMigration)
+    val newMigration = Migration(migration.blockId, migration.sourceId,
+      migration.destinationId, false, migration.destination)
+    migrationHelper.reportDestinationToExecutor(newMigration)
   }
 
   private def getIterator[T](migration: Migration[T]): Iterator[T] = {
