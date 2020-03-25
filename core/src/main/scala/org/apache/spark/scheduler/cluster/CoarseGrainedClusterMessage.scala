@@ -78,6 +78,8 @@ private[spark] object CoarseGrainedClusterMessages {
 
   case class PrefetchTaskFinished(reporter: PrefetchReporter) extends CoarseGrainedClusterMessage
 
+  case class MigrationFinished(migration: Migration[_]) extends CoarseGrainedClusterMessage
+
   object StatusUpdate {
     /** Alternate factory method that takes a ByteBuffer directly for the data field */
     def apply(executorId: String, taskId: Long, state: TaskState, data: ByteBuffer)

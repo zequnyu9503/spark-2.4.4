@@ -16,12 +16,14 @@
  */
 package org.apache.spark.migration
 
+import java.util
+
 import scala.reflect.ClassTag
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.SchedulerBackend
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
-import org.apache.spark.storage.RDDBlockId
+import org.apache.spark.storage.{BlockId, RDDBlockId}
 
 class MigrateScheduler(val backend: SchedulerBackend) extends Logging{
 
@@ -36,10 +38,47 @@ class MigrateScheduler(val backend: SchedulerBackend) extends Logging{
     }
   }
 
+  private val migrations = new util.LinkedHashMap[BlockId, Migration[_]](32, 0.75f, true)
+
   def migrate[T: ClassTag](rddId: Int, partitionId: Int,
                            sourceId: String, destinationId: String): Unit = {
-    val migration = Migration[T](RDDBlockId(rddId, partitionId), sourceId, destinationId)
-    logInfo(s"Create a migration for block ${partitionId} from ${sourceId} to ${destinationId}")
+    val blockId = RDDBlockId(rddId, partitionId)
+    if (migrations.containsKey(blockId)) {
+      logError(s"Block [${blockId}] exists.")
+      return
+    } else {
+      doMigration(blockId, sourceId, destinationId)
+    }
+  }
+
+  private [spark] def doMigration[T](blockId: BlockId,
+                                     sourceId: String, destinationId: String): Unit = {
+    val migration = Migration[T](blockId, sourceId, destinationId,
+      source = false, destination = false)
+    migrations(blockId) = migration
+    logInfo(s"Create a migration for block ${blockId} from ${sourceId} to ${destinationId}")
     cgsb_.receiveMigration(migration)
+  }
+
+  private [spark] def migrationUpdate[T: ClassTag](migration: Migration[T]): Unit = {
+    if (migration.destination) {
+      if (!migration.source) {
+        logInfo("Migrate block successfully for the first step." +
+          " Removing the replicated block.")
+        cgsb_.receiveMigration(migration)
+      } else {
+        logInfo("Replicated block was successfully removed. Migration success.")
+      }
+    } else {
+      logError("Migrate block failed for the first step.")
+    }
+  }
+
+  private [spark] def isMigrationFinished(blockId: BlockId): Boolean = {
+    if (migrations.containsKey(blockId)) {
+      val migration = migrations.get(blockId)
+      return migration.source && migration.destination
+    }
+    false
   }
 }

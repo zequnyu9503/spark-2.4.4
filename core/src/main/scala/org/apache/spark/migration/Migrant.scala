@@ -17,9 +17,9 @@
 package org.apache.spark.migration
 
 import org.apache.spark.SparkEnv
-import org.apache.spark.executor.{DataReadMethod, ExecutorBackend}
+import org.apache.spark.executor.ExecutorBackend
 import org.apache.spark.internal.Logging
-import org.apache.spark.storage.{BlockResult, MigrationHelper}
+import org.apache.spark.storage.MigrationHelper
 
 class Migrant(val executorId: String, val executorHostname: String,
               val env: SparkEnv, val backend: ExecutorBackend)
@@ -29,30 +29,17 @@ class Migrant(val executorId: String, val executorHostname: String,
     new MigrationHelper(env.blockManager, env.blockManager.memoryStore)
 
   def acceptMigrant[T](migration: Migration[T]): Unit = {
-    cacheBlock(migration, getIterator(migration))
-  }
-
-  private def getIterator[T](migration: Migration[T]): Iterator[T] = {
-    val remote = env.blockManager.getRemoteBytes(migration.blockId)
-    if (remote.isEmpty) {
-      logError(s"Migrate block [${migration.blockId}] failed")
-      return null;
+    executorId match {
+      case migration.sourceId =>
+        val migrationTask = new MigrationTask[T](executorId, env,
+          backend, migrationHelper, migration)
+        new Thread(migrationTask).start()
+      case migration.destinationId =>
+        migrationHelper.removeReplicated(migration.blockId)
+        migrationHelper.reportSourceToExecutor(migration)
     }
 
-    remote.map { data =>
-      val values = env.serializerManager.dataDeserializeStream(
-        migration.blockId,
-        data.toInputStream(dispose = true))(migration.elementClassTag)
-      new BlockResult(values, DataReadMethod.Network, data.size)
-    } match {
-      case Some(blockResult) => blockResult.data.asInstanceOf[Iterator[T]]
-      case _ => null
-    }
   }
 
-  private def cacheBlock[T](migration: Migration[T], itr: Iterator[T]): Unit = {
-    val size = migrationHelper.putItreatorAsValue(migration.blockId,
-                                                  itr, migration.elementClassTag)
-    migrationHelper.reportToMaster(migration.blockId, size)
-  }
+
 }

@@ -149,6 +149,8 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
       case PrefetchTaskFinished(reporter: PrefetchReporter) =>
         prefetchTaskFinished(reporter)
 
+      case MigrationFinished(migration) => migrationFinished(migration)
+
       case KillTask(taskId, executorId, interruptThread, reason) =>
         executorDataMap.get(executorId) match {
           case Some(executorInfo) =>
@@ -285,6 +287,10 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
       prefetchScheduler_.markPrefetchTaskFinished(reporter)
     }
 
+    def migrationFinished(migration: Migration[_]): Unit = {
+      migrateScheduler_.migrationUpdate(migration)
+    }
+
     override def onDisconnected(remoteAddress: RpcAddress): Unit = {
       addressToExecutorId
         .get(remoteAddress)
@@ -363,9 +369,18 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
     private def doMigration(migration: Migration[_]): Unit = {
       if (executorDataMap.contains(migration.sourceId) &&
       executorDataMap.contains(migration.destinationId)) {
-        // We prefer pull mode for migration but reserve push mode as alternative.
-        executorDataMap(migration.destinationId).executorEndpoint.send(MigrateBlock(migration))
-        logInfo(s"Send an order to ${migration.sourceId} for pulling mode migration.")
+        if (!migration.destination) {
+          // We prefer pull mode for migration but reserve push mode as alternative.
+          executorDataMap(migration.destinationId).executorEndpoint.send(MigrateBlock(migration))
+          logInfo(s"Send an order to ${migration.sourceId} for pulling mode migration.")
+        } else {
+          // This case means the block has already been stored by the destination executor.
+          if (!migration.source) {
+            executorDataMap(migration.sourceId).executorEndpoint.send(MigrateBlock(migration))
+          } else {
+            // There is no need to do. Migration is over.
+          }
+        }
       }
     }
 

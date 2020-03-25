@@ -19,10 +19,12 @@ package org.apache.spark.storage
 import scala.reflect.ClassTag
 
 import org.apache.spark.internal.Logging
+import org.apache.spark.migration.Migration
+import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages.MigrationFinished
 import org.apache.spark.storage.memory.MemoryStore
 
 private [spark] class MigrationHelper(blockManager: BlockManager,
-                      memoryStore: MemoryStore) extends Logging{
+                                      memoryStore: MemoryStore) extends Logging{
 
   private val master = blockManager.master
   private val blockManagerId = blockManager.blockManagerId
@@ -39,9 +41,27 @@ private [spark] class MigrationHelper(blockManager: BlockManager,
     }
   }
 
-  private [spark] def reportToMaster(blockId: BlockId, size: Long): Unit = {
-     master.updateBlockInfo(blockManagerId, blockId,
-       StorageLevel.MEMORY_ONLY, size, 0L)
-    logInfo("Told master about the block cached for migration.")
+  private [spark] def reportDestinationToExecutor(blockId: BlockId, size: Long): Boolean = {
+    logInfo("Telling (Sync) master that the block was cached on the executor.")
+    master.updateBlockInfo(blockManagerId, blockId,
+      StorageLevel.MEMORY_ONLY, size, 0L)
    }
+
+  // Here we try to tell the source executor to remove the origin block
+  // because the block has already been migrated to a new executor. It's
+  // necessary to deliver messages through master.
+  private [spark] def reportDestinationToExecutor[T](migration: Migration[T]): Unit = {
+    master.driverEndpoint.send(MigrationFinished(migration))
+  }
+
+  private [spark] def removeReplicated(blockId: BlockId): Unit = {
+    // default: tellMaster is true.
+    blockManager.removeBlock(blockId)
+  }
+
+  private [spark] def reportSourceToExecutor[T](migration: Migration[T]): Unit = {
+    val newMigration = Migration[T](migration.blockId, migration.sourceId, migration.destinationId,
+      source = migration.source, destination = true)
+    master.driverEndpoint.send(MigrationFinished(newMigration))
+  }
 }
