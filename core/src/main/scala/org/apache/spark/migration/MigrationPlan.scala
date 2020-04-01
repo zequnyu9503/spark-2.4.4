@@ -16,18 +16,27 @@
  */
 package org.apache.spark.migration
 
-import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
+import scala.collection.mutable.ArrayBuffer
 
-class MigrantSuite extends SparkFunSuite{
+import org.apache.spark.storage.BlockId
 
-  // scalastyle:off println
-
-  test("about data type") {
-    val conf = new SparkConf().setAppName("DataType").setMaster("local")
-    val sc = new SparkContext(conf)
-
-    val rdd = sc.parallelize(Seq(1, 1, 1)).cache()
-    println(s"count -> ${rdd.count()}")
-    println(rdd.elementClassTag)
+case class MigrationPlan(isLocal: Boolean,
+                         isMem: Boolean,
+                         sourceId: String,
+                         blockId: BlockId,
+                         destinationId: String) {
+  override def toString: String = {
+    val stringBuffer = new ArrayBuffer[String]()
+    if (isLocal) {
+      stringBuffer += "[Local Mode] "
+      stringBuffer += "<" + sourceId + ">"
+      stringBuffer += "{" + blockId + "}"
+    }
+    if (isMem) {
+      stringBuffer += "[Remote Mode]"
+      stringBuffer += "<" + sourceId + "-" + destinationId + ">"
+      stringBuffer += "<" + blockId + ">"
+    }
+    stringBuffer.mkString(" ")
   }
 }
