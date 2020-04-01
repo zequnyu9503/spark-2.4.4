@@ -149,7 +149,7 @@ class SecondMigration(
       case _ => Option(minExeSet.head)
     }
   }
-  
+
   private [migration] def migrate(): ArrayBuffer[MigrationPlan] = {
     // Memory used of all partitions per executor.
     val workload = executors.collect {
