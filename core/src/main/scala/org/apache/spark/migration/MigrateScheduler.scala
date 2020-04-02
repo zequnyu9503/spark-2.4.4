@@ -46,10 +46,14 @@ class MigrateScheduler(val backend: SchedulerBackend) extends Logging{
     val blockId = RDDBlockId(rddId, partitionId)
     if (migrations.contains(blockId)) {
       logError(s"Block [${blockId}] exists.")
-      return
     } else {
       doMigration(blockId, sourceId, destinationId)
     }
+  }
+
+  def migrate(rddId: Int, partitionId: Int, sourceId: String): Unit = {
+    val blockId = RDDBlockId(rddId, partitionId)
+
   }
 
   private [spark] def doMigration[T: ClassTag](blockId: BlockId,
