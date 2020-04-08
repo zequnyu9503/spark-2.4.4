@@ -16,6 +16,8 @@
  */
 package org.apache.spark.migration
 
+import java.nio.ByteBuffer
+
 import org.apache.spark.SparkEnv
 import org.apache.spark.executor.{DataReadMethod, ExecutorBackend}
 import org.apache.spark.internal.Logging
@@ -50,7 +52,10 @@ class MigrationTask[T](val executorId: String, val env: SparkEnv,
   }
 
   private def getLocalMem[T](migration: Migration[T]): ChunkedByteBuffer = {
-    env.blockManager.getLocalBytes(migration.blockId)
+    env.blockManager.getLocalBytes(migration.blockId) match {
+      case Some(data) => data.toChunkedByteBuffer(ByteBuffer.allocate)
+      case _ => null
+    }
   }
 
   private def migrateToMem(): Unit = {
