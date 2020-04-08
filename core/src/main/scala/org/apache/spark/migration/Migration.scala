@@ -20,10 +20,18 @@ import scala.reflect.{classTag, ClassTag}
 
 import org.apache.spark.storage.BlockId
 
-case class Migration[T: ClassTag](blockId: BlockId, sourceId: String,
-                        destinationId: String, source: Boolean, destination: Boolean)
-  extends Serializable {
+case class Migration[T: ClassTag](isLocal: Boolean,
+                                  isMem: Boolean,
+                                  blockId: BlockId,
+                                  sourceId: String,
+                                  destinationId: String,
+                                  isSourceFinished: Boolean,
+                                  isDestinationFinished: Boolean)
+    extends Serializable {
 
   def elementClassTag: ClassTag[T] = classTag[T]
 
+  def finished(): Boolean = isDestinationFinished && isSourceFinished
+
+  def started(): Boolean = isSourceFinished || isDestinationFinished
 }

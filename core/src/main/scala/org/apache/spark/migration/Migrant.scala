@@ -27,18 +27,29 @@ class Migrant(val executorId: String, val executorHostname: String,
 
   private val migrationHelper = new MigrationHelper(
     backend.asInstanceOf[CoarseGrainedExecutorBackend],
-  env.blockManager, env.blockManager.memoryStore)
+  env.blockManager, env.blockManager.memoryStore,
+    env.blockManager.diskStore)
 
   def acceptMigrant(migration: Migration[_]): Unit = {
-    executorId match {
-      case migration.destinationId =>
-        val ct = migration.elementClassTag
-        val migrationTask = new MigrationTask(executorId, env,
-          backend, migrationHelper, migration)
+    if (migration.isMem) {
+      executorId match {
+        case migration.destinationId =>
+          val migrationTask = new MigrationTask(executorId, env, backend,
+            migrationHelper, migration)
+          new Thread(migrationTask).start()
+        case migration.sourceId =>
+          migrationHelper.removeReplicated(migration.blockId)
+          migrationHelper.reportSourceToExecutor(migration)
+      }
+    }
+
+    if (migration.isLocal) {
+      if (!migration.isDestinationFinished) {
+        val migrationTask = new MigrationTask(executorId, env, backend,
+          migrationHelper, migration)
         new Thread(migrationTask).start()
-      case migration.sourceId =>
-        migrationHelper.removeReplicated(migration.blockId)
-        migrationHelper.reportSourceToExecutor(migration)
+      }
     }
   }
+
 }

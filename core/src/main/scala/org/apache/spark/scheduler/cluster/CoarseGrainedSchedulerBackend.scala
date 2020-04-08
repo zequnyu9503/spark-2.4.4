@@ -23,7 +23,6 @@ import javax.annotation.concurrent.GuardedBy
 
 import scala.collection.mutable.{ArrayBuffer, HashMap, HashSet}
 import scala.concurrent.Future
-import scala.reflect.ClassTag
 
 import org.apache.spark.{ExecutorAllocationClient, SparkEnv, SparkException, TaskState}
 import org.apache.spark.internal.Logging
@@ -369,16 +368,22 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
     private def doMigration(migration: Migration[_]): Unit = {
       if (executorDataMap.contains(migration.sourceId) &&
       executorDataMap.contains(migration.destinationId)) {
-        if (!migration.destination) {
-          // We prefer pull mode for migration but reserve push mode as alternative.
-          executorDataMap(migration.destinationId).executorEndpoint.send(MigrateBlock(migration))
-          logInfo(s"Send an order to ${migration.sourceId} for pulling mode migration.")
-        } else {
-          // This case means the block has already been stored by the destination executor.
-          if (!migration.source) {
-            executorDataMap(migration.sourceId).executorEndpoint.send(MigrateBlock(migration))
+        if (migration.isMem) {
+          if (!migration.isDestinationFinished) {
+            // We prefer pull mode for migration but reserve push mode as alternative.
+            executorDataMap(migration.destinationId).executorEndpoint.send(MigrateBlock(migration))
+            logInfo(s"Send an order to ${migration.sourceId} for pulling mem-migration.")
           } else {
-            // There is no need to do. Migration is over.
+            // This case means the block has already been stored by the destination executor.
+            if (!migration.isSourceFinished) {
+              executorDataMap(migration.sourceId).executorEndpoint.send(MigrateBlock(migration))
+            }
+          }
+        }
+        if (migration.isLocal) {
+          if (!migration.finished()) {
+            executorDataMap(migration.destinationId).executorEndpoint.send(MigrateBlock(migration))
+            logInfo(s"Send an order to ${migration.sourceId} for pulling disk-migration.")
           }
         }
       }

@@ -22,31 +22,45 @@ import org.apache.spark.executor.CoarseGrainedExecutorBackend
 import org.apache.spark.internal.Logging
 import org.apache.spark.migration.Migration
 import org.apache.spark.storage.memory.MemoryStore
+import org.apache.spark.util.io.ChunkedByteBuffer
 
 private [spark] class MigrationHelper(backend: CoarseGrainedExecutorBackend,
                                       blockManager: BlockManager,
-                                      memoryStore: MemoryStore) extends Logging{
+                                      memoryStore: MemoryStore,
+                                      diskStore: DiskStore) extends Logging{
 
   private val master = blockManager.master
   private val blockManagerId = blockManager.blockManagerId
+  private val blockInfoManager = blockManager.blockInfoManager
 
-  private [spark] def putItreatorAsValue[T](blockId: BlockId,
-                                       itr: Iterator[T], c: ClassTag[T]): Long = {
+  private [spark] def putIteratorAsMemValue[T]
+  (blockId: BlockId, itr: Iterator[T], c: ClassTag[T]): Long = {
     memoryStore.putIteratorAsValues[T](blockId, itr, c) match {
       case Right(s) =>
         logInfo("Put iterator into memory successfully")
         s
       case Left(iter) =>
-        logError("Put iterator failed for insufficient memory space.")
+        logError("Put iterator failed into memory for insufficient memory space.")
         0L
     }
   }
 
-  private [spark] def reportDestinationToExecutor(blockId: BlockId, size: Long): Boolean = {
+  private [spark] def putBytesOntoDisk[T](blockId: BlockId,
+                                          bytes: ChunkedByteBuffer): Long = {
+    diskStore.putBytes(blockId, bytes)
+    bytes.size
+  }
+
+  private [spark] def reportBlockCachedInMem(blockId: BlockId, size: Long): Boolean = {
     logInfo("Telling (Sync) master that the block was cached on the executor.")
-    master.updateBlockInfo(blockManagerId, blockId,
-      StorageLevel.MEMORY_ONLY, size, 0L)
+    master.updateBlockInfo(blockManagerId, blockId, StorageLevel.MEMORY_ONLY, size, 0L)
    }
+
+  private [spark] def reportBlockCachedOnDisk(blockId: BlockId, size: Long): Boolean = {
+    removeReplicated(blockId)
+    logInfo("We remove all stored positions on the executor then register a new block on disk.")
+    master.updateBlockInfo(blockManagerId, blockId, StorageLevel.DISK_ONLY, 0L, size)
+  }
 
   // Here we try to tell the source executor to remove the origin block
   // because the block has already been migrated to a new executor. It's
@@ -57,12 +71,14 @@ private [spark] class MigrationHelper(backend: CoarseGrainedExecutorBackend,
 
   private [spark] def removeReplicated(blockId: BlockId): Unit = {
     // default: tellMaster is true.
+    // This function will remove blocks both from memory and disk.
     blockManager.removeBlock(blockId)
   }
 
   private [spark] def reportSourceToExecutor[T: ClassTag](migration: Migration[T]): Unit = {
-    val newMigration = Migration[T](migration.blockId, migration.sourceId, migration.destinationId,
-      !migration.source, migration.destination)
+    val newMigration = Migration(migration.isLocal, migration.isMem, migration.blockId,
+      migration.sourceId, migration.destinationId, isSourceFinished = true,
+      isDestinationFinished = migration.isDestinationFinished)
     backend.migrationFinished(newMigration)
   }
 }

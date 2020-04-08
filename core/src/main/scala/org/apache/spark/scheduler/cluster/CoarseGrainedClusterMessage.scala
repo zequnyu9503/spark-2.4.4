@@ -97,8 +97,7 @@ private[spark] object CoarseGrainedClusterMessages {
 
   case object StopExecutors extends CoarseGrainedClusterMessage
 
-  case class ReceivePrefetches()
-    extends CoarseGrainedClusterMessage
+  case class ReceivePrefetches() extends CoarseGrainedClusterMessage
 
   case class ReceiveMigration(migration: Migration[_]) extends CoarseGrainedClusterMessage
 

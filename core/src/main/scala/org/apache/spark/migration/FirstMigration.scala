@@ -24,12 +24,56 @@ import org.apache.spark.storage.BlockId
 class FirstMigration(
                       // blockId, executorId
                      val partitions: mutable.HashMap[BlockId, String],
+                      // blockId, computation duration
+                      val recompute: mutable.HashMap[BlockId, Long],
                      // blockId, cached size
-                     val mem: mutable.HashMap[BlockId, Long]) {
+                     val mem: mutable.HashMap[BlockId, Long],
+                      val load: Long,
+                      val deser: Long,
+                      val next: Long) {
 
   private [migration] var MAX_MEM: Long = 8 * 1024 * 1024
 
+  // Mappings from executors to blocks. One-to-many.
+  private [migration] val executors = mutable.HashMap[String, List[BlockId]](partitions.
+    groupBy(_._2).collect { case (exeId, bIds) =>
+    (exeId, bIds.keys.toList)}.toArray: _*)
+
+  private [migration] def isTriggered(hm: mutable.HashMap[String, Long]): Boolean =
+    hm.values.sum > MAX_MEM
+
+  private [migration] def reload(size: Long): Long = size * (load + deser)
+
+  private [migration] def pickEachMax(exeId: String): Option[BlockId] = {
+    Option(executors(exeId).filter(p => {
+      val duration = reload(mem(p))
+      duration < recompute(p) && duration <= next
+    }).map(p => (p, mem(p))).maxBy(_._2)._1) match {
+      case Some(bId) => Option(bId)
+      case _ => None
+    }
+  }
+
   private [migration] def migrate(): ArrayBuffer[MigrationPlan] = {
-    null
+    // Used for recording migrations.
+    val plans: ArrayBuffer[MigrationPlan] = new ArrayBuffer[MigrationPlan]()
+
+    // Memory used of all partitions per executor.
+    val workload = executors.collect {
+      case (executorId, blockIds) => (executorId, blockIds.map(id => mem(id)).sum)
+    }
+
+    // Whether get enough time left for migration
+    var keepGoing = true
+
+    while (keepGoing && isTriggered(workload)) {
+      workload.keySet.foreach(exeId => {
+        pickEachMax(exeId) match {
+          case Some(bId) => plans += MigrationPlan(isLocal = true, isMem = false, exeId, bId, null)
+        }
+      })
+    }
+
+    plans
   }
 }

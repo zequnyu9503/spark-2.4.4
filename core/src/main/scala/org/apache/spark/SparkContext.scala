@@ -2451,6 +2451,10 @@ class SparkContext(config: SparkConf) extends Logging {
                                 sourceId: String, destinationId: String): Unit = {
     _migrateScheduler.migrate[T](rdd.id, blockId, sourceId, destinationId)
   }
+
+  def migrateBlock[T: ClassTag](rdd: RDD[_], blockId: Int, sourceId: String): Unit = {
+    _migrateScheduler.migrate[T](rdd.id, blockId, sourceId)
+  }
 }
 
 /**
