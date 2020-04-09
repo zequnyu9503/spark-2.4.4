@@ -16,13 +16,10 @@
  */
 package org.apache.spark.migration
 
-import java.nio.ByteBuffer
-
 import org.apache.spark.SparkEnv
 import org.apache.spark.executor.{DataReadMethod, ExecutorBackend}
 import org.apache.spark.internal.Logging
 import org.apache.spark.storage.{BlockResult, MigrationHelper}
-import org.apache.spark.util.io.ChunkedByteBuffer
 
 class MigrationTask[T](val executorId: String, val env: SparkEnv,
                                  val backend: ExecutorBackend,
@@ -51,9 +48,9 @@ class MigrationTask[T](val executorId: String, val env: SparkEnv,
     }
   }
 
-  private def getLocalMem[T](migration: Migration[T]): ChunkedByteBuffer = {
-    env.blockManager.getLocalBytes(migration.blockId) match {
-      case Some(data) => data.toChunkedByteBuffer(ByteBuffer.allocate)
+  private def getLocalMemAsIterator[T](migration: Migration[T]): Iterator[T] = {
+    env.blockManager.getLocalValues(migration.blockId) match {
+      case Some(blockResult) => blockResult.data.asInstanceOf[Iterator[T]]
       case _ => null
     }
   }
@@ -71,7 +68,8 @@ class MigrationTask[T](val executorId: String, val env: SparkEnv,
   }
 
   private def migrateToDisk(): Unit = {
-    val size = migrationHelper.putBytesOntoDisk(migration.blockId, getLocalMem(migration))
+    val size = migrationHelper.putIteratorAsDiskValue(migration.blockId,
+      getLocalMemAsIterator(migration), migration.elementClassTag)
     logInfo(s"We have possessed replicated blocks [${migration.blockId}] on executors.")
 
     migrationHelper.reportBlockCachedOnDisk(migration.blockId, size)

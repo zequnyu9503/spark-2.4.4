@@ -16,13 +16,14 @@
  */
 package org.apache.spark.storage
 
+import java.nio.channels.Channels
+
 import scala.reflect.ClassTag
 
 import org.apache.spark.executor.CoarseGrainedExecutorBackend
 import org.apache.spark.internal.Logging
 import org.apache.spark.migration.Migration
 import org.apache.spark.storage.memory.MemoryStore
-import org.apache.spark.util.io.ChunkedByteBuffer
 
 private [spark] class MigrationHelper(backend: CoarseGrainedExecutorBackend,
                                       blockManager: BlockManager,
@@ -33,18 +34,19 @@ private [spark] class MigrationHelper(backend: CoarseGrainedExecutorBackend,
   private val blockManagerId = blockManager.blockManagerId
   private val blockInfoManager = blockManager.blockInfoManager
 
-  private [spark] def putIteratorAsMemValue[T]
-  (blockId: BlockId, itr: Iterator[T], c: ClassTag[T]): Long = {
+  private [spark] def putIteratorAsMemValue[T](blockId: BlockId,
+                                               itr: Iterator[T], c: ClassTag[T]): Long = {
 
     val newInfo = new BlockInfo(StorageLevel.MEMORY_ONLY, c, true)
     if (blockInfoManager.lockNewBlockForWriting(blockId, newInfo)) {
       memoryStore.putIteratorAsValues[T](blockId, itr, c) match {
         case Right(s) =>
-          logInfo("Put iterator into memory successfully")
           blockInfoManager.unlock(blockId)
+          logInfo("Put iterator into memory successfully")
           s
         case Left(iter) =>
           logError("Put iterator failed into memory for insufficient memory space.")
+          blockManager.removeBlock(blockId)
           0L
       }
     } else {
@@ -53,21 +55,42 @@ private [spark] class MigrationHelper(backend: CoarseGrainedExecutorBackend,
     }
   }
 
-  private [spark] def putBytesOntoDisk[T](blockId: BlockId,
-                                          bytes: ChunkedByteBuffer): Long = {
-    diskStore.putBytes(blockId, bytes)
-    bytes.size
+  private [spark] def putIteratorAsDiskValue[T](blockId: BlockId,
+                                                itr: Iterator[T], c: ClassTag[T]): Long = {
+    val serializerManager = blockManager.serializerManager
+
+    val newInfo = new BlockInfo(StorageLevel.DISK_ONLY, c, true)
+    if (blockInfoManager.lockNewBlockForWriting(blockId, newInfo)) {
+      diskStore.put(blockId) { channel =>
+        val out = Channels.newOutputStream(channel)
+        serializerManager.dataSerializeStream(blockId, out, itr)(c)
+      }
+      blockInfoManager.unlock(blockId)
+      logInfo("Put iterator into disk successfully")
+      diskStore.getSize(blockId)
+    } else {
+      blockInfoManager.unlock(blockId)
+      0L
+    }
   }
 
   private [spark] def reportBlockCachedInMem(blockId: BlockId, size: Long): Boolean = {
-    logInfo("Telling (Sync) master that the block was cached on the executor.")
-    master.updateBlockInfo(blockManagerId, blockId, StorageLevel.MEMORY_ONLY, size, 0L)
+    if (size > 0) {
+      logInfo("Telling (Sync) master that the block was cached on the executor.")
+      master.updateBlockInfo(blockManagerId, blockId, StorageLevel.MEMORY_ONLY, size, 0L)
+    } else {
+      false
+    }
    }
 
   private [spark] def reportBlockCachedOnDisk(blockId: BlockId, size: Long): Boolean = {
-    removeReplicated(blockId)
-    logInfo("We remove all stored positions on the executor then register a new block on disk.")
-    master.updateBlockInfo(blockManagerId, blockId, StorageLevel.DISK_ONLY, 0L, size)
+    if (size > 0) {
+      removeReplicated(blockId)
+      logInfo("We remove all stored positions on the executor then register a new block on disk.")
+      master.updateBlockInfo(blockManagerId, blockId, StorageLevel.DISK_ONLY, 0L, size)
+    } else {
+      false
+    }
   }
 
   // Here we try to tell the source executor to remove the origin block
