@@ -35,13 +35,21 @@ private [spark] class MigrationHelper(backend: CoarseGrainedExecutorBackend,
 
   private [spark] def putIteratorAsMemValue[T]
   (blockId: BlockId, itr: Iterator[T], c: ClassTag[T]): Long = {
-    memoryStore.putIteratorAsValues[T](blockId, itr, c) match {
-      case Right(s) =>
-        logInfo("Put iterator into memory successfully")
-        s
-      case Left(iter) =>
-        logError("Put iterator failed into memory for insufficient memory space.")
-        0L
+
+    val newInfo = new BlockInfo(StorageLevel.MEMORY_ONLY, c, true)
+    if (blockInfoManager.lockNewBlockForWriting(blockId, newInfo)) {
+      memoryStore.putIteratorAsValues[T](blockId, itr, c) match {
+        case Right(s) =>
+          logInfo("Put iterator into memory successfully")
+          blockInfoManager.unlock(blockId)
+          s
+        case Left(iter) =>
+          logError("Put iterator failed into memory for insufficient memory space.")
+          0L
+      }
+    } else {
+      blockInfoManager.unlock(blockId)
+      0L
     }
   }
 
