@@ -74,7 +74,7 @@ private [spark] class MigrationHelper(backend: CoarseGrainedExecutorBackend,
     }
    }
 
-  private [spark] def updateAndReportForDisk[T: ClassTag](migration: Migration[T],
+  private [spark] def updateAndReportForDisk[T](migration: Migration[T],
                                                           size: Long): Boolean = {
     if (size > 0) {
       val newInfo = new BlockInfo(StorageLevel.DISK_ONLY, migration.elementClassTag, true)
