@@ -85,11 +85,17 @@ class MigrateScheduler(val backend: SchedulerBackend) extends Logging {
           cgsb_.receiveMigration(migration)
         } else {
           migrations(migration.blockId) = migration
-          logInfo("Replicated block was successfully removed. Migration success.")
+          logInfo("Replicated block was successfully removed. Mem-Migration success.")
         }
       } else {
         migrations(migration.blockId) = MigrateScheduler.reset(migration)
         logError("Migrate block failed to pull blocks from others.")
+      }
+    }
+    if (migration.isLocal) {
+      if (migration.finished()) {
+        migrations(migration.blockId) = migration
+        logInfo("Disk-Migration success.")
       }
     }
   }
