@@ -443,4 +443,12 @@ private[storage] class BlockInfoManager extends Logging {
     notifyAll()
   }
 
+  def replace(blockId: BlockId, blockInfo: BlockInfo): Boolean = {
+    if (infos.contains(blockId)) {
+      infos(blockId) = blockInfo
+      true
+    } else {
+      false
+    }
+  }
 }

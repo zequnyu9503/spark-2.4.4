@@ -69,12 +69,15 @@ class MigrationTask[T](val executorId: String, val env: SparkEnv,
   }
 
   private def migrateToDisk(): Unit = {
-    val size = migrationHelper.putIteratorAsDiskValue(migration.blockId,
+    val size = migrationHelper.putIteratorIntoDisk(migration.blockId,
       getLocalMemAsIterator(migration), migration.elementClassTag)
-    migrationHelper.reportBlockCachedOnDisk(migration.blockId, size)
-    val newMigration = Migration(migration.isLocal, migration.isMem,
-      migration.blockId, migration.sourceId, migration.destinationId,
-      isSourceFinished = true, isDestinationFinished = true)
+    val newMigration = if (migrationHelper.updateAndReportForDisk(migration, size)) {
+       Migration(migration.isLocal, migration.isMem,
+        migration.blockId, migration.sourceId, migration.destinationId,
+        isSourceFinished = true, isDestinationFinished = true)
+    } else {
+      migration
+    }
     migrationHelper.reportDestinationToExecutor(newMigration)
   }
 }

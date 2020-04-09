@@ -55,24 +55,14 @@ private [spark] class MigrationHelper(backend: CoarseGrainedExecutorBackend,
     }
   }
 
-  private [spark] def putIteratorAsDiskValue[T](blockId: BlockId,
-                                                itr: Iterator[T], c: ClassTag[T]): Long = {
+  private [spark] def putIteratorIntoDisk[T](blockId: BlockId,
+                                             itr: Iterator[T], c: ClassTag[T]): Long = {
     val serializerManager = blockManager.serializerManager
-
-    val newInfo = new BlockInfo(StorageLevel.MEMORY_AND_DISK, c, true)
-    if (blockInfoManager.lockNewBlockForWriting(blockId, newInfo)) {
-      diskStore.put(blockId) { channel =>
-        val out = Channels.newOutputStream(channel)
-        serializerManager.dataSerializeStream(blockId, out, itr)(c)
-      }
-      blockInfoManager.unlock(blockId)
-      logInfo("Put iterator into disk successfully")
-      diskStore.getSize(blockId)
-    } else {
-      blockInfoManager.unlock(blockId)
-      logError("Failed to put iterator into disk.")
-      0L
+    diskStore.put(blockId) { channel =>
+      val out = Channels.newOutputStream(channel)
+      serializerManager.dataSerializeStream(blockId, out, itr)(c)
     }
+    diskStore.getSize(blockId)
   }
 
   private [spark] def reportBlockCachedInMem(blockId: BlockId, size: Long): Boolean = {
@@ -84,10 +74,14 @@ private [spark] class MigrationHelper(backend: CoarseGrainedExecutorBackend,
     }
    }
 
-  private [spark] def reportBlockCachedOnDisk(blockId: BlockId, size: Long): Boolean = {
+  private [spark] def updateAndReportForDisk[T: ClassTag](migration: Migration[T],
+                                                          size: Long): Boolean = {
     if (size > 0) {
-      logInfo("We remove all stored positions on the executor then register a new block on disk.")
-      master.updateBlockInfo(blockManagerId, blockId, StorageLevel.DISK_ONLY, 0L, size)
+      val newInfo = new BlockInfo(StorageLevel.DISK_ONLY, migration.elementClassTag, true)
+      val replaced = blockInfoManager.replace(migration.blockId, newInfo)
+      val reported = master.updateBlockInfo(blockManagerId, migration.blockId,
+        StorageLevel.DISK_ONLY, 0L, size)
+      replaced && reported
     } else {
       false
     }
