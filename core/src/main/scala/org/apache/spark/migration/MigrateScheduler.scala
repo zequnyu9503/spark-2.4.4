@@ -37,30 +37,15 @@ class MigrateScheduler(val backend: SchedulerBackend) extends Logging {
     }
   }
 
-  // Record all migrations we have ever handled.
-  private val migrations = new mutable.LinkedHashMap[BlockId, Migration[_]]()
-
-  def migrate[T: ClassTag](rddId: Int,
-                           partitionId: Int,
-                           sourceId: String,
+  def migrate[T: ClassTag](rddId: Int, partitionId: Int, sourceId: String,
                            destinationId: String): Unit = {
     val blockId = RDDBlockId(rddId, partitionId)
-    if (migrations.contains(blockId) && migrations(blockId).started()) {
-      // Which means Spark is working on migrations. Cancel migration request.
-      logError(s"Block [${blockId.toString}] is being migrated at this moment.")
-    } else {
-      doMigration(isLocal = false, isMem = true, blockId, sourceId, destinationId)
-    }
+
   }
 
   def migrate[T: ClassTag](rddId: Int, partitionId: Int, sourceId: String): Unit = {
     val blockId = RDDBlockId(rddId, partitionId)
-    if (migrations.contains(blockId) && migrations(blockId).finished()) {
-      // Which means Spark is working on migrations. Cancel migration request.
-      logError(s"Block [${blockId.toString}] is being migrated at this moment.")
-    } else {
-      doMigration(isLocal = true, isMem = false, blockId, sourceId, sourceId)
-    }
+
   }
 
   def migrate(plan: MigrationPlan): Unit = {}

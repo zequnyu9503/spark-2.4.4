@@ -25,9 +25,7 @@ sealed class TimeWindowRDD[T, V](sc: SparkContext, winSize: T,
                                  winStep: T, func: (T, T) => RDD[(T, V)]) {
 
   private val controller = new TimeWindowController(sc,
-                                                    winSize.asInstanceOf[Long],
-                                                    winStep.asInstanceOf[Long],
-                                                    func)
+    winSize.asInstanceOf[Long], winStep.asInstanceOf[Long], func)
 
   private var _iterator: TimeWindowRDDIterator[T, V] = _
 
