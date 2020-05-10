@@ -28,9 +28,8 @@ import scala.collection.Map
 import scala.collection.generic.Growable
 import scala.collection.mutable.HashMap
 import scala.language.implicitConversions
-import scala.reflect.{classTag, ClassTag}
+import scala.reflect.{ClassTag, classTag}
 import scala.util.control.NonFatal
-
 import com.google.common.collect.MapMaker
 import org.apache.commons.lang3.SerializationUtils
 import org.apache.hadoop.conf.Configuration
@@ -39,7 +38,6 @@ import org.apache.hadoop.io.{ArrayWritable, BooleanWritable, BytesWritable, Doub
 import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, SequenceFileInputFormat, TextInputFormat}
 import org.apache.hadoop.mapreduce.{InputFormat => NewInputFormat, Job => NewHadoopJob}
 import org.apache.hadoop.mapreduce.lib.input.{FileInputFormat => NewFileInputFormat}
-
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.deploy.{LocalSparkCluster, SparkHadoopUtil}
@@ -60,6 +58,7 @@ import org.apache.spark.status.AppStatusStore
 import org.apache.spark.status.api.v1.ThreadStackTrace
 import org.apache.spark.storage._
 import org.apache.spark.storage.BlockManagerMessages.TriggerThreadDump
+import org.apache.spark.timewindow.WinFetcher
 import org.apache.spark.ui.{ConsoleProgressBar, SparkUI}
 import org.apache.spark.util._
 
@@ -2445,6 +2444,10 @@ class SparkContext(config: SparkConf) extends Logging {
   // prefetch RDD API.
   def prefetchRDD(rdd: RDD[_], callback: Seq[PrefetchReporter] => Unit = null): Unit = {
     _prefetchScheduler.prefetch(rdd, callback)
+  }
+
+  def prefetchService(): Unit = {
+    WinFetcher.service(this)
   }
 
   def migrateBlock[T: ClassTag](rdd: RDD[_], blockId: Int,

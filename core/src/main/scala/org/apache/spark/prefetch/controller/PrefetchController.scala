@@ -16,30 +16,8 @@
  */
 package org.apache.spark.prefetch.controller
 
-import scala.collection.mutable
-
-import org.apache.spark.timewindow.TimeWindowRDD
-
 class PrefetchController[T, V] {
 
-  private val twRDDs =
-    new mutable.HashMap[TimeWindowRDD[T, V], TimeWindowStatus]()
-
-  private var minLimition = 5L
-
-  protected [prefetch] def prefetchWhich(): TimeWindowRDD[T, V] = {
-    null
-  }
-
-  protected [prefetch] def prefetchRDD(): Unit = {
-
-  }
-
-  protected [prefetch] def partitionSize(): mutable.HashMap[Int, Long] = {
-    null
-  }
 }
 
-object PrefetchController {
-
-}
+object PrefetchController {}

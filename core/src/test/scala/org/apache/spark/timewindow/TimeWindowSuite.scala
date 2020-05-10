@@ -20,7 +20,7 @@ import scala.collection.mutable.ArrayBuffer
 
 import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
 
-class TimeWindowSuite extends SparkFunSuite{
+class TimeWindowSuite extends SparkFunSuite {
   // scalastyle:off println
 
   test("Time Window") {
@@ -39,5 +39,14 @@ class TimeWindowSuite extends SparkFunSuite{
       val timeWindowRDD = iterator.next()
       println(timeWindowRDD.count())
     }
+  }
+
+  test("thread") {
+    val conf = new SparkConf().setMaster("local").setAppName("thread")
+    val sc = new SparkContext(conf)
+    println("start fetcher")
+    val winFetcher = WinFetcher.service(sc)
+    val rdd = sc.textFile("F:\\Resources\\txt.txt")
+    println(rdd.count())
   }
 }

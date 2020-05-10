@@ -62,6 +62,10 @@ sealed class TimeWindowRDD[T, V](sc: SparkContext, winSize: T,
     this
   }
 
+  def allowPrefetch(bool: Boolean): Unit = {
+
+  }
+
   protected[timewindow] def nextWinRDD(): RDD[(T, V)] = {
     controller.next()
   }

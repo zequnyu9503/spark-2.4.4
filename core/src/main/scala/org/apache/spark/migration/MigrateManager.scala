@@ -24,12 +24,9 @@ class MigrateManager {
 
   private val migrations = new mutable.LinkedHashMap[BlockId, Migration[_]]()
 
-  private val locks = new mutable.LinkedHashMap[BlockId]
 
   private [migration] def applyNewMigration[T](migration: Migration[T]): Boolean = {
-
+    false
   }
-
-
 
 }

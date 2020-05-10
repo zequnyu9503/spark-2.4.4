@@ -57,29 +57,29 @@ class MigrateScheduler(val backend: SchedulerBackend) extends Logging {
                                               destinationId: String): Unit = {
     val migration = Migration[T](isLocal, isMem, blockId, sourceId, destinationId,
       isSourceFinished = false, isDestinationFinished = false)
-    migrations(blockId) = migration
+//    migrations(blockId) = migration
     cgsb_.receiveMigration(migration)
   }
 
   private[spark] def migrationUpdate[T: ClassTag](migration: Migration[T]): Unit = {
     if (migration.isMem) {
       if (migration.isDestinationFinished) {
-        migrations(migration.blockId) = migration
+//        migrations(migration.blockId) = migration
         if (!migration.isSourceFinished) {
           logInfo("Pull block successfully, we then remove that replicated block.")
           cgsb_.receiveMigration(migration)
         } else {
-          migrations(migration.blockId) = migration
+//          migrations(migration.blockId) = migration
           logInfo("Replicated block was successfully removed. Mem-Migration success.")
         }
       } else {
-        migrations(migration.blockId) = MigrateScheduler.reset(migration)
+//        migrations(migration.blockId) = MigrateScheduler.reset(migration)
         logError("Migrate block failed to pull blocks from others.")
       }
     }
     if (migration.isLocal) {
       if (migration.finished()) {
-        migrations(migration.blockId) = migration
+//        migrations(migration.blockId) = migration
         logInfo("Disk-Migration success.")
       }
     }
