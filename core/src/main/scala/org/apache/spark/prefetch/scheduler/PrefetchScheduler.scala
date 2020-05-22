@@ -25,7 +25,7 @@ import org.apache.spark.{Partition, SparkContext, SparkEnv}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
 import org.apache.spark.network.util.JavaUtils
-import org.apache.spark.prefetch.{PrefetchOffer, PrefetchReporter, PrefetchTaskDescription, SinglePrefetchTask}
+import org.apache.spark.prefetch.{PrefetchOffer, PrefetchReporter, PrefetchTaskDescription, SinglePrefetchTask, StorageMemory}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.{DAGScheduler, SchedulerBackend, TaskLocation, TaskScheduler}
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
@@ -54,7 +54,7 @@ class PrefetchScheduler(val sc: SparkContext,
     createPrefetchJob(rdd) match {
       case Some(job) =>
         logInfo(s"Create prefetch job for rdd [${rdd.name}].")
-        val offers = makePrefetchOffers(job)
+        val offers = makePrefetchOffers()
         logInfo(s"Make resources [${offers.size} exes] for prefetch job.")
         val schedules = makeSchedules(job, offers)
         logInfo(s"Make schedules [${schedules.length} batches] for prefetch job.")
@@ -102,9 +102,12 @@ class PrefetchScheduler(val sc: SparkContext,
     }
   }
 
-  private def makePrefetchOffers(job: PrefetchJob): Seq[PrefetchOffer] = {
+  private def makePrefetchOffers(): Seq[PrefetchOffer] = {
     // Under normal case we should check alive executors firstly.
     val exeData = cgsb_.retrieveExeDataForPrefetch
+    while (exeData.isEmpty) {
+      wait(100)
+    }
     exeData.map {
       case (id, executorData) =>
         PrefetchOffer(id, executorData.executorHost)
@@ -120,6 +123,19 @@ class PrefetchScheduler(val sc: SparkContext,
     val pts = new PrefetchTaskScheduler(offers,
       hostToExecutors, jobs.tasks.keys.toSeq)
     pts.makeResources()
+  }
+
+  // Synchronize process.
+  def freeStorageMemory(): mutable.HashMap[String, Long] = {
+    val offers = makePrefetchOffers()
+    val storageMemory = StorageMemory(offers.size, mutable.HashMap.empty)
+    cgsb_.retrieveFreeStorageMemory(offers, storageMemory)
+
+    while (!storageMemory.isDone) {
+      wait(100)
+    }
+
+    storageMemory.free
   }
 }
 

@@ -58,4 +58,17 @@ class Prefetcher(val executorId: String, val executorHostname: String, val backe
       case _ => logError("Report failed for prefetching process.")
     }
   }
+
+  def freeStorageMemory: Unit = {
+    val maxOnHeap = SparkEnv.get.memoryManager.maxOnHeapStorageMemory
+    val maxOffHeap = SparkEnv.get.memoryManager.maxOffHeapStorageMemory
+    val size = SparkEnv.get.memoryManager.storageMemoryUsed
+    logInfo(s"Retrieve available storage memory both" +
+      s"on heap [$maxOnHeap] & off heap [$maxOffHeap].")
+    backend match {
+      case backend: CoarseGrainedExecutorBackend =>
+        backend.reportFreeStorageMemory(maxOffHeap + maxOnHeap - size)
+      case _ => logError("Report failed for retrieving process.")
+    }
+  }
 }

@@ -111,6 +111,12 @@ private[spark] class CoarseGrainedExecutorBackend(
         prefetcher.acceptLaunchTask(taskDesc)
       }
 
+    case InspectFreeStorageMemory(eId) =>
+      if (!executor.eq(null) && executorId.equals(eId)) {
+        logInfo("Retrieve free storage memory.")
+        prefetcher.freeStorageMemory
+      }
+
     case MigrateBlock(migration: Migration[_]) =>
       if (!executor.eq(null)) {
         logInfo(s"Got migration [${migration.blockId}] " +
@@ -170,6 +176,14 @@ private[spark] class CoarseGrainedExecutorBackend(
 
   def prefetchTaskFinished(reporter: PrefetchReporter): Unit = {
     val msg = PrefetchTaskFinished(reporter)
+    driver match {
+      case Some(driverRef) => driverRef.send(msg)
+      case _ => logWarning(s"Drop $msg because has not yet connected to driver")
+    }
+  }
+
+  def reportFreeStorageMemory(size: Long): Unit = {
+    val msg = ReportFreeStorageMemory(executorId, size)
     driver match {
       case Some(driverRef) => driverRef.send(msg)
       case _ => logWarning(s"Drop $msg because has not yet connected to driver")

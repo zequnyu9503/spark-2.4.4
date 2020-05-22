@@ -29,7 +29,7 @@ import scala.concurrent.Future
 import org.apache.spark.{ExecutorAllocationClient, SparkEnv, SparkException, TaskState}
 import org.apache.spark.internal.Logging
 import org.apache.spark.migration.{MigrateScheduler, Migration}
-import org.apache.spark.prefetch.PrefetchTaskDescription
+import org.apache.spark.prefetch.{PrefetchOffer, PrefetchTaskDescription, StorageMemory}
 import org.apache.spark.prefetch.scheduler.{PrefetchScheduler, PrefetchTaskManager}
 import org.apache.spark.rpc._
 import org.apache.spark.scheduler._
@@ -151,6 +151,14 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
         if (!prefetchTaskManager.eq(null)) {
           prefetchTaskManager.updatePrefetchTask(reporter)
         }
+
+      case ReportFreeStorageMemory(eId, size) =>
+        if (!storageMemory.eq(null)) {
+          storageMemory.update(eId, size)
+        }
+
+      case RetrieveFreeStorageMemory(offers) =>
+        doRetrieveFreeStorageMemory(offers)
 
       case ReceiveMigration(migration) => doMigration(migration)
 
@@ -352,6 +360,14 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
       }
     }
 
+    private def doRetrieveFreeStorageMemory(offers: Seq[PrefetchOffer]): Unit = {
+      for (offer <- offers) {
+        val executorData = executorDataMap(offer.executorId)
+        logInfo(s"Retrieve executor ${offer.executorId} free storage memory in bytes.")
+        executorData.executorEndpoint.send(InspectFreeStorageMemory(offer.executorId))
+      }
+    }
+
     private def doMigration(migration: Migration[_]): Unit = {
       if (executorDataMap.contains(migration.sourceId) &&
       executorDataMap.contains(migration.destinationId)) {
@@ -457,6 +473,7 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
   }
 
   private var prefetchTaskManager: PrefetchTaskManager = _
+  private var storageMemory: StorageMemory = _
 
   override def start() {
     val properties = new ArrayBuffer[(String, String)]
@@ -531,6 +548,12 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
                        schedule: Array[PrefetchTaskDescription]): Unit = {
     prefetchTaskManager = taskManager
     driverEndpoint.send(WaitPrefetches(schedule))
+  }
+
+  def retrieveFreeStorageMemory(offers: Seq[PrefetchOffer],
+                                storageMem: StorageMemory): Unit = {
+    storageMemory = storageMem
+    driverEndpoint.send(RetrieveFreeStorageMemory(offers))
   }
 
   def retrieveExeDataForPrefetch: mutable.HashMap[String, ExecutorData] =

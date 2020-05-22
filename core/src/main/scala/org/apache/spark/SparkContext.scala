@@ -49,7 +49,7 @@ import org.apache.spark.internal.config._
 import org.apache.spark.io.CompressionCodec
 import org.apache.spark.migration.MigrateScheduler
 import org.apache.spark.partial.{ApproximateEvaluator, PartialResult}
-import org.apache.spark.prefetch.PrefetchReporter
+import org.apache.spark.prefetch.{PrefetchReporter, StorageMemory}
 import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rdd._
 import org.apache.spark.rpc.RpcEndpointRef
@@ -2450,6 +2450,10 @@ class SparkContext(config: SparkConf) extends Logging {
 
   def prefetchService(): Unit = {
     WinFetcher.service(this)
+  }
+
+  def freeStorageMemory(): HashMap[String, Long] = {
+    _prefetchScheduler.freeStorageMemory()
   }
 
   def migrateBlock[T: ClassTag](rdd: RDD[_], blockId: Int,
