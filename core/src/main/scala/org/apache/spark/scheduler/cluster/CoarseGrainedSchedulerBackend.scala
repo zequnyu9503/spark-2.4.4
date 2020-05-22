@@ -29,7 +29,7 @@ import scala.concurrent.Future
 import org.apache.spark.{ExecutorAllocationClient, SparkEnv, SparkException, TaskState}
 import org.apache.spark.internal.Logging
 import org.apache.spark.migration.{MigrateScheduler, Migration}
-import org.apache.spark.prefetch.{PrefetchOffer, PrefetchReporter, PrefetchTaskDescription}
+import org.apache.spark.prefetch.PrefetchTaskDescription
 import org.apache.spark.prefetch.scheduler.{PrefetchScheduler, PrefetchTaskManager}
 import org.apache.spark.rpc._
 import org.apache.spark.scheduler._
