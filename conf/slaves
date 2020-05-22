@@ -14,9 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-centos4
-centos5
+centos3
+#centos4
+#centos5
 #centos11
 #centos12
 #centos13
