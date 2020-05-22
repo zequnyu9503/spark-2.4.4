@@ -22,18 +22,19 @@ import org.apache.spark.prefetch.{PrefetchReporter, SinglePrefetchTask}
 import org.apache.spark.rdd.RDD
 
 class PrefetchJob(val rdd: RDD[_],
-                  val tasks: mutable.HashMap[SinglePrefetchTask[_], PrefetchReporter],
-                  val callback: Seq[PrefetchReporter] => Unit = null) {
+                  val tasks: mutable.HashMap[SinglePrefetchTask[_], PrefetchReporter]) {
 
   def isAllFinished: Boolean = !tasks.exists(_._2.eq(null))
 
   def taskCount: Long = tasks.size
 
-  def updateTaskStatusById(taskId: String, reporter: PrefetchReporter): Unit = {
+  def updateTaskById(taskId: String, reporter: PrefetchReporter): Unit = {
     tasks.find(_._1.taskId.equals(taskId)) match {
       case Some(task) =>
         tasks(task._1) = reporter
       case _ =>
     }
   }
+
+  def gotReporter(): Seq[PrefetchReporter] = tasks.values.toSeq
 }

@@ -16,9 +16,10 @@
  */
 package org.apache.spark.prefetch
 
-import org.apache.spark.SparkEnv
-import org.apache.spark.TaskContext
 import org.apache.spark.internal.Logging
+import org.apache.spark.{SparkEnv, TaskContext}
+import org.apache.spark.serializer.SerializerInstance
+
 
 class PrefetchTaskRunner(val prefetcher: Prefetcher,
                          val env: SparkEnv,
@@ -26,7 +27,7 @@ class PrefetchTaskRunner(val prefetcher: Prefetcher,
     extends Runnable
     with Logging {
 
-  val ser = env.closureSerializer.newInstance()
+  val ser: SerializerInstance = env.closureSerializer.newInstance()
 
   override def run(): Unit = {
     try {

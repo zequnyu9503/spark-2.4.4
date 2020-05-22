@@ -21,7 +21,7 @@ import java.nio.ByteBuffer
 
 import org.apache.spark.TaskState.TaskState
 import org.apache.spark.migration.Migration
-import org.apache.spark.prefetch.PrefetchReporter
+import org.apache.spark.prefetch.{PrefetchReporter, PrefetchTaskDescription}
 import org.apache.spark.rpc.RpcEndpointRef
 import org.apache.spark.scheduler.ExecutorLossReason
 import org.apache.spark.util.SerializableBuffer
@@ -97,7 +97,8 @@ private[spark] object CoarseGrainedClusterMessages {
 
   case object StopExecutors extends CoarseGrainedClusterMessage
 
-  case class ReceivePrefetches() extends CoarseGrainedClusterMessage
+  case class WaitPrefetches(schedule: Array[PrefetchTaskDescription])
+    extends CoarseGrainedClusterMessage
 
   case class ReceiveMigration(migration: Migration[_]) extends CoarseGrainedClusterMessage
 

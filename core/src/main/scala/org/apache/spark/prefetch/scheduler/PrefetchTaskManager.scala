@@ -17,162 +17,59 @@
 package org.apache.spark.prefetch.scheduler
 
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
 
-import org.apache.spark.SparkEnv
 import org.apache.spark.internal.Logging
-import org.apache.spark.prefetch.{PrefetchOffer, PrefetchTaskDescription, SinglePrefetchTask}
-import org.apache.spark.scheduler.{ExecutorCacheTaskLocation,
-  HDFSCacheTaskLocation, TaskLocality
-}
-import org.apache.spark.scheduler.TaskLocality.TaskLocality
+import org.apache.spark.prefetch.{PrefetchReporter, PrefetchTaskDescription}
+import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
 
-class PrefetchTaskManager(
-    offers: Seq[PrefetchOffer],
-    hostToExecutors: mutable.HashMap[String, ArrayBuffer[String]],
-    pTasks: Seq[SinglePrefetchTask[_]])
-    extends Logging {
+class PrefetchTaskManager(cgsb : CoarseGrainedSchedulerBackend,
+                          job: PrefetchJob, schedules: Array[Array[PrefetchTaskDescription]])
+  extends Logging{
 
-  private val env = SparkEnv.get
-  private val ser = env.closureSerializer.newInstance()
+  @volatile
+  var pendingTasks = new mutable.HashMap[String, PrefetchReporter]()
 
-  private val forExecutors =
-    new mutable.HashMap[String, ArrayBuffer[SinglePrefetchTask[_]]]()
-  private val forHosts =
-    new mutable.HashMap[String, ArrayBuffer[SinglePrefetchTask[_]]]()
-  private val forNoRefs = new ArrayBuffer[SinglePrefetchTask[_]]()
-  private val forAll = new ArrayBuffer[SinglePrefetchTask[_]]()
-
-  private val isScheduledforTasks =
-    new mutable.HashMap[SinglePrefetchTask[_], Boolean]()
-
-  def isAllScheduled: Boolean = {
-    !isScheduledforTasks.exists(_._2.equals(false))
+  private def gotBatches(): Boolean = synchronized {
+    !pendingTasks.exists(_._2 eq null)
   }
 
-  addPendingTasks()
+  private def configBatches(schedule:
+                            Array[PrefetchTaskDescription]): Unit = synchronized {
+    if (pendingTasks.nonEmpty) pendingTasks.clear()
+    schedule.foreach(desc => synchronized {
+      pendingTasks(desc.taskId) = null
+    })
+  }
 
-  private def addPendingTasks(): Unit = {
-    for (i <- pTasks.indices) {
-      for (loc <- pTasks(i).locs) {
-        loc match {
-          case exe: ExecutorCacheTaskLocation =>
-            // which means partition located on running executors.
-            forExecutors.getOrElseUpdate(exe.executorId,
-              new ArrayBuffer[SinglePrefetchTask[_]]()) += pTasks(i)
-          case hdfs: HDFSCacheTaskLocation =>
-            // Find executors which hold cached data.
-            val executors = hostToExecutors(hdfs.host)
-            if (executors.nonEmpty) {
-              executors.foreach { e => forExecutors.getOrElseUpdate(
-                  e, new ArrayBuffer[SinglePrefetchTask[_]]()) += pTasks(i)
-              }
-            } else {
-              logError(s"Task [${pTasks(i).taskId}] preferred Executor lost.")
-            }
-          case _ => // Nothing to do.
-        }
-        forHosts.getOrElseUpdate(loc.host, new ArrayBuffer[SinglePrefetchTask[_]]()) += pTasks(i)
-        if (pTasks(i).locs == Nil) {
-          forNoRefs += pTasks(i)
-        }
-        forAll += pTasks(i)
-      }
-      isScheduledforTasks(pTasks(i)) = false
+  private def updateJob(): Unit = synchronized {
+    pendingTasks.keys.foreach(tId => job.updateTaskById(tId, pendingTasks(tId)))
+  }
+
+  def updatePrefetchTask(reporter: PrefetchReporter): Unit = {
+    synchronized {
+      pendingTasks(reporter.taskId) = reporter
+      logInfo(s"Prefetch Task [${reporter.taskId}] is over.")
+    }
+    if (gotBatches()) keepWorking()
+  }
+
+  def execute(): Unit = {
+    for (index <- schedules.indices) {
+      val schedule = schedules(index)
+      configBatches(schedule)
+      logInfo(s"Submit prefetch tasks to executors" +
+        s" [${schedule.map(_.executorId).mkString(",")}]")
+      cgsb.submitPrefetches(this, schedule)
+      waiting()
+      updateJob()
     }
   }
 
-  private def computeValidLocalityLevels(): Array[TaskLocality] = {
-    import TaskLocality.{PROCESS_LOCAL, NODE_LOCAL, NO_PREF, ANY}
-    val levels = new ArrayBuffer[TaskLocality.TaskLocality]
-    if (forExecutors.nonEmpty) levels += PROCESS_LOCAL
-    if (forHosts.nonEmpty) levels += NODE_LOCAL
-    if (forNoRefs.nonEmpty) levels += NO_PREF
-    if (forAll.nonEmpty) levels += ANY
-    logInfo(s"Prefetch levels are ${levels.mkString(", ")} .")
-    levels.toArray
+  def waiting(): Unit = synchronized {
+    this.wait()
   }
 
-  private def resourceOffer(executorId: String,
-                            host: String,
-                            maxLocality: TaskLocality.TaskLocality)
-    : Option[PrefetchTaskDescription] = {
-    dequeueTask(executorId, host, maxLocality) match {
-      case Some(blend) =>
-        logInfo(s"Offer resource for ${blend._1.taskId} which level is " +
-            s"${maxLocality.toString} on executor $executorId belongs to host $host .")
-        Some(new PrefetchTaskDescription(executorId, blend._1.taskId, ser.serialize(blend._1)))
-      case _ => None
-    }
-  }
-
-  private def dequeueTask(executorId: String,
-                          host: String,
-                          maxLocality: TaskLocality.TaskLocality)
-    : Option[(SinglePrefetchTask[_], TaskLocality.Value)] = {
-    for (task <- dequeueTaskFromList(
-           executorId,
-           host,
-           forExecutors.getOrElse(executorId, ArrayBuffer()))) {
-      return Some((task, TaskLocality.PROCESS_LOCAL))
-    }
-    if (TaskLocality.isAllowed(maxLocality, TaskLocality.NODE_LOCAL)) {
-      for (task <- dequeueTaskFromList(
-             executorId,
-             host,
-             forHosts.getOrElse(host, ArrayBuffer()))) {
-        return Some((task, TaskLocality.NODE_LOCAL))
-      }
-    }
-    if (TaskLocality.isAllowed(maxLocality, TaskLocality.NO_PREF)) {
-      for (task <- dequeueTaskFromList(executorId, host, forNoRefs)) {
-        return Some((task, TaskLocality.NO_PREF))
-      }
-    }
-    if (TaskLocality.isAllowed(maxLocality, TaskLocality.ANY)) {
-      for (task <- dequeueTaskFromList(executorId, host, forAll)) {
-        return Some((task, TaskLocality.ANY))
-      }
-    }
-    None
-  }
-
-  private def dequeueTaskFromList(
-      executorId: String,
-      host: String,
-      tasks: ArrayBuffer[SinglePrefetchTask[_]]): Option[SinglePrefetchTask[_]] = {
-    var index = tasks.size
-    while (index > 0) {
-      index -= 1
-      val task = tasks(index)
-      if (!isScheduledforTasks(task)) {
-        isScheduledforTasks(task) = true
-        return Option(task)
-      }
-    }
-    None
-  }
-
-  protected[prefetch] def makeResources(): Array[PrefetchTaskDescription] = {
-    val descriptions = new ArrayBuffer[PrefetchTaskDescription]()
-    // It's upper limit.
-    val maxLocalityLevels = computeValidLocalityLevels()
-    var count: Long = 0L
-    while (!isAllScheduled) {
-      // Until All tasks are scheduled.
-      for (taskLocality <- maxLocalityLevels) {
-        for (offer <- offers) {
-          // Find fittest tasks launched on every executor.
-          resourceOffer(offer.executorId, offer.host, taskLocality) match {
-            case Some(descs) => descriptions += descs
-            case _ =>
-          }
-        }
-      }
-      count += 1
-    }
-    logInfo(s"PrefetchTaskDescriptions are " +
-      s"${descriptions.toArray.map(d => d.taskId).mkString(", ")}")
-    descriptions.toArray
+  def keepWorking(): Unit = synchronized {
+    this.notify()
   }
 }

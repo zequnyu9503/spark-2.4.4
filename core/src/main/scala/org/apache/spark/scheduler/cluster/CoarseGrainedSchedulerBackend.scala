@@ -17,10 +17,12 @@
 
 package org.apache.spark.scheduler.cluster
 
+
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import javax.annotation.concurrent.GuardedBy
 
+import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, HashMap, HashSet}
 import scala.concurrent.Future
 
@@ -28,12 +30,14 @@ import org.apache.spark.{ExecutorAllocationClient, SparkEnv, SparkException, Tas
 import org.apache.spark.internal.Logging
 import org.apache.spark.migration.{MigrateScheduler, Migration}
 import org.apache.spark.prefetch.{PrefetchOffer, PrefetchReporter, PrefetchTaskDescription}
-import org.apache.spark.prefetch.scheduler.PrefetchScheduler
+import org.apache.spark.prefetch.scheduler.{PrefetchScheduler, PrefetchTaskManager}
 import org.apache.spark.rpc._
 import org.apache.spark.scheduler._
-import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages._
+import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages.{WaitPrefetches, _}
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend.ENDPOINT_NAME
 import org.apache.spark.util.{RpcUtils, SerializableBuffer, ThreadUtils, Utils}
+
+
 
 
 
@@ -140,13 +144,15 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
       case ReviveOffers =>
         makeOffers()
 
-      case ReceivePrefetches() =>
-        makePrefetches()
+      case WaitPrefetches(schedule) =>
+        launchPrefetchTasks(schedule)
+
+      case PrefetchTaskFinished(reporter) =>
+        if (!prefetchTaskManager.eq(null)) {
+          prefetchTaskManager.updatePrefetchTask(reporter)
+        }
 
       case ReceiveMigration(migration) => doMigration(migration)
-
-      case PrefetchTaskFinished(reporter: PrefetchReporter) =>
-        prefetchTaskFinished(reporter)
 
       case MigrationFinished(migration) => migrationFinished(migration)
 
@@ -267,25 +273,6 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
       }
     }
 
-    // Make resource offers for prefetching RDD.
-    def makePrefetches(): Unit = {
-      val prefetchers = withLock {
-        val activeExecutors = executorDataMap.filterKeys(executorIsAlive)
-        val prefetchOffers = activeExecutors.map {
-          case (id, executorData) =>
-            PrefetchOffer(id, executorData.executorHost)
-        }.toSeq
-        prefetchScheduler_.resourceOffers(prefetchOffers)
-      }
-      if (prefetchers.nonEmpty) {
-        launchPrefetchTasks(prefetchers)
-      }
-    }
-
-    def prefetchTaskFinished(reporter: PrefetchReporter): Unit = {
-      prefetchScheduler_.markPrefetchTaskFinished(reporter)
-    }
-
     def migrationFinished(migration: Migration[_]): Unit = {
       migrateScheduler_.migrationUpdate(migration)
     }
@@ -353,9 +340,9 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
     }
 
     // Launch tasks for prefetching.
-    private def launchPrefetchTasks(tasks: Seq[PrefetchTaskDescription]): Unit = {
-      if (tasks.nonEmpty) {
-        for (task <- tasks) {
+    private def launchPrefetchTasks(schedule: Array[PrefetchTaskDescription]): Unit = {
+      if (schedule.nonEmpty) {
+        for (task <- schedule) {
           val serializedTask = PrefetchTaskDescription.encode(task)
           val executorData = executorDataMap(task.executorId)
           logInfo(s"Launch prefetch task [${task.taskId}] to executor ${task.executorId}")
@@ -469,6 +456,8 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
     migrateScheduler_ = scheduler
   }
 
+  private var prefetchTaskManager: PrefetchTaskManager = _
+
   override def start() {
     val properties = new ArrayBuffer[(String, String)]
     for ((key, value) <- scheduler.sc.conf.getAll) {
@@ -534,13 +523,18 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
     }
   }
 
-  def receivePrefetches(prefetchScheduler: PrefetchScheduler): Unit = {
-    driverEndpoint.send(ReceivePrefetches())
-  }
-
   def receiveMigration(migration: Migration[_]): Unit = {
     driverEndpoint.send(ReceiveMigration(migration))
   }
+
+  def submitPrefetches(taskManager: PrefetchTaskManager,
+                       schedule: Array[PrefetchTaskDescription]): Unit = {
+    prefetchTaskManager = taskManager
+    driverEndpoint.send(WaitPrefetches(schedule))
+  }
+
+  def retrieveExeDataForPrefetch: mutable.HashMap[String, ExecutorData] =
+    executorDataMap
 
   override def reviveOffers() {
     driverEndpoint.send(ReviveOffers)

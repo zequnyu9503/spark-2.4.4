@@ -2444,8 +2444,8 @@ class SparkContext(config: SparkConf) extends Logging {
   SparkContext.setActiveContext(this, allowMultipleContexts)
 
   // prefetch RDD API.
-  def prefetchRDD(rdd: RDD[_], callback: Seq[PrefetchReporter] => Unit = null): Unit = {
-    _prefetchScheduler.prefetch(rdd, callback)
+  def prefetchRDD(rdd: RDD[_]): Option[Seq[PrefetchReporter]] = {
+    _prefetchScheduler.prefetch(rdd)
   }
 
   def prefetchService(): Unit = {
