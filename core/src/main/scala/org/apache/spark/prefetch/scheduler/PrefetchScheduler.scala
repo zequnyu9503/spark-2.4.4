@@ -132,7 +132,9 @@ class PrefetchScheduler(val sc: SparkContext,
     cgsb_.retrieveFreeStorageMemory(offers, storageMemory)
 
     while (!storageMemory.isDone) {
-      wait(100)
+      synchronized {
+        wait(100)
+      }
     }
 
     storageMemory.free

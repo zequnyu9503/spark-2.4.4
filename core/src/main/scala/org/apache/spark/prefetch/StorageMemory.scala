@@ -20,7 +20,9 @@ import scala.collection.mutable
 
 case class StorageMemory(count: Int, free: mutable.HashMap[String, Long]) {
 
-  def isDone: Boolean = free.size == count
+  def isDone: Boolean = synchronized {
+    free.size == count
+  }
 
   def update(eId: String, size: Long): Unit = synchronized {
     free(eId) = size
