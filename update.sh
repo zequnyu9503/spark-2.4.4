@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 host=$(hostname)
-if [[ ${hostname} = "centos3" ]];then
+if [[ $(hostname) = "centos3" ]];then
 sh ~/yzq/sh/spark-halt.sh
 fi
 git pull
