@@ -16,8 +16,8 @@
  */
 package org.apache.spark.prefetch
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.{SparkEnv, TaskContext}
+import org.apache.spark.internal.Logging
 import org.apache.spark.serializer.SerializerInstance
 
 
