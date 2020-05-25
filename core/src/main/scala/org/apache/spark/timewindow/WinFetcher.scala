@@ -16,27 +16,32 @@
  */
 package org.apache.spark.timewindow
 
-import scala.concurrent._
-import scala.concurrent.duration.Duration
-import scala.util.{Failure, Success}
-
-import ExecutionContext.Implicits.global
-
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
+import org.apache.spark.prefetch.cluster.PrefetchBackend
+import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rdd.RDD
-import org.apache.spark.util.ThreadUtils
 
 
-class WinFetcher (sc: SparkContext) extends Runnable with Logging {
+class WinFetcher (sc: SparkContext, scheduler: PrefetchScheduler)
+  extends Runnable with Logging {
 
   @volatile
   private var isRunning = false
 
-  private var id: Int = 0
+  // Current running window id.
+  @volatile
+  private var winId: Int = 0
+
+  private val backend = new PrefetchBackend(sc, scheduler)
+
+  def updateWinId(id: Int): Unit = synchronized {
+    winId = id
+    backend.updateWinId(winId)
+  }
 
   // default waiting duration.
-  private val waiting: Long = 1000
+  private var waiting: Long = 1000
 
   def stop(): Unit = synchronized {
     isRunning = false
@@ -51,39 +56,33 @@ class WinFetcher (sc: SparkContext) extends Runnable with Logging {
   }
 
   {
-    synchronized {isRunning = true}
     logInfo("Win Fetcher service is ready.")
+    synchronized {isRunning = true}
   }
 
   override def run(): Unit = {
     // scalastyle:off println
     synchronized {
       while (isRunning) {
-        if (!isAllowed()) {
-          logInfo("wait")
-          suspend()
-        } else {
-          logInfo("do")
+        if (isAllowed) {
+          backend.canPrefetch(null)
         }
-        logInfo("run")
+        suspend()
       }
     }
   }
 
-  private def isAllowed(): Boolean = {
+  private def isAllowed: Boolean = {
     false
   }
 
   private def doPrefetch[T](rdd: RDD[T]): Unit = {
-    val future = Future[Unit] {
-      println("yuzequn1")
-    }
-    ThreadUtils.awaitResult(future, Duration.Inf)
+    val thr = new Thread(new Runnable {
+      override def run(): Unit = {
 
-    future onComplete  {
-      case Success(res) => println("ok")
-      case Failure(fa) => println("fail")
-    }
+      }
+    })
+    thr.start()
   }
 }
 
@@ -91,9 +90,9 @@ object WinFetcher {
 
   var winFetcher: WinFetcher = _
 
-  def service(sparkContext: SparkContext): WinFetcher = {
+  def service(sparkContext: SparkContext, scheduler: PrefetchScheduler): WinFetcher = {
     if (winFetcher eq null) {
-      winFetcher = new WinFetcher(sparkContext)
+      winFetcher = new WinFetcher(sparkContext, scheduler)
       val thr = new Thread(winFetcher)
       thr.start()
     }

@@ -19,10 +19,13 @@ package org.apache.spark.prefetch
 import java.io.{DataInputStream, DataOutputStream}
 import java.nio.ByteBuffer
 
+import org.apache.spark.scheduler.TaskLocality.TaskLocality
 import org.apache.spark.util.{ByteBufferInputStream, ByteBufferOutputStream, Utils}
 
 class PrefetchTaskDescription(val executorId: String, val taskId: String,
                               val serializedTask: ByteBuffer) {
+  @transient
+  var locality: TaskLocality = _
 }
 
 object PrefetchTaskDescription {

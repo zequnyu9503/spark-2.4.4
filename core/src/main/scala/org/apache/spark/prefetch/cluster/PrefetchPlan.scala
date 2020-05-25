@@ -14,29 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.prefetch.scheduler
+package org.apache.spark.prefetch.cluster
 
-import scala.collection.mutable
-
-import org.apache.spark.prefetch.{PrefetchReporter, PrefetchTaskDescription, SinglePrefetchTask}
+import org.apache.spark.prefetch.PrefetchTaskDescription
 import org.apache.spark.rdd.RDD
+import org.apache.spark.scheduler.TaskLocality.TaskLocality
 
-class PrefetchJob(val rdd: RDD[_],
-                  val tasks: mutable.HashMap[SinglePrefetchTask[_], PrefetchReporter]) {
 
-  var schedules : Array[Array[PrefetchTaskDescription]] = _
+class PrefetchPlan(val winId: Int, val rdd: RDD[_]) {
+  var schedule: Array[Array[PrefetchTaskDescription]] = _
 
-  def isAllFinished: Boolean = !tasks.exists(_._2.eq(null))
-
-  def taskCount: Long = tasks.size
-
-  def updateTaskById(taskId: String, reporter: PrefetchReporter): Unit = {
-    tasks.find(_._1.taskId.equals(taskId)) match {
-      case Some(task) =>
-        tasks(task._1) = reporter
-      case _ =>
-    }
+  def maxLocality: Array[TaskLocality] = {
+    if (!schedule.eq(null)) {
+      schedule.map(batch => batch.maxBy(_.locality).locality)
+    } else null
   }
 
-  def gotReporter(): Seq[PrefetchReporter] = tasks.values.toSeq
+  def partitions: Int = rdd.partitions.length
 }

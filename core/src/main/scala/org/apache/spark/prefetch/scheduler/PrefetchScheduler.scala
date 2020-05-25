@@ -26,11 +26,12 @@ import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
 import org.apache.spark.network.util.JavaUtils
 import org.apache.spark.prefetch.{PrefetchOffer, PrefetchReporter, PrefetchTaskDescription, SinglePrefetchTask, StorageMemory}
+import org.apache.spark.prefetch.cluster.PrefetchPlan
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.{DAGScheduler, SchedulerBackend, TaskLocation, TaskScheduler}
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
 import org.apache.spark.serializer.SerializerInstance
-import org.apache.spark.storage.StorageLevel
+import org.apache.spark.storage.{BlockManagerMaster, StorageLevel}
 
 class PrefetchScheduler(val sc: SparkContext,
                         val backend: SchedulerBackend,
@@ -56,9 +57,9 @@ class PrefetchScheduler(val sc: SparkContext,
         logInfo(s"Create prefetch job for rdd [${rdd.name}].")
         val offers = makePrefetchOffers()
         logInfo(s"Make resources [${offers.size} exes] for prefetch job.")
-        val schedules = makeSchedules(job, offers)
-        logInfo(s"Make schedules [${schedules.length} batches] for prefetch job.")
-        val taskManager = new PrefetchTaskManager(cgsb_, job, schedules)
+        job.schedules = makeSchedules(job, offers)
+        logInfo(s"Make schedules [${job.schedules.length} batches] for prefetch job.")
+        val taskManager = new PrefetchTaskManager(cgsb_, job)
         taskManager.execute()
         Option(job.gotReporter())
       case None => None
@@ -139,6 +140,26 @@ class PrefetchScheduler(val sc: SparkContext,
 
     storageMemory.free
   }
+
+  def askBlockManagerMaster(): mutable.HashMap[String, Long] = {
+    val free = new mutable.HashMap[String, Long]()
+    val bmm = SparkEnv.get.blockManager.master
+    bmm.getMemoryStatus.foreach(status =>
+      free(status._1.executorId) = status._2._2)
+    free
+  }
+
+  def makePlan(winId: Int, rdd: RDD[_]): Option[PrefetchPlan] = {
+    val plan = new PrefetchPlan(winId, rdd)
+    createPrefetchJob(rdd) match {
+      case Some(job) =>
+        val offers = makePrefetchOffers()
+        plan.schedule = makeSchedules(job, offers)
+        Some(plan)
+      case None => None
+    }
+  }
+
 }
 
 object PrefetchScheduler {

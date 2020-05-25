@@ -24,7 +24,7 @@ import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicReference}
 
 import scala.collection.JavaConverters._
-import scala.collection.Map
+import scala.collection.{mutable, Map}
 import scala.collection.generic.Growable
 import scala.collection.mutable.HashMap
 import scala.language.implicitConversions
@@ -2443,18 +2443,22 @@ class SparkContext(config: SparkConf) extends Logging {
   // NOTE: this must be placed at the end of the SparkContext constructor.
   SparkContext.setActiveContext(this, allowMultipleContexts)
 
-  // prefetch RDD API.
+  @deprecated
   def prefetchRDD(rdd: RDD[_]): Option[Seq[PrefetchReporter]] = {
     _prefetchScheduler.prefetch(rdd)
   }
 
   def prefetchService(): Unit = {
-    WinFetcher.service(this)
+    WinFetcher.service(this, _prefetchScheduler)
   }
 
-  def freeStorageMemory(): HashMap[String, Long] = {
+  @deprecated
+  def freeStorageMemory(): mutable.HashMap[String, Long] = {
     _prefetchScheduler.freeStorageMemory()
   }
+
+  def askBlockManagerMaster(): mutable.HashMap[String, Long] =
+    _prefetchScheduler.askBlockManagerMaster()
 
   def migrateBlock[T: ClassTag](rdd: RDD[_], blockId: Int,
                                 sourceId: String, destinationId: String): Unit = {

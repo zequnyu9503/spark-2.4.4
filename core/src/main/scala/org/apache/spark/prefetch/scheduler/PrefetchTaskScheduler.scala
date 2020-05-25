@@ -99,7 +99,9 @@ class PrefetchTaskScheduler(
     : Option[PrefetchTaskDescription] = {
     dequeueTask(executorId, host, maxLocality) match {
       case Some(blend) =>
-        Some(new PrefetchTaskDescription(executorId, blend._1.taskId, ser.serialize(blend._1)))
+        val desc = new PrefetchTaskDescription(executorId, blend._1.taskId, ser.serialize(blend._1))
+        desc.locality = blend._2
+        Some(desc)
       case _ => None
     }
   }

@@ -30,11 +30,11 @@ public class DataSizeForecast {
                     orders.add(ArimaOrder.order(p, d, q));
     }
 
-    protected Double forecastNext(Long [] series) {
+    public Double forecastNext(Long [] series) {
         return forecastNextN(series, 1).get(0);
     }
 
-    protected List<Double> forecastNextN(Long [] series, int steps) {
+    public List<Double> forecastNextN(Long [] series, int steps) {
         double [] standardSeries = Arrays.stream(series).mapToDouble(i->i).toArray();
         if (best == null) bestOrder(standardSeries);
         TimeSeries timeSeries = TimeSeries.from(standardSeries);

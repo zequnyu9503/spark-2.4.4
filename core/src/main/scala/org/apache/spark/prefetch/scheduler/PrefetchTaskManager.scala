@@ -23,7 +23,7 @@ import org.apache.spark.prefetch.{PrefetchReporter, PrefetchTaskDescription}
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
 
 class PrefetchTaskManager(cgsb : CoarseGrainedSchedulerBackend,
-                          job: PrefetchJob, schedules: Array[Array[PrefetchTaskDescription]])
+                          job: PrefetchJob)
   extends Logging{
 
   @volatile
@@ -54,6 +54,7 @@ class PrefetchTaskManager(cgsb : CoarseGrainedSchedulerBackend,
   }
 
   def execute(): Unit = {
+    val schedules = job.schedules
     for (index <- schedules.indices) {
       val schedule = schedules(index)
       configBatches(schedule)

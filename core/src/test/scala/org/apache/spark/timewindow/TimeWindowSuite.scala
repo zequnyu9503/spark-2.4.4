@@ -45,7 +45,7 @@ class TimeWindowSuite extends SparkFunSuite {
     val conf = new SparkConf().setMaster("local").setAppName("thread")
     val sc = new SparkContext(conf)
     println("start fetcher")
-    val winFetcher = WinFetcher.service(sc)
+    val winFetcher = WinFetcher.service(sc, null)
     val rdd = sc.textFile("F:\\Resources\\txt.txt")
     println(rdd.count())
   }
