@@ -89,10 +89,11 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
 
   private def prefetch_duration(plan: PrefetchPlan): Long = {
     val size = randomWinSize(plan.winId).getOrElse(winSize.keySet.max)
-    val partitionSize = size / plan.partitions
+    val partitionSize = size / 10
     plan.maxLocality.map {
         case TaskLocality.NODE_LOCAL => load_local * partitionSize
         case TaskLocality.ANY => load_remote * partitionSize
+        case _ => 0L
       }.sum
   }
 
