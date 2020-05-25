@@ -80,7 +80,7 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
         val history: Array[java.lang.Long] =
           winSize.values.toArray.map(java.lang.Long.valueOf)
         val nextSeri = forecast.forecastNextN(history, id - winSize.keySet.max)
-        Option(nextSeri(nextSeri.size() - 1))
+        Option(nextSeri.get(nextSeri.size() - 1).toLong)
       }
     } else {
       None
@@ -93,7 +93,7 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
     plan.maxLocality.map {
         case TaskLocality.NODE_LOCAL => load_local
         case TaskLocality.ANY => load_remote
-      }.map(_ * partitionSize).sum
+      }.map(load => load * partitionSize).sum
   }
 
   private def main_duration(plan: PrefetchPlan): Long = {
@@ -126,7 +126,7 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
     var enlarged: Long = 0L
     for (id <- winId until plan.winId) {
       randomWinSize(id) match {
-        case Some(size) => enlarged += size * variation
+        case Some(size) => enlarged += (size * variation).toLong
         case None => enlarged += 0L
       }
     }
