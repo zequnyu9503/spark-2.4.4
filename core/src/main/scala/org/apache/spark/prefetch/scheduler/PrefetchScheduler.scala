@@ -31,7 +31,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.{DAGScheduler, SchedulerBackend, TaskLocation, TaskScheduler}
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
 import org.apache.spark.serializer.SerializerInstance
-import org.apache.spark.storage.{BlockManagerMaster, StorageLevel}
+import org.apache.spark.storage.{BlockId, BlockManagerMaster, RDDBlockId, StorageLevel}
 
 class PrefetchScheduler(val sc: SparkContext,
                         val backend: SchedulerBackend,
@@ -141,12 +141,16 @@ class PrefetchScheduler(val sc: SparkContext,
     storageMemory.free
   }
 
-  def askBlockManagerMaster(): mutable.HashMap[String, Long] = {
-    val free = new mutable.HashMap[String, Long]()
+  def sizeInMem(rdd: RDD[_]): Long = {
+    var memSize: Long = 0L
     val bmm = SparkEnv.get.blockManager.master
-    bmm.getMemoryStatus.foreach(status =>
-      free(status._1.executorId) = status._2._2)
-    free
+    rdd.partitions.foreach(partition => {
+      val blockId = RDDBlockId(rdd.id, partition.index)
+      bmm.getLocationsAndStatus(blockId) match {
+        case Some(status) => memSize += status.status.memSize
+      }
+    })
+    memSize
   }
 
   def makePlan(winId: Int, rdd: RDD[_]): Option[PrefetchPlan] = {

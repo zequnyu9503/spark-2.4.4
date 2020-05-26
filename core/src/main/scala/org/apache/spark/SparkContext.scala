@@ -2457,8 +2457,9 @@ class SparkContext(config: SparkConf) extends Logging {
     _prefetchScheduler.freeStorageMemory()
   }
 
-  def askBlockManagerMaster(): mutable.HashMap[String, Long] =
-    _prefetchScheduler.askBlockManagerMaster()
+  def rddCacheInMemory(rdd: RDD[_]): Long = {
+    _prefetchScheduler.sizeInMem(rdd)
+  }
 
   def migrateBlock[T: ClassTag](rdd: RDD[_], blockId: Int,
                                 sourceId: String, destinationId: String): Unit = {
