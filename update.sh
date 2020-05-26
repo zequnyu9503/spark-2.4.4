@@ -4,4 +4,4 @@ if [[ $(hostname) = "centos3" ]];then
 sh halt.sh
 fi
 git pull
-mvn clean install -DskipTests -pl core,assembly
+mvn clean install -DskipTests -pl core,assembly,examples
