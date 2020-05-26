@@ -18,7 +18,7 @@ package org.apache.spark.timewindow
 
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
-import org.apache.spark.prefetch.cluster.PrefetchBackend
+import org.apache.spark.prefetch.cluster.{PrefetchBackend, PrefetchPlan}
 import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rdd.RDD
 
@@ -62,23 +62,26 @@ class WinFetcher (sc: SparkContext,
     // scalastyle:off println
     synchronized {
       while (isRunning) {
-
-        if (isAllowed) {
-          backend.canPrefetch(null)
+        for (plus <- 1 to maxPrefetchStep) {
+          isAllowed(controller.winId.get() + plus) match {
+            case Some(rdd) => doPrefetch(rdd)
+            case None =>
+          }
         }
         suspend()
       }
     }
   }
 
-  private def isAllowed: Boolean = {
-    false
+  private def isAllowed(id: Int): Option[RDD[_]] = {
+    val plan = new PrefetchPlan(id, controller.randomWindow(id))
+    if (backend.canPrefetch(plan)) Option(plan.rdd) else None
   }
 
   private def doPrefetch[T](rdd: RDD[T]): Unit = {
     val thr = new Thread(new Runnable {
       override def run(): Unit = {
-
+        scheduler.prefetch(rdd)
       }
     })
     thr.start()

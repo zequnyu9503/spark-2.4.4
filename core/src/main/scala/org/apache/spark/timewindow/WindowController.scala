@@ -32,7 +32,7 @@ class WindowController[T, V] (
                                val func: (T, T) => RDD[(T, V)]) extends Logging {
 
   // Time window ID.
-  private val winId = new AtomicInteger(0)
+  val winId = new AtomicInteger(0)
 
   private val windows = new mutable.HashMap[Int, RDD[(T, V)]]()
 
@@ -58,7 +58,7 @@ class WindowController[T, V] (
     None
   }
 
-  private def randomWindow(id: Int): RDD[(T, V)] = {
+  def randomWindow(id: Int): RDD[(T, V)] = {
     val line = timeline(id)
     if (step < size && id - 1 >=0) {
       // This means that windows overlaps.

@@ -5,4 +5,4 @@ spark-submit \
 --executor-cores 4 \
 --driver-cores 4 \
 --driver-memory 12g \
-../examples/target/original-spark-examples_2.11-2.4.4.jar
+examples/target/original-spark-examples_2.11-2.4.4.jar
