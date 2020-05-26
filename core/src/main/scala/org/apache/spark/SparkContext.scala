@@ -61,9 +61,9 @@ import org.apache.spark.status.api.v1.ThreadStackTrace
 import org.apache.spark.storage._
 import org.apache.spark.storage.BlockManagerMessages.TriggerThreadDump
 import org.apache.spark.timewindow.WinFetcher
+import org.apache.spark.timewindow.WindowController
 import org.apache.spark.ui.{ConsoleProgressBar, SparkUI}
 import org.apache.spark.util._
-import org.apache.spark.timewindow.WindowController
 
 /**
  * Main entry point for Spark functionality. A SparkContext represents the connection to a Spark
