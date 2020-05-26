@@ -148,6 +148,7 @@ class PrefetchScheduler(val sc: SparkContext,
       val blockId = RDDBlockId(rdd.id, partition.index)
       bmm.getLocationsAndStatus(blockId) match {
         case Some(status) => memSize += status.status.memSize
+        case None => memSize += 0L
       }
     })
     memSize
