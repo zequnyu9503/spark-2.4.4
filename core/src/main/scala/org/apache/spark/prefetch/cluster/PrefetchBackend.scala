@@ -124,7 +124,7 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
 
   private def cluster_availability(plan: PrefetchPlan): Long = {
     val currentFreeStorage = scheduler.freeStorageMemory().values.sum
-    val local = 0L
+    val local = localResults.values.map(rdd => scheduler.sizeInMem(rdd)).sum
     var enlarged: Long = 0L
     for (id <- winId until plan.winId) {
       randomWinSize(id) match {

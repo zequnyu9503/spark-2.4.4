@@ -22,7 +22,7 @@ import org.apache.spark.rdd.RDD
 class TimeWindowRDDIterator[T, V](twr: TimeWindowRDD[T, V])
     extends Iterator[RDD[(T, V)]] {
 
-  override def hasNext: Boolean = !twr.isNextEmpty
+  override def hasNext: Boolean = twr.hasNext
 
-  override def next(): RDD[(T, V)] = twr.nextWinRDD()
+  override def next(): RDD[(T, V)] = twr.next
 }

@@ -16,37 +16,40 @@
  */
 package org.apache.spark.timewindow
 
-import scala.collection.mutable.ArrayBuffer
-
 import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
 
 class TimeWindowSuite extends SparkFunSuite {
   // scalastyle:off println
 
-  test("Time Window") {
-    val conf = new SparkConf().setMaster("local").setAppName("TimeWindow")
+  test("time window api") {
+    val conf = new SparkConf().
+      set("cores.prefetch.executors", "4").
+      setAppName("TimeWindow" + System.currentTimeMillis()).
+      setMaster("local")
     val sc = new SparkContext(conf)
 
-    val iterator = new TimeWindowRDD[Long, Long](sc, 10, 10, (start: Long, end: Long) => {
-      val seq = new ArrayBuffer[(Long, Long)]()
-      for (t <- start until end) {
-        seq.+=((t, Math.random().toLong))
-      }
-      sc.parallelize(seq)
-    }).iterator()
+    val rdd = sc.textFile("E:\\Project\\Scala Project\\experiments\\app-21-30.txt")
+    rdd.cache().count()
 
-    while (iterator.hasNext) {
-      val timeWindowRDD = iterator.next()
-      println(timeWindowRDD.count())
+
+    val itr = new TimeWindowRDD[Long, Long](sc, 10, 10, (start: Long, end: Long) => {
+      sc.textFile(s"E:\\Project\\Scala Project\\experiments\\app-$start-$end.txt").
+        map(e => e.split(" ")).
+        map(e => (e(0).toLong, e(1).toLong))
+    }).setScope(1, 31).iterator()
+
+
+    while(itr.hasNext) {
+      val rdd = itr.next()
+      println(s"Count is ${rdd.count()}")
     }
   }
 
-  test("thread") {
-    val conf = new SparkConf().setMaster("local").setAppName("thread")
-    val sc = new SparkContext(conf)
-    println("start fetcher")
-    val winFetcher = WinFetcher.service(sc, null)
-    val rdd = sc.textFile("F:\\Resources\\txt.txt")
-    println(rdd.count())
+  test("number format") {
+    val a = 1
+    println("%02d".format(a))
+
+    val b = 11
+    println("%02d".format(b))
   }
 }

@@ -24,7 +24,7 @@ import org.apache.spark.storage.StorageLevel
 sealed class TimeWindowRDD[T, V](sc: SparkContext, winSize: T,
                                  winStep: T, func: (T, T) => RDD[(T, V)]) {
 
-  private val controller = new TimeWindowController(sc,
+  private val controller = new WindowController[T, V](sc,
     winSize.asInstanceOf[Long], winStep.asInstanceOf[Long], func)
 
   private var _iterator: TimeWindowRDDIterator[T, V] = _
@@ -35,42 +35,31 @@ sealed class TimeWindowRDD[T, V](sc: SparkContext, winSize: T,
   }
 
   def setScope(start: T, end: T): TimeWindowRDD[T, V] = {
-    controller.scope =
-      TimeScope(start.asInstanceOf[Long], end.asInstanceOf[Long])
+    controller.setTimeScope(start.asInstanceOf[Long], end.asInstanceOf[Long])
     this
   }
 
   def setKeepInMem(n: Integer): TimeWindowRDD[T, V] = {
-    if (n > 0) controller.keepInMem = n
     this
   }
 
   def setStorageLevel(level: StorageLevel): TimeWindowRDD[T, V] = {
     if (level.useMemory && !level.useDisk) {
-      controller.storageLevel = level
+
     }
     this
   }
 
-  def setKeepInMemCapacity(size: Long): TimeWindowRDD[T, V] = {
-    if (size > 0) controller.keepInMemCapacity = size
-    this
-  }
-
   def setPartitionsLimitations(n: Integer): TimeWindowRDD[T, V] = {
-    if (n > 0) controller.partitionLimitations = n
+    if (n > 0) controller.setMaxPartitions(n)
     this
   }
 
   def allowPrefetch(bool: Boolean): Unit = {
-
+    sc.prefetchService(controller)
   }
 
-  protected[timewindow] def nextWinRDD(): RDD[(T, V)] = {
-    controller.next()
-  }
+  protected[timewindow] def next: RDD[(T, V)] = controller.next
 
-  protected[timewindow] def isNextEmpty: Boolean = {
-    controller.isEmpty
-  }
+  protected[timewindow] def hasNext: Boolean = controller.hasNext
 }

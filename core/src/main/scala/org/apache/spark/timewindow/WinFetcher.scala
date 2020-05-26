@@ -23,25 +23,28 @@ import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rdd.RDD
 
 
-class WinFetcher (sc: SparkContext, scheduler: PrefetchScheduler)
+class WinFetcher (sc: SparkContext,
+                  controller: WindowController[_, _],
+                  scheduler: PrefetchScheduler)
   extends Runnable with Logging {
 
   @volatile
   private var isRunning = false
 
-  // Current running window id.
-  @volatile
-  private var winId: Int = 0
-
   private val backend = new PrefetchBackend(sc, scheduler)
 
+  private val maxPrefetchStep = 3
+
   def updateWinId(id: Int): Unit = synchronized {
-    winId = id
-    backend.updateWinId(winId)
+    backend.updateWinId(id)
   }
 
   // default waiting duration.
-  private var waiting: Long = 1000
+  private val waiting: Long = 1000
+
+  def start(): Unit = synchronized {
+    isRunning = true
+  }
 
   def stop(): Unit = synchronized {
     isRunning = false
@@ -55,15 +58,11 @@ class WinFetcher (sc: SparkContext, scheduler: PrefetchScheduler)
     this.wait(waiting)
   }
 
-  {
-    logInfo("Win Fetcher service is ready.")
-    synchronized {isRunning = true}
-  }
-
   override def run(): Unit = {
     // scalastyle:off println
     synchronized {
       while (isRunning) {
+
         if (isAllowed) {
           backend.canPrefetch(null)
         }
@@ -90,10 +89,13 @@ object WinFetcher {
 
   var winFetcher: WinFetcher = _
 
-  def service(sparkContext: SparkContext, scheduler: PrefetchScheduler): WinFetcher = {
+  def service(sparkContext: SparkContext,
+              controller: WindowController[_, _],
+              scheduler: PrefetchScheduler): WinFetcher = {
     if (winFetcher eq null) {
-      winFetcher = new WinFetcher(sparkContext, scheduler)
+      winFetcher = new WinFetcher(sparkContext, controller, scheduler)
       val thr = new Thread(winFetcher)
+      winFetcher.start()
       thr.start()
     }
     winFetcher

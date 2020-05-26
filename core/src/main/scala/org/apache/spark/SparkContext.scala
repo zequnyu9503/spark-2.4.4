@@ -49,7 +49,7 @@ import org.apache.spark.internal.config._
 import org.apache.spark.io.CompressionCodec
 import org.apache.spark.migration.MigrateScheduler
 import org.apache.spark.partial.{ApproximateEvaluator, PartialResult}
-import org.apache.spark.prefetch.{PrefetchReporter, StorageMemory}
+import org.apache.spark.prefetch.PrefetchReporter
 import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rdd._
 import org.apache.spark.rpc.RpcEndpointRef
@@ -63,6 +63,7 @@ import org.apache.spark.storage.BlockManagerMessages.TriggerThreadDump
 import org.apache.spark.timewindow.WinFetcher
 import org.apache.spark.ui.{ConsoleProgressBar, SparkUI}
 import org.apache.spark.util._
+import org.apache.spark.timewindow.WindowController
 
 /**
  * Main entry point for Spark functionality. A SparkContext represents the connection to a Spark
@@ -2448,8 +2449,8 @@ class SparkContext(config: SparkConf) extends Logging {
     _prefetchScheduler.prefetch(rdd)
   }
 
-  def prefetchService(): Unit = {
-    WinFetcher.service(this, _prefetchScheduler)
+  def prefetchService(controller: WindowController[_, _]): Unit = {
+    WinFetcher.service(this, controller, _prefetchScheduler)
   }
 
   @deprecated
@@ -2457,6 +2458,7 @@ class SparkContext(config: SparkConf) extends Logging {
     _prefetchScheduler.freeStorageMemory()
   }
 
+  @deprecated
   def rddCacheInMemory(rdd: RDD[_]): Long = {
     _prefetchScheduler.sizeInMem(rdd)
   }
