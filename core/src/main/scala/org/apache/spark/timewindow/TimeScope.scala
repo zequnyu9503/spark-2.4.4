@@ -22,5 +22,5 @@ class TimeScope(var start: Long = 0L, var end: Long = Long.MaxValue) {
   def isDefault: Boolean = end == Long.MaxValue
 
   def isLegal(winStart: Long): Boolean =
-    winStart >= start.asInstanceOf[Long] && winStart < end.asInstanceOf[Long]
+    winStart >= start.asInstanceOf[Long] && winStart <= end.asInstanceOf[Long]
 }
