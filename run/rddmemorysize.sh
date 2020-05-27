@@ -7,4 +7,4 @@ spark-submit \
 --driver-memory 12g \
 --class org.apache.spark.examples.tw.RDDMemorySize \
 examples/target/original-spark-examples_2.11-2.4.4.jar \
-/home/zc/yzq/download/rdd_memory_size.txt
+/home/zc/yzq/downloads/rdd_memory_size.txt
