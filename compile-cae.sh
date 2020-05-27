@@ -5,6 +5,7 @@
 #fi
 #git pull
 #mvn clean install -DskipTests -pl core,assembly,examples
+sh halt.sh
 slaves=("centos3" "centos4" "centos5" "centos11" "centos12" "centos13")
 for slave in ${slaves[@]}
  do
