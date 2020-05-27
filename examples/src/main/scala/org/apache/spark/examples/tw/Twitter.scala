@@ -22,29 +22,26 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.timewindow.TimeWindowRDD
 
-
-
-object Twitter {
-
-  val root = "hdfs://centos3:9000/real-world/"
-  val output = s"hdfs://centos3:9000/results/twitter-${System.currentTimeMillis()}"
-  val winSize = 1
-  val winStep = 1
-
-  val conf = new SparkConf().setAppName("Twitter-" + System.currentTimeMillis())
-    .set("cores.prefetch.executors", "4")
-  val sc = new SparkContext(conf)
-
-  def load(start: Long, end: Long): RDD[(Long, String)] = {
-    sc.textFile(s"$root/2019-4-${"%02d".format(start)}.json").
-      map(e => JSON.parseFull(e)).map {
-      case Some(map: Map[String, Any]) =>
-        (start, map.get("text").toString)
-      case _ => (start, "")
-    }
-  }
+object Twitter extends Serializable {
 
   def main(args: Array[String]): Unit = {
+    val root = "hdfs://centos3:9000/real-world/"
+    val output = s"hdfs://centos3:9000/results/twitter-${System.currentTimeMillis()}"
+    val winSize = 1
+    val winStep = 1
+
+    val conf = new SparkConf().setAppName("Twitter-" + System.currentTimeMillis())
+      .set("cores.prefetch.executors", "4")
+    val sc = new SparkContext(conf)
+
+    def load(start: Long, end: Long): RDD[(Long, String)] = {
+      sc.textFile(s"$root/2019-4-${"%02d".format(start)}.json").
+        map(e => JSON.parseFull(e)).map {
+        case Some(map: Map[String, Any]) =>
+          (start, map.get("text").toString)
+        case _ => (start, "")
+      }
+    }
 
     val itr = new TimeWindowRDD[Long, String](sc, 1, 1, load).
       setScope(1, 5).iterator()
