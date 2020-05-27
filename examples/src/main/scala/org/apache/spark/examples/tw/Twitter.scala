@@ -27,8 +27,6 @@ object Twitter extends Serializable {
   def main(args: Array[String]): Unit = {
     val root = "hdfs://centos3:9000/real-world/"
     val output = s"hdfs://centos3:9000/results/twitter-${System.currentTimeMillis()}"
-    val winSize = 1
-    val winStep = 1
 
     val conf = new SparkConf().setAppName("Twitter-" + System.currentTimeMillis())
       .set("cores.prefetch.executors", "4")
@@ -52,6 +50,7 @@ object Twitter extends Serializable {
       local = local.union(result).cache()
       local.count()
     }
+
     local.reduceByKey(_ + _).saveAsTextFile(output)
   }
 }
