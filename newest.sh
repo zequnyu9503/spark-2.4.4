@@ -4,3 +4,4 @@ for slave in ${slaves[@]}
  do
   ssh "zc@${slave}" "cd /home/zc/service/spark-2.4.4/;git pull" &
  done
+wait
