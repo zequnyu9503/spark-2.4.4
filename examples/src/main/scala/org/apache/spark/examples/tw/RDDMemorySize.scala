@@ -38,7 +38,7 @@ object RDDMemorySize {
       val rdd = sc.textFile(s"hdfs://centos3:9000/real-world/2019-4-${"%02d".format(day)}.json")
       rdd.cache().count()
       val memorySize = sc.rddCacheInMemory(rdd)
-      record += s"${"%02d".format(day)} $memorySize"
+      record += s"${"%02d".format(day)}>>$memorySize\n"
       rdd.unpersist(true)
     }
     Files.write(record, file, StandardCharsets.UTF_8)
