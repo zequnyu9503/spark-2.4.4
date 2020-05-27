@@ -36,9 +36,9 @@ export SPARK_LOCAL_DIRS=/home/zc/service/spark-2.4.4-localdir
 # Options read in YARN client/cluster mode
 # - SPARK_CONF_DIR, Alternate conf dir. (Default: ${SPARK_HOME}/conf)
 # - HADOOP_CONF_DIR, to point Spark towards Hadoop configuration files
-export HADOOP_CONF_DIR=/home/zc/software/hadoop-2.7.7/etc/hadoop
+export HADOOP_CONF_DIR=/home/zc/service/hadoop-2.8.5/etc/hadoop
 # - YARN_CONF_DIR, to point Spark towards YARN configuration files when you use YARN
-export YARN_CONF_DIR=/home/zc/software/hadoop-2.7.7/etc/hadoop
+export YARN_CONF_DIR=/home/zc/service/hadoop-2.8.5/etc/hadoop
 # - SPARK_EXECUTOR_CORES, Number of cores for the executors (Default: 1).
 # - SPARK_EXECUTOR_MEMORY, Memory per Executor (e.g. 1000M, 2G) (Default: 1G)
 # - SPARK_DRIVER_MEMORY, Memory for Driver (e.g. 1000M, 2G) (Default: 1G)

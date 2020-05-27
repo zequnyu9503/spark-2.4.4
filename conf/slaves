@@ -14,13 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-centos3
 centos4
 centos5
 centos11
 centos12
 centos13
-centos19
-centos20
-centos21
-centos22
+#centos19
+#centos20
+#centos21
+#centos22
