@@ -34,7 +34,8 @@ object Twitter extends Serializable {
 
     def load(start: Long, end: Long): RDD[(Long, String)] = {
       sc.textFile(s"$root/2019-4-${"%02d".format(start)}.json").
-        map(line => JSON.parseObject(line)).map(json => (start, json.getString("text")))
+        map(line => JSON.parseObject(line)).
+        map(json => (start, json.getOrDefault("text", "").toString))
     }
 
     val itr = new TimeWindowRDD[Long, String](sc, 1, 1, load).
@@ -45,7 +46,7 @@ object Twitter extends Serializable {
     while (itr.hasNext) {
       val winRDD = itr.next()
       val result = winRDD.map(_._2).
-        flatMap(_.split(" ")).
+        flatMap(txt => txt.split(" ")).
         map(e => (e, 1L)).reduceByKey(_ + _)
       local = local.union(result).cache()
       local.count()
