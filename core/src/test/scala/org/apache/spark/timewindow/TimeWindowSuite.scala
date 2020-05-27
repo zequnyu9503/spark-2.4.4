@@ -52,4 +52,12 @@ class TimeWindowSuite extends SparkFunSuite {
     val b = 11
     println("%02d".format(b))
   }
+
+  test ("json") {
+    val conf = new SparkConf().
+      set("cores.prefetch.executors", "4").
+      setAppName("json" + System.currentTimeMillis()).
+      setMaster("local")
+    val sc = new SparkContext(conf)
+  }
 }

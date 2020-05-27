@@ -16,7 +16,7 @@
  */
 package org.apache.spark.examples.tw
 
-import scala.util.parsing.json.JSON
+import com.alibaba.fastjson.JSON
 
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
@@ -36,11 +36,7 @@ object Twitter extends Serializable {
 
     def load(start: Long, end: Long): RDD[(Long, String)] = {
       sc.textFile(s"$root/2019-4-${"%02d".format(start)}.json").
-        map(e => JSON.parseFull(e)).map {
-        case Some(map: Map[String, Any]) =>
-          (start, map.get("text").toString)
-        case _ => (start, "")
-      }
+        map(line => JSON.parseObject(line)).map(json => (start, json.getString("text")))
     }
 
     val itr = new TimeWindowRDD[Long, String](sc, 1, 1, load).

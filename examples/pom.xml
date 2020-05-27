@@ -114,6 +114,11 @@
       <artifactId>parquet-hadoop-bundle</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>com.alibaba</groupId>
+      <artifactId>fastjson</artifactId>
+      <version>1.2.35</version>
+    </dependency>
   </dependencies>
 
   <build>
