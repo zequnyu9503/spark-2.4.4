@@ -6,6 +6,5 @@ spark-submit \
 --driver-cores 4 \
 --driver-memory 12g \
 --class org.apache.spark.examples.tw.RDDMemorySize \
---jars run/libs/fastjson-1.2.35.jar \
 examples/target/original-spark-examples_2.11-2.4.4.jar \
 /home/zc/yzq/downloads/rdd_memory_size.txt
