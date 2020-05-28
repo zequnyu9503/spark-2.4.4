@@ -29,28 +29,28 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
     extends Logging {
 
   // Expansion factor for data from disk to memory.
-  private var expansion: Double = 0d
+  private var expansion: Double = sc.conf.getDouble("expansion.hdfs", 2d)
 
   // Historical time window data size.
   private val winSize = new mutable.HashMap[Int, Long]()
 
   // CPU cores for prefetching on each executors.
-  private var cores: Int = 2
+  private var cores: Int = sc.conf.getInt("cores.prefetch.executors", 4)
 
   // Velocity of computation.
-  private var calc: Long = 0
+  private var calc: Long = sc.conf.getLong("calc.prefetch", 0L)
 
   // Loading velocity for loading local data.
-  private var load_local: Long = 0
+  private var load_local: Long = sc.conf.getLong("load.local.prefetch", 0L)
 
   // Loading velocity for loading remote data.
-  private var load_remote: Long = 0
+  private var load_remote: Long = sc.conf.getLong("load.remote.prefetch", 0L)
 
   // Variation factor of local result in culster.
-  private var variation: Double = 0d
+  private var variation: Double = sc.conf.getDouble("variation.prefetch", 0d)
 
   // Minimize windows accepted for prefetching.
-  private var min: Int = 3
+  private var min: Int = sc.conf.getInt("min.prefetch", 3)
 
   // Forecast tool.
   private val forecast = new DataSizeForecast()
@@ -88,8 +88,8 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
   }
 
   private def prefetch_duration(plan: PrefetchPlan): Long = {
-    val size = randomWinSize(plan.winId).getOrElse(winSize.keySet.max)
-    val partitionSize = 10 / 10
+    val size: Long = randomWinSize(plan.winId).getOrElse(winSize.keySet.max)
+    val partitionSize: Long = size / plan.partitions.toLong
     val batches = plan.maxLocality.map {
         case TaskLocality.NODE_LOCAL => load_local * partitionSize
         case TaskLocality.ANY => load_remote * partitionSize

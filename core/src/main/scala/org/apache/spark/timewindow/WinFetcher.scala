@@ -33,8 +33,6 @@ class WinFetcher (sc: SparkContext,
 
   private val backend = new PrefetchBackend(sc, scheduler)
 
-  private val maxPrefetchStep = 3
-
   def updateWinId(id: Int): Unit = synchronized {
     backend.updateWinId(id)
   }
@@ -62,11 +60,9 @@ class WinFetcher (sc: SparkContext,
     // scalastyle:off println
     synchronized {
       while (isRunning) {
-        for (plus <- 1 to maxPrefetchStep) {
-          isAllowed(controller.winId.get() + plus) match {
-            case Some(rdd) => doPrefetch(rdd)
-            case None =>
-          }
+        isAllowed(controller.winId.get()) match {
+          case Some(rdd) => doPrefetch(rdd)
+          case None =>
         }
         suspend()
       }

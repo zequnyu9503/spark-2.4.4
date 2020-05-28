@@ -30,6 +30,12 @@ object Twitter extends Serializable {
 
     val conf = new SparkConf().setAppName("Twitter-" + System.currentTimeMillis())
       .set("cores.prefetch.executors", "4")
+      .set("expansion.hdfs", "1.833274997")
+      .set("calc.prefetch", "")
+      .set("load.local.prefetch", "3.912299871444702e-5")
+      .set("load.remote.prefetch", "")
+      .set("variation.prefetch", "")
+      .set("min.prefetch", "3")
     val sc = new SparkContext(conf)
 
     def load(start: Long, end: Long): RDD[(Long, String)] = {
@@ -53,5 +59,7 @@ object Twitter extends Serializable {
     }
 
     local.reduceByKey(_ + _).saveAsTextFile(output)
+
+
   }
 }
