@@ -155,11 +155,11 @@ class PrefetchBackend[T, V](sc: SparkContext, scheduler: PrefetchScheduler)
 
   def doPrefetch[T, V](plan: PrefetchPlan[T, V]): Unit = {
     if (!pending.contains(plan.winId) && !finished.contains(plan.winId)) {
-      pending(plan.winId) = plan.rdd
+      pending(plan.winId) = plan.rdd[T, V]
 
       scheduler.prefetch(plan.rdd)
 
-      finished(plan.winId) = plan.rdd
+      finished(plan.winId) = plan.rdd[T, V]
       pending.remove(plan.winId)
     }
   }
