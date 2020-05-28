@@ -37,8 +37,6 @@ class WindowController[T, V, X] (
 
   private val windows = new mutable.HashMap[Int, RDD[(T, V)]]()
 
-  private val prefetched = new mutable.HashMap[Int, RDD[(T, V)]]()
-
   private val localResults = new mutable.HashMap[Int, RDD[X]]()
 
   private val timeScope = new TimeScope()
@@ -46,10 +44,12 @@ class WindowController[T, V, X] (
   private var maxPartitions = 10
   private var storageLevel = StorageLevel.MEMORY_ONLY
 
-  private var backend: PrefetchBackend = _
+  private var backend: PrefetchBackend[T, V] = _
 
   private def timeline(id: Int): (Long, Long) =
     (timeScope.start + id * step, timeScope.start + id * step + size - 1)
+
+  private def prefetched: mutable.HashMap[Int, RDD[(T, V)]] = backend.finished
 
   private def updateBackend(): Unit = {
     if (!backend.eq(null)) {
@@ -120,7 +120,7 @@ class WindowController[T, V, X] (
     maxPartitions = partitions
   }
 
-  def setBackend(pb: PrefetchBackend): Unit = {
+  def setBackend(pb: PrefetchBackend[T, V]): Unit = {
     backend = pb
   }
 

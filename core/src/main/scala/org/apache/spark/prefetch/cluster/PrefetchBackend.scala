@@ -25,7 +25,7 @@ import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.TaskLocality
 
-class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
+class PrefetchBackend[T, V](sc: SparkContext, scheduler: PrefetchScheduler)
     extends Logging {
 
   // Expansion factor for data from disk to memory.
@@ -66,10 +66,10 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
   private val startLine = new mutable.HashMap[Int, Long]()
 
   // Prefetch in progress or not yet started.
-  private val pending = mutable.HashSet[PrefetchPlan]()
+  val pending = new mutable.HashMap[Int, RDD[(T, V)]]
 
   // Prefetch completed or failed.
-  private val finished = mutable.HashSet[PrefetchPlan]()
+  val finished = new mutable.HashMap[Int, RDD[(T, V)]]
 
   // Forecast future window data size.
   private def randomWinSize(id: Int): Option[Long] = {
@@ -87,7 +87,7 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
     }
   }
 
-  private def prefetch_duration(plan: PrefetchPlan): Long = {
+  private def prefetch_duration(plan: PrefetchPlan[T, V]): Long = {
     val size: Long = randomWinSize(plan.winId).getOrElse(winSize.keySet.max)
     val partitionSize: Long = size / plan.partitions.toLong
     val batches = plan.maxLocality.map {
@@ -98,12 +98,12 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
     batches.sum
   }
 
-  private def main_duration(plan: PrefetchPlan): Long = {
+  private def main_duration(plan: PrefetchPlan[T, V]): Long = {
     var waiting: Long = 0
     for (id <- winId until plan.winId) {
       randomWinSize(id) match {
         case Some(size) =>
-          if (!finished.exists(_.winId == id)) {
+          if (!finished.contains(id)) {
             waiting += size * calc
           } else {
             waiting += size * (calc + load_local)
@@ -115,14 +115,14 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
     waiting - used
   }
 
-  private def prefetch_requirement(plan: PrefetchPlan): Long = {
+  private def prefetch_requirement(plan: PrefetchPlan[T, V]): Long = {
     randomWinSize(plan.winId) match {
       case Some(size) => (size.toDouble * expansion).toLong
       case None => 0L
     }
   }
 
-  private def cluster_availability(plan: PrefetchPlan): Long = {
+  private def cluster_availability(plan: PrefetchPlan[T, V]): Long = {
     val currentFreeStorage = scheduler.freeStorageMemory().values.sum
     val local = localResults.values.map(rdd => scheduler.sizeInMem(rdd)).sum
     var enlarged: Long = 0L
@@ -135,7 +135,7 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
     currentFreeStorage - (local + enlarged)
   }
 
-  def canPrefetch(plan: PrefetchPlan): Boolean = {
+  def canPrefetch[T, V](plan: PrefetchPlan[T, V]): Boolean = {
     if (plan.winId > min) {
       val prefetch = prefetch_duration(plan)
       val main = main_duration(plan)
@@ -151,6 +151,17 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
         if (requirement < availability) true else false
       } else false
     } else false
+  }
+
+  def doPrefetch[T, V](plan: PrefetchPlan[T, V]): Unit = {
+    if (!pending.contains(plan.winId) && !finished.contains(plan.winId)) {
+      pending(plan.winId) = plan.rdd
+
+      scheduler.prefetch(plan.rdd)
+
+      finished(plan.winId) = plan.rdd
+      pending.remove(plan.winId)
+    }
   }
 
   def updateWinId(id: Int): Unit = synchronized {

@@ -50,6 +50,7 @@ import org.apache.spark.io.CompressionCodec
 import org.apache.spark.migration.MigrateScheduler
 import org.apache.spark.partial.{ApproximateEvaluator, PartialResult}
 import org.apache.spark.prefetch.PrefetchReporter
+import org.apache.spark.prefetch.cluster.PrefetchBackend
 import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rdd._
 import org.apache.spark.rpc.RpcEndpointRef
@@ -2444,6 +2445,8 @@ class SparkContext(config: SparkConf) extends Logging {
   // NOTE: this must be placed at the end of the SparkContext constructor.
   SparkContext.setActiveContext(this, allowMultipleContexts)
 
+  def prefetchScheduler: PrefetchScheduler = _prefetchScheduler
+
   @deprecated
   def prefetchRDD(rdd: RDD[_]): Option[Seq[PrefetchReporter]] = {
     _prefetchScheduler.prefetch(rdd)
@@ -2457,10 +2460,6 @@ class SparkContext(config: SparkConf) extends Logging {
   @deprecated
   def rddCacheInMemory(rdd: RDD[_]): Long = {
     _prefetchScheduler.sizeInMem(rdd)
-  }
-
-  def startPrefetchService(controller: WindowController[_, _, _]): WinFetcher = {
-    WinFetcher.service(this, controller, _prefetchScheduler)
   }
 
   def migrateBlock[T: ClassTag](rdd: RDD[_], blockId: Int,

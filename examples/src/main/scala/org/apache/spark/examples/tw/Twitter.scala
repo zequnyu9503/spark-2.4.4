@@ -46,13 +46,12 @@ object Twitter extends Serializable {
     }
 
     val twRDD = new TimeWindowRDD[Long, String, (String, Long)](sc, 1, 1, load).
-      setScope(1, 5).allowPrefetch(false)
+      setScope(1, 5).allowPrefetch(true)
     val itr = twRDD.iterator()
 
     while (itr.hasNext) {
       val winRDD = itr.next()
-      val result = winRDD.map(_._2).
-        flatMap(txt => txt.split(" ")).
+      val result = winRDD.map(_._2).flatMap(txt => txt.split(" ")).
         map(e => (e, 1L)).reduceByKey(_ + _)
       result.cache().count()
       twRDD.saveLocalResult(result)

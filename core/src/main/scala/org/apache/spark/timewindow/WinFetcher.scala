@@ -20,16 +20,14 @@ import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.prefetch.cluster.{PrefetchBackend, PrefetchPlan}
 import org.apache.spark.prefetch.scheduler.PrefetchScheduler
-import org.apache.spark.rdd.RDD
 
-
-class WinFetcher (sc: SparkContext,
-                  controller: WindowController[_, _, _],
+class WinFetcher[T, V] (sc: SparkContext,
+                  controller: WindowController[T, V, _],
                   scheduler: PrefetchScheduler)
   extends Runnable with Logging {
 
   @volatile
-  private var isRunning = false
+  private var isRunning = true
 
   val backend = new PrefetchBackend(sc, scheduler)
 
@@ -61,7 +59,7 @@ class WinFetcher (sc: SparkContext,
     synchronized {
       while (isRunning) {
         isAllowed(controller.winId.get()) match {
-          case Some(rdd) => doPrefetch(rdd)
+          case Some(plan) => doPrefetch(plan)
           case None =>
         }
         suspend()
@@ -69,35 +67,13 @@ class WinFetcher (sc: SparkContext,
     }
   }
 
-  private def isAllowed(id: Int): Option[RDD[_]] = {
+  private def isAllowed(id: Int): Option[PrefetchPlan[T, V]] = {
     if (id == 0) return None
-    val plan = new PrefetchPlan(id, controller.randomWindow(id))
-    if (backend.canPrefetch(plan)) Option(plan.rdd) else None
+    val plan = new PrefetchPlan[T, V](id, controller.randomWindow(id))
+    Option(plan).filter(backend.canPrefetch)
   }
 
-  private def doPrefetch[T](rdd: RDD[T]): Unit = {
-    val thr = new Thread(new Runnable {
-      override def run(): Unit = {
-        scheduler.prefetch(rdd)
-      }
-    })
-    thr.start()
-  }
-}
-
-object WinFetcher {
-
-  var winFetcher: WinFetcher = _
-
-  def service(sparkContext: SparkContext,
-              controller: WindowController[_, _, _],
-              scheduler: PrefetchScheduler): WinFetcher = {
-    if (winFetcher eq null) {
-      winFetcher = new WinFetcher(sparkContext, controller, scheduler)
-      val thr = new Thread(winFetcher)
-      winFetcher.start()
-      thr.start()
-    }
-    winFetcher
+  private def doPrefetch(plan: PrefetchPlan[T, V]): Unit = {
+    backend.doPrefetch(plan)
   }
 }
