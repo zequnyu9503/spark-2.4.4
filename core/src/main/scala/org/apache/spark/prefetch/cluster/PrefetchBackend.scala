@@ -87,7 +87,7 @@ class PrefetchBackend[T, V](sc: SparkContext, scheduler: PrefetchScheduler)
     }
   }
 
-  private def prefetch_duration(plan: PrefetchPlan[T, V]): Long = {
+  private def prefetch_duration[T, V](plan: PrefetchPlan[T, V]): Long = {
     val size: Long = randomWinSize(plan.winId).getOrElse(winSize.keySet.max)
     val partitionSize: Long = size / plan.partitions.toLong
     val batches = plan.maxLocality.map {
@@ -98,7 +98,7 @@ class PrefetchBackend[T, V](sc: SparkContext, scheduler: PrefetchScheduler)
     batches.sum
   }
 
-  private def main_duration(plan: PrefetchPlan[T, V]): Long = {
+  private def main_duration[T, V](plan: PrefetchPlan[T, V]): Long = {
     var waiting: Long = 0
     for (id <- winId until plan.winId) {
       randomWinSize(id) match {
@@ -115,14 +115,14 @@ class PrefetchBackend[T, V](sc: SparkContext, scheduler: PrefetchScheduler)
     waiting - used
   }
 
-  private def prefetch_requirement(plan: PrefetchPlan[T, V]): Long = {
+  private def prefetch_requirement[T, V](plan: PrefetchPlan[T, V]): Long = {
     randomWinSize(plan.winId) match {
       case Some(size) => (size.toDouble * expansion).toLong
       case None => 0L
     }
   }
 
-  private def cluster_availability(plan: PrefetchPlan[T, V]): Long = {
+  private def cluster_availability[T, V](plan: PrefetchPlan[T, V]): Long = {
     val currentFreeStorage = scheduler.freeStorageMemory().values.sum
     val local = localResults.values.map(rdd => scheduler.sizeInMem(rdd)).sum
     var enlarged: Long = 0L
