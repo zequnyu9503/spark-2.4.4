@@ -7,4 +7,4 @@ spark-submit \
 --driver-memory 12g \
 --class org.apache.spark.examples.tw.LocalResult \
 examples/target/original-spark-examples_2.11-2.4.4.jar \
-/home/zc/yzq/downloads/localresult.txt
+/home/zc/yzq/downloads/localresults.txt
