@@ -140,9 +140,13 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
       val prefetch = prefetch_duration(plan)
       val main = main_duration(plan)
 
+      logInfo(s"prefetch: $prefetch main: $main")
+
       if (prefetch < main) {
         val requirement = prefetch_requirement(plan)
         val availability = cluster_availability(plan)
+
+        logInfo(s"requirement: $requirement availability: $availability")
 
         if (requirement < availability) true else false
       } else false
@@ -151,6 +155,7 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
 
   def updateWinId(id: Int): Unit = synchronized {
     winId = id
+    logInfo(s"Update winId $id")
   }
 
   def updateStartLine(id: Int, start: Long): Unit = synchronized {

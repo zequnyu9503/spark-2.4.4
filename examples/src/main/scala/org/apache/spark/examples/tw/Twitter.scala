@@ -31,11 +31,12 @@ object Twitter extends Serializable {
     val conf = new SparkConf().setAppName("Twitter-" + System.currentTimeMillis())
       .set("cores.prefetch.executors", "4")
       .set("expansion.hdfs", "1.833274997")
-      .set("calc.prefetch", "")
+      .set("calc.prefetch", "1.50925E-06")
       .set("load.local.prefetch", "3.912299871444702e-5")
       .set("load.remote.prefetch", "")
-      .set("variation.prefetch", "")
-      .set("min.prefetch", "3")
+      .set("variation.prefetch", "0.018134686")
+      .set("min.prefetch", "1")
+
     val sc = new SparkContext(conf)
 
     def load(start: Long, end: Long): RDD[(Long, String)] = {
@@ -44,22 +45,19 @@ object Twitter extends Serializable {
         map(json => (start, json.getOrDefault("text", "").toString))
     }
 
-    val itr = new TimeWindowRDD[Long, String](sc, 1, 1, load).
-      setScope(1, 5).allowPrefetch(false).iterator()
-
-    var local = sc.emptyRDD[(String, Long)]
+    val twRDD = new TimeWindowRDD[Long, String, (String, Long)](sc, 1, 1, load).
+      setScope(1, 5).allowPrefetch(false)
+    val itr = twRDD.iterator()
 
     while (itr.hasNext) {
       val winRDD = itr.next()
       val result = winRDD.map(_._2).
         flatMap(txt => txt.split(" ")).
         map(e => (e, 1L)).reduceByKey(_ + _)
-      local = local.union(result).cache()
-      local.count()
+      result.cache().count()
+      twRDD.saveLocalResult(result)
     }
 
-    local.reduceByKey(_ + _).saveAsTextFile(output)
-
-
+    twRDD.localAsRDD().reduceByKey(_ + _).saveAsTextFile(output)
   }
 }

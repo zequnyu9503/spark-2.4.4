@@ -21,43 +21,53 @@ import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
 
-sealed class TimeWindowRDD[T, V](sc: SparkContext, winSize: T,
+sealed class TimeWindowRDD[T, V, X](sc: SparkContext, winSize: T,
                                  winStep: T, func: (T, T) => RDD[(T, V)]) {
 
-  private val controller = new WindowController[T, V](sc,
+  private val controller = new WindowController[T, V, X](sc,
     winSize.asInstanceOf[Long], winStep.asInstanceOf[Long], func)
 
-  private var _iterator: TimeWindowRDDIterator[T, V] = _
+  private var _iterator: TimeWindowRDDIterator[T, V, X] = _
 
-  def iterator(): TimeWindowRDDIterator[T, V] = {
-    if (_iterator.eq(null)) _iterator = new TimeWindowRDDIterator[T, V](this)
+  def iterator(): TimeWindowRDDIterator[T, V, X] = {
+    if (_iterator.eq(null)) _iterator = new TimeWindowRDDIterator[T, V, X](this)
     _iterator
   }
 
-  def setScope(start: T, end: T): TimeWindowRDD[T, V] = {
+  def setScope(start: T, end: T): TimeWindowRDD[T, V, X] = {
     controller.setTimeScope(start.asInstanceOf[Long], end.asInstanceOf[Long])
     this
   }
 
-  def setKeepInMem(n: Integer): TimeWindowRDD[T, V] = {
+  def setKeepInMem(n: Integer): TimeWindowRDD[T, V, X] = {
     this
   }
 
-  def setStorageLevel(level: StorageLevel): TimeWindowRDD[T, V] = {
+  def setStorageLevel(level: StorageLevel): TimeWindowRDD[T, V, X] = {
     if (level.useMemory && !level.useDisk) {
 
     }
     this
   }
 
-  def setPartitionsLimitations(n: Integer): TimeWindowRDD[T, V] = {
+  def setPartitionsLimitations(n: Integer): TimeWindowRDD[T, V, X] = {
     if (n > 0) controller.setMaxPartitions(n)
     this
   }
 
-  def allowPrefetch(bool: Boolean): TimeWindowRDD[T, V] = {
-//    if (bool) sc.prefetchService(controller)
+  def allowPrefetch(bool: Boolean): TimeWindowRDD[T, V, X] = {
+    if (bool) {
+      controller.setBackend(sc.startPrefetchService(controller).backend)
+    }
     this
+  }
+
+  def saveLocalResult(rdd: RDD[X]): Unit = {
+    controller.addLocalResult(rdd)
+  }
+
+  def localAsRDD(): RDD[X] = {
+    controller.localAsRDD()
   }
 
   protected[timewindow] def next: RDD[(T, V)] = controller.next

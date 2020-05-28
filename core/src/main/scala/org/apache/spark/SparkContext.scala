@@ -2449,10 +2449,6 @@ class SparkContext(config: SparkConf) extends Logging {
     _prefetchScheduler.prefetch(rdd)
   }
 
-  def prefetchService(controller: WindowController[_, _]): Unit = {
-    WinFetcher.service(this, controller, _prefetchScheduler)
-  }
-
   @deprecated
   def freeStorageMemory(): mutable.HashMap[String, Long] = {
     _prefetchScheduler.freeStorageMemory()
@@ -2461,6 +2457,10 @@ class SparkContext(config: SparkConf) extends Logging {
   @deprecated
   def rddCacheInMemory(rdd: RDD[_]): Long = {
     _prefetchScheduler.sizeInMem(rdd)
+  }
+
+  def startPrefetchService(controller: WindowController[_, _, _]): WinFetcher = {
+    WinFetcher.service(this, controller, _prefetchScheduler)
   }
 
   def migrateBlock[T: ClassTag](rdd: RDD[_], blockId: Int,

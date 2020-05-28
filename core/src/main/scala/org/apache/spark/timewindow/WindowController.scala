@@ -22,10 +22,11 @@ import scala.collection.mutable
 
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
+import org.apache.spark.prefetch.cluster.PrefetchBackend
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
 
-class WindowController[T, V] (
+class WindowController[T, V, X] (
                                val sc: SparkContext,
                                val size: Long,
                                val step: Long,
@@ -38,13 +39,24 @@ class WindowController[T, V] (
 
   private val prefetched = new mutable.HashMap[Int, RDD[(T, V)]]()
 
+  private val localResults = new mutable.HashMap[Int, RDD[X]]()
+
   private val timeScope = new TimeScope()
 
   private var maxPartitions = 10
   private var storageLevel = StorageLevel.MEMORY_ONLY
 
+  private var backend: PrefetchBackend = _
+
   private def timeline(id: Int): (Long, Long) =
     (timeScope.start + id * step, timeScope.start + id * step + size - 1)
+
+  private def updateBackend(): Unit = {
+    if (!backend.eq(null)) {
+      backend.updateWinId(winId.get())
+      backend.updateStartLine(winId.get(), System.currentTimeMillis())
+    }
+  }
 
   private def isCached(id: Int): Option[RDD[(T, V)]] = {
     if (windows.contains(id)) {
@@ -108,9 +120,28 @@ class WindowController[T, V] (
     maxPartitions = partitions
   }
 
-  def next: RDD[(T, V)] = {
-    release()
+  def setBackend(pb: PrefetchBackend): Unit = {
+    backend = pb
+  }
 
+  def addLocalResult(rdd: RDD[X]): Unit = {
+    localResults(winId.get()) = rdd
+    if (!backend.eq(null)) {
+      backend.updateLocalResults(winId.get(), rdd)
+    }
+  }
+
+  def localAsRDD(): RDD[X] = {
+    var result = sc.emptyRDD[X]
+    localResults.values.foreach(rdd => result = result.union(rdd))
+    result
+  }
+
+  def next: RDD[(T, V)] = {
+    // Release previous cached timewindow rdd.
+    release()
+    updateBackend()
+    // Create next timewindow rdd.
     val rdd = randomWindow(winId.get())
     windows(winId.getAndIncrement()) = rdd
     rdd

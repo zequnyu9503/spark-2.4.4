@@ -24,14 +24,14 @@ import org.apache.spark.rdd.RDD
 
 
 class WinFetcher (sc: SparkContext,
-                  controller: WindowController[_, _],
+                  controller: WindowController[_, _, _],
                   scheduler: PrefetchScheduler)
   extends Runnable with Logging {
 
   @volatile
   private var isRunning = false
 
-  private val backend = new PrefetchBackend(sc, scheduler)
+  val backend = new PrefetchBackend(sc, scheduler)
 
   def updateWinId(id: Int): Unit = synchronized {
     backend.updateWinId(id)
@@ -70,6 +70,7 @@ class WinFetcher (sc: SparkContext,
   }
 
   private def isAllowed(id: Int): Option[RDD[_]] = {
+    if (id == 0) return None
     val plan = new PrefetchPlan(id, controller.randomWindow(id))
     if (backend.canPrefetch(plan)) Option(plan.rdd) else None
   }
@@ -89,7 +90,7 @@ object WinFetcher {
   var winFetcher: WinFetcher = _
 
   def service(sparkContext: SparkContext,
-              controller: WindowController[_, _],
+              controller: WindowController[_, _, _],
               scheduler: PrefetchScheduler): WinFetcher = {
     if (winFetcher eq null) {
       winFetcher = new WinFetcher(sparkContext, controller, scheduler)
