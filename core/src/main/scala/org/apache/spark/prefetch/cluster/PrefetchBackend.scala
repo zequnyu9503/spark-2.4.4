@@ -66,10 +66,10 @@ class PrefetchBackend[T, V](sc: SparkContext, scheduler: PrefetchScheduler)
   private val startLine = new mutable.HashMap[Int, Long]()
 
   // Prefetch in progress or not yet started.
-  val pending = new mutable.HashMap[Int, RDD[(T, V)]]
+  val pending = new mutable.HashSet[PrefetchPlan[T, V]]
 
   // Prefetch completed or failed.
-  val finished = new mutable.HashMap[Int, RDD[(T, V)]]
+  val finished = new mutable.HashSet[PrefetchPlan[T, V]]
 
   // Forecast future window data size.
   private def randomWinSize(id: Int): Option[Long] = {
@@ -103,7 +103,7 @@ class PrefetchBackend[T, V](sc: SparkContext, scheduler: PrefetchScheduler)
     for (id <- winId until plan.winId) {
       randomWinSize(id) match {
         case Some(size) =>
-          if (!finished.contains(id)) {
+          if (finished.exists(_.winId == id)) {
             waiting += size * calc
           } else {
             waiting += size * (calc + load_local)
@@ -154,13 +154,14 @@ class PrefetchBackend[T, V](sc: SparkContext, scheduler: PrefetchScheduler)
   }
 
   def doPrefetch[T, V](plan: PrefetchPlan[T, V]): Unit = {
-    if (!pending.contains(plan.winId) && !finished.contains(plan.winId)) {
-      pending(plan.winId) = plan.rdd[T, V]
+    if (!pending.exists(_.winId == plan.winId)&&
+      !finished.exists(_.winId == plan.winId)) {
+      pending.add(plan)
 
       scheduler.prefetch(plan.rdd)
 
-      finished(plan.winId) = plan.rdd[T, V]
-      pending.remove(plan.winId)
+      finished.add(plan)
+      pending.remove(plan)
     }
   }
 

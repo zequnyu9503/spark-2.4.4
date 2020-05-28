@@ -49,7 +49,11 @@ class WindowController[T, V, X] (
   private def timeline(id: Int): (Long, Long) =
     (timeScope.start + id * step, timeScope.start + id * step + size - 1)
 
-  private def prefetched: mutable.HashMap[Int, RDD[(T, V)]] = backend.finished
+  private def prefetched[T, V]: mutable.HashMap[Int, RDD[(T, V)]] = {
+    val map = new mutable.HashMap[Int, RDD[(T, V)]]()
+    backend.finished.foreach(plan => map(plan.winId) = plan.rdd)
+    map
+  }
 
   private def updateBackend(): Unit = {
     if (!backend.eq(null)) {
