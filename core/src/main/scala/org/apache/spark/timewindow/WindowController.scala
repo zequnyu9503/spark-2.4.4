@@ -131,7 +131,7 @@ class WindowController[T, V, X] (
     }
   }
 
-  def localAsRDD(): RDD[X] = {
+  def localAsRDD[X](): RDD[X] = {
     var result = sc.emptyRDD[X]
     localResults.values.foreach(rdd => result = result.union(rdd))
     result
