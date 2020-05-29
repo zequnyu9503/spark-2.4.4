@@ -35,7 +35,8 @@ public class DataSizeForecast {
     }
 
     public List<Double> forecastNextN(Long [] series, int steps) {
-        double [] standardSeries = Arrays.stream(series).mapToDouble(i->i).toArray();
+        double [] standardSeries =
+                Arrays.stream(series).mapToDouble(i->i).toArray();
         if (best == null) bestOrder(standardSeries);
         TimeSeries timeSeries = TimeSeries.from(standardSeries);
         Arima arima = Arima.model(timeSeries, best);
