@@ -63,18 +63,21 @@ class WindowController[T, V, X] (
 
   private def updateBackend(): Unit = {
     if (!backend.eq(null)) {
+      logInfo(s"Update prefetch backend with its winId" +
+        s" [${winId.get()}] and start line.")
       backend.updateWinId(winId.get())
       backend.updateStartLine(winId.get(), System.currentTimeMillis())
+    } else {
+      logError("PrefetchBackend is not working currently.")
     }
   }
 
   private def isCached(id: Int): Option[RDD[(T, V)]] = {
     if (windows.contains(id)) {
       if (sc.persistentRdds.contains(windows(id).id)) {
-        return Option(windows(id))
+        Option(windows(id))
       }
     }
-
     None
   }
 
@@ -83,34 +86,47 @@ class WindowController[T, V, X] (
     if (step < size && id - 1 >=0) {
       // This means that windows overlaps.
       val suffix = isCached(id) match {
-        case Some(rdd) => return rdd
-        case None => func((line._2 - step).asInstanceOf[T],
-          line._2.asInstanceOf[T])
+        case Some(rdd) =>
+          logInfo("Windows overlap and we need to filter previous tw rdd.")
+          rdd.filter(_._1.asInstanceOf[Long] >= (line._2 - step)).
+            filter(_._1.asInstanceOf[Long] < line._2)
+        case None =>
+          logInfo("Windows overlap and we need to create suffix tw rdd.")
+          func((line._2 - step).asInstanceOf[T], line._2.asInstanceOf[T])
       }
       val prefix = isCached(id - 1) match {
-        case Some(rdd) => rdd.
-          filter(_._1.asInstanceOf[Long] >= line._1).
+        case Some(rdd) =>
+          logInfo("Windows overlap and we need to filter previous tw rdd")
+          rdd.filter(_._1.asInstanceOf[Long] >= line._1).
           filter(_._1.asInstanceOf[Long] < line._2 - step)
-        case None => func(line._1.asInstanceOf[T],
-          (line._2 - step).asInstanceOf[T])
+        case None =>
+          logInfo("Windows overlap and we need to create previous tw rdd")
+          func(line._1.asInstanceOf[T], (line._2 - step).asInstanceOf[T])
       }
       suffix.union(prefix).persist(storageLevel)
     } else {
       prefetched[T, V](id) match {
-        case Some(rdd) => rdd
-        case None => func(line._1.asInstanceOf[T], line._2.asInstanceOf[T])
+        case Some(rdd) =>
+          logInfo("No overlaps. Tw rdd exists in memory already.")
+          rdd
+        case None =>
+          logInfo("We need to create tw rdd manually.")
+          func(line._1.asInstanceOf[T], line._2.asInstanceOf[T])
       }
     }
   }
 
   private def release(): Unit = {
-    val rdds = if (step < size && winId.get() - 1 > 0) {
+    val underClear = if (step < size && winId.get() - 1 > 0) {
       windows.filter(_._1 < winId.get() - 1).values
     } else {
       windows.filter(_._1 < winId.get()).values
     }
-    rdds.filter(rdd => sc.persistentRdds.contains(rdd.id)).
-      foreach(_.unpersist(false))
+    if (underClear.nonEmpty) {
+      logInfo("Windows exist and may be cleaned up..")
+      underClear.filter(rdd => sc.persistentRdds.contains(rdd.id)).
+        foreach(_.unpersist(false))
+    }
   }
 
   def setTimeScope(start: Long, end: Long): Unit = {
@@ -127,6 +143,7 @@ class WindowController[T, V, X] (
   }
 
   def setBackend(pb: PrefetchBackend): Unit = {
+    logInfo("Initialize prefetch backend.")
     backend = pb
   }
 
@@ -142,7 +159,6 @@ class WindowController[T, V, X] (
   }
 
   def next: RDD[(T, V)] = {
-    // Release previous cached timewindow rdd.
     release()
     updateBackend()
     // Create next timewindow rdd.

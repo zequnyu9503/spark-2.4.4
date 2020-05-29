@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 log_path="/home/zc/service/spark-2.4.4/conf/log4j.properties"
+rm /home/zc/service/spark-2.4.4/logs/*
 spark-submit \
 --master spark://centos3:7079 \
 --executor-memory 12g \
