@@ -38,13 +38,13 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
   private var cores: Int = sc.conf.getInt("cores.prefetch.executors", 4)
 
   // Velocity of computation.
-  private var calc: Long = sc.conf.getLong("calc.prefetch", 0L)
+  private var calc: Double = sc.conf.getLong("calc.prefetch", 0)
 
   // Loading velocity for loading local data.
-  private var load_local: Long = sc.conf.getLong("load.local.prefetch", 0L)
+  private var load_local: Double = sc.conf.getLong("load.local.prefetch", 0L)
 
   // Loading velocity for loading remote data.
-  private var load_remote: Long = sc.conf.getLong("load.remote.prefetch", 0L)
+  private var load_remote: Double = sc.conf.getLong("load.remote.prefetch", 0L)
 
   // Variation factor of local result in culster.
   private var variation: Double = sc.conf.getDouble("variation.prefetch", 0d)
@@ -95,7 +95,7 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
         case TaskLocality.ANY => load_remote * partitionSize
         case _ => 0L
       }
-    batches.sum
+    batches.sum.toLong
   }
 
   private def main_duration(plan: PrefetchPlan): Long = {
