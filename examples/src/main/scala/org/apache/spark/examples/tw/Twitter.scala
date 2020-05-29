@@ -31,7 +31,7 @@ object Twitter extends Serializable {
     val conf = new SparkConf().setAppName("Twitter-" + System.currentTimeMillis())
       .set("cores.prefetch.executors", "4")
       .set("expansion.hdfs", "1.833274997")
-      .set("calc.prefetch", "1.50925E-06")
+      .set("calc.prefetch", "1.50925e-6")
       .set("load.local.prefetch", "3.912299871444702e-5")
       .set("load.remote.prefetch", "")
       .set("variation.prefetch", "0.018134686")
