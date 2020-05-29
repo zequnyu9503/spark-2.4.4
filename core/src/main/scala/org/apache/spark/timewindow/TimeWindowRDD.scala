@@ -18,11 +18,12 @@
 package org.apache.spark.timewindow
 
 import org.apache.spark.SparkContext
+import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
 
 sealed class TimeWindowRDD[T, V, X](sc: SparkContext, winSize: T,
-                                 winStep: T, func: (T, T) => RDD[(T, V)]) {
+                                 winStep: T, func: (T, T) => RDD[(T, V)]) extends Logging{
 
   private val controller = new WindowController[T, V, X](sc,
     winSize.asInstanceOf[Long], winStep.asInstanceOf[Long], func)
@@ -60,6 +61,7 @@ sealed class TimeWindowRDD[T, V, X](sc: SparkContext, winSize: T,
       val winFetcher = new WinFetcher[T, V](sc, controller, sc.prefetchScheduler)
       val thr = new Thread(winFetcher)
       thr.start()
+      logInfo("WinFetcher service begins working.")
     }
     this
   }
