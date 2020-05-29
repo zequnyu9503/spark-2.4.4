@@ -44,15 +44,19 @@ class WindowController[T, V, X] (
   private var maxPartitions = 10
   private var storageLevel = StorageLevel.MEMORY_ONLY
 
-  private var backend: PrefetchBackend[T, V] = _
+  private var backend: PrefetchBackend = _
 
   private def timeline(id: Int): (Long, Long) =
     (timeScope.start + id * step, timeScope.start + id * step + size - 1)
 
-  private def prefetched[T, V]: mutable.HashMap[Int, RDD[(T, V)]] = {
-    val map = new mutable.HashMap[Int, RDD[(T, V)]]()
-    backend.finished.foreach(plan => map(plan.winId) = plan.rdd)
-    map
+  private def isPrefetchd(id: Int): Boolean = backend.finished.contains(id)
+
+  private def prefetched[T, V](id: Int): Option[RDD[(T, V)]] = {
+    if (isPrefetchd(id)) {
+      Option(backend.finished(id).asInstanceOf[RDD[(T, V)]])
+    } else {
+      None
+    }
   }
 
   private def updateBackend(): Unit = {
@@ -68,9 +72,7 @@ class WindowController[T, V, X] (
         return Option(windows(id))
       }
     }
-    if (prefetched.contains(id)) {
-      return Option(prefetched(id))
-    }
+
     None
   }
 
@@ -92,11 +94,9 @@ class WindowController[T, V, X] (
       }
       suffix.union(prefix).persist(storageLevel)
     } else {
-      if (prefetched.contains(id)) {
-        prefetched(id)
-      } else {
-        func(line._1.asInstanceOf[T],
-          line._2.asInstanceOf[T])
+      prefetched[T, V](id) match {
+        case Some(rdd) => rdd
+        case None => func(line._1.asInstanceOf[T], line._2.asInstanceOf[T])
       }
     }
   }
@@ -124,7 +124,7 @@ class WindowController[T, V, X] (
     maxPartitions = partitions
   }
 
-  def setBackend(pb: PrefetchBackend[T, V]): Unit = {
+  def setBackend(pb: PrefetchBackend): Unit = {
     backend = pb
   }
 
