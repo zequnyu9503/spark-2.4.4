@@ -49,7 +49,9 @@ class WindowController[T, V, X] (
   private def timeline(id: Int): (Long, Long) =
     (timeScope.start + id * step, timeScope.start + id * step + size - 1)
 
-  private def isPrefetchd(id: Int): Boolean = backend.finished.contains(id)
+  private def isPrefetchd(id: Int): Boolean = {
+    !backend.eq(null) && backend.finished.contains(id)
+  }
 
   private def prefetched[T, V](id: Int): Option[RDD[(T, V)]] = {
     if (isPrefetchd(id)) {
