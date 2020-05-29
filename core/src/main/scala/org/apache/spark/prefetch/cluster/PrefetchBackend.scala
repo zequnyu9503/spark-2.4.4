@@ -99,7 +99,7 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
   }
 
   private def main_duration(plan: PrefetchPlan): Long = {
-    var waiting: Long = 0
+    var waiting: Double = 0d
     for (id <- winId until plan.winId) {
       randomWinSize(id) match {
         case Some(size) =>
@@ -112,7 +112,7 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
       }
     }
     val used = System.currentTimeMillis() - startLine.maxBy(_._1)._2
-    waiting - used
+    (waiting - used).toLong
   }
 
   private def prefetch_requirement(plan: PrefetchPlan): Long = {
