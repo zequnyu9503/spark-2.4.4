@@ -38,13 +38,13 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
   private var cores: Int = sc.conf.getInt("cores.prefetch.executors", 4)
 
   // Velocity of computation.
-  private var calc: Double = sc.conf.getLong("calc.prefetch", 0)
+  private var calc: Double = sc.conf.getDouble("calc.prefetch", 0)
 
   // Loading velocity for loading local data.
-  private var load_local: Double = sc.conf.getLong("load.local.prefetch", 0L)
+  private var load_local: Double = sc.conf.getDouble("load.local.prefetch", 0d)
 
   // Loading velocity for loading remote data.
-  private var load_remote: Double = sc.conf.getLong("load.remote.prefetch", 0L)
+  private var load_remote: Double = sc.conf.getDouble("load.remote.prefetch", 0d)
 
   // Variation factor of local result in culster.
   private var variation: Double = sc.conf.getDouble("variation.prefetch", 0d)
