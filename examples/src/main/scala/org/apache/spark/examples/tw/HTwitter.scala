@@ -27,7 +27,7 @@ import org.apache.hadoop.hbase.util.Bytes
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
 
-object HTwtitter extends Serializable {
+object HTwitter extends Serializable {
 
   def main(args: Array[String]): Unit = {
     val tableName = args(0)
