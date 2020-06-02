@@ -29,4 +29,4 @@ ${libs_dir}/hbase-server-2.1.4.jar,\
 ${libs_dir}/hbase-zookeeper-2.1.4.jar,\
 ${libs_dir}/fastjson-1.2.35.jar \
 examples/target/original-spark-examples_2.11-2.4.4.jar \
-Twitter-2019 April First 1554100140657L 1554146018666L
+Twitter-2019 April First 1554100140657 1554146018666
