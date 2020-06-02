@@ -46,7 +46,7 @@ object Twitter extends Serializable {
     }
 
     val twRDD = new TimeWindowRDD[Long, String, (String, Long)](sc, 1, 1, load).
-      setScope(1, 5).allowPrefetch(true)
+      setScope(1, 5).allowPrefetch(false)
     val itr = twRDD.iterator()
 
     while (itr.hasNext) {
