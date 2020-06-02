@@ -25,7 +25,7 @@ import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.TaskLocality
 
-class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
+class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler)
     extends Logging {
 
   // Expansion factor for data from disk to memory.
@@ -88,7 +88,7 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
   }
 
   private def prefetch_duration(plan: PrefetchPlan): Long = {
-    val size: Long = randomWinSize(plan.winId).getOrElse(winSize.keySet.max)
+    val size: Long = randomWinSize(plan.winId).getOrElse(0L)
     val partitionSize: Long = size / plan.partitions.toLong
     val batches = plan.maxLocality.map {
         case TaskLocality.NODE_LOCAL => load_local * partitionSize
@@ -187,5 +187,9 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
     } else {
       logError("Update failed: winId already exists.")
     }
+  }
+
+  def updateWinSize(winId: Int, size: Long): Unit = {
+    if (!winSize.contains(winId)) winSize(winId) = size
   }
 }

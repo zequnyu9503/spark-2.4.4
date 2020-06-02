@@ -111,21 +111,24 @@ class WindowController[T, V, X] (
           rdd
         case None =>
           logInfo("We need to create tw rdd manually.")
-          func(line._1.asInstanceOf[T], line._2.asInstanceOf[T])
+          func(line._1.asInstanceOf[T], line._2.asInstanceOf[T]).persist(storageLevel)
       }
     }
   }
 
   private def release(): Unit = {
     val underClear = if (step < size && winId.get() - 1 > 0) {
-      windows.filter(_._1 < winId.get() - 1).values
+      windows.filter(_._1 < winId.get() - 1)
     } else {
-      windows.filter(_._1 < winId.get()).values
+      windows.filter(_._1 < winId.get())
     }
     if (underClear.nonEmpty) {
       logInfo("Windows exist and may be cleaned up..")
-      underClear.filter(rdd => sc.persistentRdds.contains(rdd.id)).
-        foreach(_.unpersist(false))
+      underClear.filter(meta => sc.persistentRdds.contains(meta._2.id)).
+        foreach(meta => {
+          backend.updateWinSize(meta._1, backend.scheduler.sizeInMem(meta._2))
+          meta._2.unpersist(false)
+        })
     }
   }
 
