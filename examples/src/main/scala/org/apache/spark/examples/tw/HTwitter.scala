@@ -53,8 +53,7 @@ object HTwitter extends Serializable {
       loadRDD(sc, tableName, columnFamily, columnQualify, startstamp, endstamp).
         map(result => {
           val cell: Cell = result._2.listCells().get(0)
-          val line = JSON.parseObject(Bytes.toString(cell.getValueArray))
-          (cell.getTimestamp, line.getOrDefault("text", "").toString)
+          (cell.getTimestamp, Bytes.toString(cell.getValueArray))
         })
     }
 
@@ -79,10 +78,7 @@ object HTwitter extends Serializable {
         classOf[ImmutableBytesWritable], classOf[Result])
     }
 
-    val winRDD = load(start, end)
-    val result = winRDD.map(_._2).flatMap(txt => txt.split(" ")).
-            map(e => (e, 1L)).reduceByKey(_ + _)
-    result.saveAsTextFile(output)
+    load(start, end).map(_._2).saveAsTextFile(output)
 
 //    val twRDD = new TimeWindowRDD[Long, String, (String, Long)](sc, 1, 1, load).
 //      setScope(1, 5).allowPrefetch(true)
