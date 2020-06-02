@@ -73,7 +73,7 @@ class PrefetchBackend(sc: SparkContext, scheduler: PrefetchScheduler)
 
   // Forecast future window data size.
   private def randomWinSize(id: Int): Option[Long] = {
-    if (winSize.size >= min) {
+    if (winSize.size > min) {
       if (id < winSize.size) {
         Option(winSize(id))
       } else {
