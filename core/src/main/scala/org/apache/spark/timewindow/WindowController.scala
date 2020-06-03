@@ -62,15 +62,14 @@ class WindowController[T, V, X] (
   }
 
   private def updateBackend(): Unit = {
-    if (!backend.eq(null) && windows.contains(winId.get())) {
-      logInfo(s"Update prefetch backend with its winId" +
-        s" [${winId.get()}] and start line.")
-      val size = backend.scheduler.sizeInMem(windows(winId.get()))
-      backend.updateWinSize(winId.get(), size)
-      backend.updateWinId(winId.get())
-      backend.updateStartLine(winId.get(), System.currentTimeMillis())
-    } else {
-      logError("PrefetchBackend is not working currently.")
+    if (backend.eq(null)) return
+    backend.updateWinId(winId.get())
+    backend.updateStartLine(winId.get(), System.currentTimeMillis())
+
+    val prevWinId = if (winId.get() > 0) winId.get() - 1 else 0
+    if (windows.contains(prevWinId)) {
+      val size = backend.scheduler.sizeInMem(windows(prevWinId))
+      backend.updateWinSize(prevWinId, size)
     }
   }
 

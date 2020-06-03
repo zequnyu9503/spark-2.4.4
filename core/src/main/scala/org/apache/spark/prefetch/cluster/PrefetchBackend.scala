@@ -168,13 +168,13 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler)
 
   def updateWinId(id: Int): Unit = synchronized {
     winId = id
-    logInfo(s"Update winId $id")
+    logInfo(s"Update current winId [$id].")
   }
 
   def updateStartLine(id: Int, start: Long): Unit = synchronized {
     if (!startLine.contains(id)) {
       startLine(id) = start
-      logInfo(s"Update startline: add $id")
+      logInfo(s"Update current window's startline [$start].")
     } else {
       logError("Update failed: winId already exists.")
     }
@@ -183,7 +183,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler)
   def updateLocalResults(id: Int, rdd: RDD[_]): Unit = synchronized {
     if (!localResults.contains(id)) {
       localResults(id) = rdd
-      logInfo(s"Update local results: add $id")
+      logInfo(s"Update local results [${rdd.id}].")
     } else {
       logError("Update failed: winId already exists.")
     }
@@ -191,6 +191,6 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler)
 
   def updateWinSize(winId: Int, size: Long): Unit = {
     if (!winSize.contains(winId)) winSize(winId) = size
-    logInfo(s"Window [$winId] contains $size bytes.")
+    logInfo(s"Update window [$winId] scale of  [$size] bytes.")
   }
 }
