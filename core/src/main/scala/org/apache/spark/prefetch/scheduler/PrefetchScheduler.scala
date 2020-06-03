@@ -107,7 +107,9 @@ class PrefetchScheduler(val sc: SparkContext,
     // Under normal case we should check alive executors firstly.
     val exeData = cgsb_.retrieveExeDataForPrefetch
     while (exeData.isEmpty) {
-      wait(100)
+      synchronized {
+        wait(100)
+      }
     }
     exeData.map {
       case (id, executorData) =>
