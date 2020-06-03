@@ -37,7 +37,7 @@ object Twitter extends Serializable {
       .set("load.local.prefetch", "3.912299871444702e-5")
       .set("load.remote.prefetch", "0")
       .set("variation.prefetch", "0.018134686")
-      .set("min.prefetch", "1")
+      .set("min.prefetch", "2")
 
     val sc = new SparkContext(conf)
 
@@ -48,7 +48,7 @@ object Twitter extends Serializable {
     }
 
     val twRDD = new TimeWindowRDD[Long, String, (String, Long)](sc, 1, 1, load).
-      setScope(1, 5).allowPrefetch(isPrefetch)
+      setScope(1, 5).setPartitionsLimitations(20).allowPrefetch(isPrefetch)
     val itr = twRDD.iterator()
 
     while (itr.hasNext) {

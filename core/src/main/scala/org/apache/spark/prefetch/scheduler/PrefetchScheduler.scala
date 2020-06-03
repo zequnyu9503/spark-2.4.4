@@ -91,7 +91,6 @@ class PrefetchScheduler(val sc: SparkContext,
 
   private def createPrefetchJob(rdd: RDD[_]): Option[PrefetchJob] = {
     val pTasks = createPrefetchTasks(rdd.persist(StorageLevel.MEMORY_ONLY))
-    logInfo(s"Create prefetch tasks [${pTasks.size}] for rdd [${rdd.name}]")
     if (pTasks.nonEmpty) {
       val tasks = new mutable.HashMap[SinglePrefetchTask[_], PrefetchReporter]()
       // Initialize prefetch job.

@@ -162,6 +162,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler)
     if (!pending.contains(id) && !finished.contains(id)) {
       pending(id) = plan.rdd
 
+      logInfo(s"Start prefetching time window [$id].")
       scheduler.prefetch(plan.rdd)
 
       finished(id) = plan.rdd

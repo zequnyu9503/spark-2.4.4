@@ -89,7 +89,6 @@ class PrefetchTaskScheduler(
     if (forHosts.nonEmpty) levels += NODE_LOCAL
     if (forNoRefs.nonEmpty) levels += NO_PREF
     if (forAll.nonEmpty) levels += ANY
-    logInfo(s"Prefetch levels are ${levels.mkString(", ")} .")
     levels.toArray
   }
 

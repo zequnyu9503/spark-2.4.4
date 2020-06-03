@@ -16,15 +16,18 @@
  */
 package org.apache.spark.timewindow
 
+import org.apache.log4j.Logger
+
 import org.apache.spark.SparkContext
-import org.apache.spark.internal.Logging
 import org.apache.spark.prefetch.cluster.{PrefetchBackend, PrefetchPlan}
 import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 
 class WinFetcher[T, V] (sc: SparkContext,
                   controller: WindowController[T, V, _],
                   scheduler: PrefetchScheduler)
-  extends Runnable with Logging {
+  extends Runnable {
+
+  private val logger = Logger.getLogger("prefetch")
 
   @volatile
   private var isRunning = true

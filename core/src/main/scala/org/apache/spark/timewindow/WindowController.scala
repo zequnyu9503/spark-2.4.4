@@ -20,8 +20,9 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import scala.collection.mutable
 
+import org.slf4j.LoggerFactory
+
 import org.apache.spark.SparkContext
-import org.apache.spark.internal.Logging
 import org.apache.spark.prefetch.cluster.PrefetchBackend
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
@@ -30,7 +31,9 @@ class WindowController[T, V, X] (
                                val sc: SparkContext,
                                val size: Long,
                                val step: Long,
-                               val func: (T, T) => RDD[(T, V)]) extends Logging {
+                               val func: (T, T) => RDD[(T, V)]) {
+
+  private val logger = LoggerFactory.getLogger("prefetch")
 
   // Time window ID.
   val winId = new AtomicInteger(0)
@@ -88,30 +91,30 @@ class WindowController[T, V, X] (
       // This means that windows overlaps.
       val suffix = isCached(id) match {
         case Some(rdd) =>
-          logInfo("Windows overlap and we need to filter previous tw rdd.")
+          logger.info("Windows overlap and we need to filter previous tw rdd.")
           rdd.filter(_._1.asInstanceOf[Long] >= (line._2 - step)).
             filter(_._1.asInstanceOf[Long] < line._2)
         case None =>
-          logInfo("Windows overlap and we need to create suffix tw rdd.")
+          logger.info("Windows overlap and we need to create suffix tw rdd.")
           func((line._2 - step).asInstanceOf[T], line._2.asInstanceOf[T])
       }
       val prefix = isCached(id - 1) match {
         case Some(rdd) =>
-          logInfo("Windows overlap and we need to filter previous tw rdd")
+          logger.info("Windows overlap and we need to filter previous tw rdd")
           rdd.filter(_._1.asInstanceOf[Long] >= line._1).
           filter(_._1.asInstanceOf[Long] < line._2 - step)
         case None =>
-          logInfo("Windows overlap and we need to create previous tw rdd")
+          logger.info("Windows overlap and we need to create previous tw rdd")
           func(line._1.asInstanceOf[T], (line._2 - step).asInstanceOf[T])
       }
       suffix.union(prefix).persist(storageLevel)
     } else {
       prefetched[T, V](id) match {
         case Some(rdd) =>
-          logInfo("No overlaps. Tw rdd exists in memory already.")
+          logger.info("No overlaps. Tw rdd exists in memory already.")
           rdd
         case None =>
-          logInfo("We need to create tw rdd manually.")
+          logger.info("We need to create tw rdd manually.")
           func(line._1.asInstanceOf[T], line._2.asInstanceOf[T]).persist(storageLevel)
       }
     }
@@ -124,7 +127,7 @@ class WindowController[T, V, X] (
       windows.filter(_._1 < winId.get())
     }
     if (underClear.nonEmpty) {
-      logInfo("Previous windows exist and may be cleaned up.")
+      logger.info("Previous windows exist and may be cleaned up.")
       underClear.foreach(_._2.unpersist(false))
     }
   }
@@ -143,7 +146,7 @@ class WindowController[T, V, X] (
   }
 
   def setBackend(pb: PrefetchBackend): Unit = {
-    logInfo("Initialize prefetch backend.")
+    logger.info("Initialize prefetch backend.")
     backend = pb
   }
 
