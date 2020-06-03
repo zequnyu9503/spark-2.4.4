@@ -56,13 +56,16 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler)
   private val forecast = new DataSizeForecast()
 
   // Current time window id.
+  // Updated.
   @volatile
   private var winId: Int = 0
 
   // Data size of local results for time windows.
+  // Updated.
   private val localResults = new mutable.HashMap[Int, RDD[_]]()
 
   // Timeline of startup of time window.
+  // Updated.
   private val startLine = new mutable.HashMap[Int, Long]()
 
   // Prefetch in progress or not yet started.
@@ -117,7 +120,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler)
 
   private def prefetch_requirement(plan: PrefetchPlan): Long = {
     randomWinSize(plan.winId) match {
-      case Some(size) => (size.toDouble * expansion).toLong
+      case Some(size) => size
       case None => 0L
     }
   }
@@ -191,6 +194,6 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler)
 
   def updateWinSize(winId: Int, size: Long): Unit = {
     if (!winSize.contains(winId)) winSize(winId) = size
-    logInfo(s"Update window [$winId] scale of  [$size] bytes.")
+    logInfo(s"Update window [$winId] scale of  [$size] bytes in memory.")
   }
 }
