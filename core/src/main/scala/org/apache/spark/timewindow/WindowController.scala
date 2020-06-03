@@ -62,7 +62,7 @@ class WindowController[T, V, X] (
   }
 
   private def updateBackend(): Unit = {
-    if (!backend.eq(null)) {
+    if (!backend.eq(null) && windows.contains(winId.get())) {
       logInfo(s"Update prefetch backend with its winId" +
         s" [${winId.get()}] and start line.")
       val size = backend.scheduler.sizeInMem(windows(winId.get()))
