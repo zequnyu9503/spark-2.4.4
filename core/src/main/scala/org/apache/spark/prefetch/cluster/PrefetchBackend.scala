@@ -18,15 +18,18 @@ package org.apache.spark.prefetch.cluster
 
 import scala.collection.mutable
 
+import org.slf4j.LoggerFactory
+
 import org.apache.spark.SparkContext
-import org.apache.spark.internal.Logging
 import org.apache.spark.prefetch.DataSizeForecast
 import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.TaskLocality
 
-class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler)
-    extends Logging {
+
+class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
+
+  private val logger = LoggerFactory.getLogger("prefetch")
 
   // Expansion factor for data from disk to memory.
   private var expansion: Double = sc.conf.getDouble("expansion.hdfs", 2d)
@@ -139,20 +142,23 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler)
   }
 
   def canPrefetch(plan: PrefetchPlan): Boolean = {
-    logInfo(s" Current winId [$winId] with a plan for [${plan.winId}].")
+    logger.info(s"Attempt to check plan [${plan.winId}] while winId [${winId}].")
     if (plan.winId > min) {
       val prefetch = prefetch_duration(plan)
+      logger.info(s"Prefetch duration: $prefetch ms.")
       val main = main_duration(plan)
-
-      logInfo(s"prefetch: $prefetch main: $main")
+      logger.info(s"Waiting duration: $main ms.")
 
       if (prefetch < main) {
         val requirement = prefetch_requirement(plan)
+        logger.info(s"Prefetch require $requirement bytes memory space.")
         val availability = cluster_availability(plan)
+        logger.info(s"The cluster can only provide $availability bytes of memory.")
 
-        logInfo(s"requirement: $requirement availability: $availability")
-
-        if (requirement < availability) true else false
+        if (requirement < availability) {
+          logger.info("Trigger time and space condition.")
+          true
+        } else false
       } else false
     } else false
   }
@@ -162,7 +168,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler)
     if (!pending.contains(id) && !finished.contains(id)) {
       pending(id) = plan.rdd
 
-      logInfo(s"Start prefetching time window [$id].")
+      logger.info(s"Start prefetching time window [$id].")
       scheduler.prefetch(plan.rdd)
 
       finished(id) = plan.rdd
@@ -172,29 +178,29 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler)
 
   def updateWinId(id: Int): Unit = synchronized {
     winId = id
-    logInfo(s"Update current winId [$id].")
+    logger.info(s"Update current winId [$id].")
   }
 
   def updateStartLine(id: Int, start: Long): Unit = synchronized {
     if (!startLine.contains(id)) {
       startLine(id) = start
-      logInfo(s"Update current window's startline [$start].")
+      logger.info(s"Update current window's startline [$start].")
     } else {
-      logError("Update failed: winId already exists.")
+      logger.info("Update failed: winId already exists.")
     }
   }
 
   def updateLocalResults(id: Int, rdd: RDD[_]): Unit = synchronized {
     if (!localResults.contains(id)) {
       localResults(id) = rdd
-      logInfo(s"Update local results [${rdd.id}].")
+      logger.info(s"Update local results [${rdd.id}].")
     } else {
-      logError("Update failed: winId already exists.")
+      logger.info("Update failed: winId already exists.")
     }
   }
 
   def updateWinSize(winId: Int, size: Long): Unit = {
     if (!winSize.contains(winId)) winSize(winId) = size
-    logInfo(s"Update window [$winId] scale of  [$size] bytes in memory.")
+    logger.info(s"Update window [$winId] scale of  [$size] bytes in memory.")
   }
 }

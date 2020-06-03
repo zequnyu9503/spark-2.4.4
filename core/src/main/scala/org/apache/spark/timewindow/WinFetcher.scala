@@ -16,21 +16,22 @@
  */
 package org.apache.spark.timewindow
 
-import org.apache.log4j.Logger
+import org.slf4j.LoggerFactory
 
 import org.apache.spark.SparkContext
 import org.apache.spark.prefetch.cluster.{PrefetchBackend, PrefetchPlan}
 import org.apache.spark.prefetch.scheduler.PrefetchScheduler
+
 
 class WinFetcher[T, V] (sc: SparkContext,
                   controller: WindowController[T, V, _],
                   scheduler: PrefetchScheduler)
   extends Runnable {
 
-  private val logger = Logger.getLogger("prefetch")
-
   @volatile
   private var isRunning = true
+
+  private val logger = LoggerFactory.getLogger("prefetch")
 
   val backend = new PrefetchBackend(sc, scheduler)
 
@@ -43,6 +44,7 @@ class WinFetcher[T, V] (sc: SparkContext,
 
   def start(): Unit = synchronized {
     isRunning = true
+    logger.info("Prefetch service starting.")
   }
 
   def stop(): Unit = synchronized {
@@ -60,6 +62,7 @@ class WinFetcher[T, V] (sc: SparkContext,
   override def run(): Unit = {
     // scalastyle:off println
     synchronized {
+      logger.info("Prefetch service launched.")
       while (isRunning) {
         isAllowed(controller.winId.get()) match {
           case Some(plan) => doPrefetch(plan)
