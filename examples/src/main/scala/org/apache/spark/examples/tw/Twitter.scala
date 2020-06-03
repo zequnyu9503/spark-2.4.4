@@ -25,6 +25,8 @@ import org.apache.spark.timewindow.TimeWindowRDD
 object Twitter extends Serializable {
 
   def main(args: Array[String]): Unit = {
+    val isPrefetch = args(0).toBoolean
+
     val root = "hdfs://centos3:9000/real-world/"
     val output = s"hdfs://centos3:9000/results/twitter-${System.currentTimeMillis()}"
 
@@ -46,7 +48,7 @@ object Twitter extends Serializable {
     }
 
     val twRDD = new TimeWindowRDD[Long, String, (String, Long)](sc, 1, 1, load).
-      setScope(1, 5).allowPrefetch(false)
+      setScope(1, 5).allowPrefetch(isPrefetch)
     val itr = twRDD.iterator()
 
     while (itr.hasNext) {
