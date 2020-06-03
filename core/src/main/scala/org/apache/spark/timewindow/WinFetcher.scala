@@ -69,8 +69,7 @@ class WinFetcher[T, V] (sc: SparkContext,
 
   private def isAllowed(id: Int): Option[PrefetchPlan] = {
     if (id == 0) return None
-    val plan = new PrefetchPlan(id, controller.randomWindow(id))
-    Option(plan).filter(backend.canPrefetch)
+    scheduler.makePlan(id, controller.randomWindow(id)).filter(backend.canPrefetch)
   }
 
   private def doPrefetch(plan: PrefetchPlan): Unit = {

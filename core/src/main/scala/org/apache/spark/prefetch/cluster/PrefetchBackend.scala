@@ -136,7 +136,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler)
   }
 
   def canPrefetch(plan: PrefetchPlan): Boolean = {
-    logInfo(s"${plan.winId}")
+    logInfo(s" Current winId [$winId] with a plan for [${plan.winId}].")
     if (plan.winId > min) {
       val prefetch = prefetch_duration(plan)
       val main = main_duration(plan)
