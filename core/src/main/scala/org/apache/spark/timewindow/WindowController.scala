@@ -65,6 +65,8 @@ class WindowController[T, V, X] (
     if (!backend.eq(null)) {
       logInfo(s"Update prefetch backend with its winId" +
         s" [${winId.get()}] and start line.")
+      val size = backend.scheduler.sizeInMem(windows(winId.get()))
+      backend.updateWinSize(winId.get(), size)
       backend.updateWinId(winId.get())
       backend.updateStartLine(winId.get(), System.currentTimeMillis())
     } else {
@@ -123,12 +125,8 @@ class WindowController[T, V, X] (
       windows.filter(_._1 < winId.get())
     }
     if (underClear.nonEmpty) {
-      logInfo("Windows exist and may be cleaned up..")
-      underClear.filter(meta => sc.persistentRdds.contains(meta._2.id)).
-        foreach(meta => {
-          backend.updateWinSize(meta._1, backend.scheduler.sizeInMem(meta._2))
-          meta._2.unpersist(false)
-        })
+      logInfo("Previous windows exist and may be cleaned up.")
+      underClear.foreach(_._2.unpersist(false))
     }
   }
 
@@ -162,8 +160,8 @@ class WindowController[T, V, X] (
   }
 
   def next: RDD[(T, V)] = {
-    release()
     updateBackend()
+    release()
     // Create next timewindow rdd.
     val rdd = randomWindow(winId.get())
     windows(winId.getAndIncrement()) = rdd
