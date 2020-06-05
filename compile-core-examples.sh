@@ -12,3 +12,4 @@ for slave in ${slaves[@]}
   ssh "zc@${slave}" "cd /home/zc/service/spark-2.4.4/;git pull;mvn clean install -DskipTests -pl core,assembly,examples" &
  done
 wait
+sh start.sh
