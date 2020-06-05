@@ -59,6 +59,7 @@ sealed class TimeWindowRDD[T, V, X](sc: SparkContext, winSize: T,
       val winFetcher = new WinFetcher[T, V](sc, controller, sc.prefetchScheduler)
       controller.setBackend(winFetcher.backend)
       val thr = new Thread(winFetcher)
+      thr.setName("WinFetcher")
       thr.start()
       logInfo("WinFetcher service begins working.")
     }

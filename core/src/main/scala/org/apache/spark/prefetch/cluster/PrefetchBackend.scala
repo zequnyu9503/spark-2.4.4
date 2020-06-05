@@ -149,27 +149,42 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   }
 
   def canPrefetch(plan: PrefetchPlan): Boolean = {
-    logger.info(
-      s"Attempt to check plan [${plan.winId}] while winId [${winId}].")
     if (plan.winId > min) {
       val prefetch = prefetch_duration(plan)
-      logger.info(s"Prefetch duration: $prefetch ms.")
+      logger.info(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
+        s"Prefetch duration: $prefetch ms.")
       val main = main_duration(plan)
-      logger.info(s"Waiting duration: $main ms.")
+      logger.info(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
+        s"Waiting duration: $main ms.")
 
       if (prefetch < main) {
         val requirement = prefetch_requirement(plan)
-        logger.info(s"Prefetch require $requirement bytes memory space.")
+        logger.info(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
+          s"Prefetch require $requirement bytes memory space.")
         val availability = cluster_availability(plan)
         logger.info(
-          s"The cluster can only provide $availability bytes of memory.")
+          s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
+            s"The cluster can only provide $availability bytes of memory.")
 
         if (requirement < availability) {
-          logger.info("Trigger time and space condition.")
+          logger.info("Attempt to check plan [${plan.winId}] while winId [$winId];" +
+            "Trigger time and space condition.")
           true
-        } else false
-      } else false
-    } else false
+        } else {
+          logger.error("Attempt to check plan [${plan.winId}] while winId [$winId];" +
+            "Prefetch require more space than cluster.")
+          false
+        }
+      } else {
+        logger.error(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
+          s"Prefetch duration is more than main duration. ")
+        false
+      }
+    } else {
+      logger.error(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
+        s"Failed: ${plan.winId} is less than $min.")
+      false
+    }
   }
 
   def updateVelocity(plan: PrefetchPlan, reporters: Seq[PrefetchReporter]): Unit = {
