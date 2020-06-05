@@ -33,7 +33,7 @@ class WindowController[T, V, X] (
                                val step: Long,
                                val func: (T, T) => RDD[(T, V)]) {
 
-  private val logger = LoggerFactory.getLogger("prefetch")
+  private val logger = LoggerFactory.getLogger("tw")
 
   // Time window ID.
   val winId = new AtomicInteger(0)
@@ -45,7 +45,7 @@ class WindowController[T, V, X] (
   private val timeScope = new TimeScope()
 
   private var maxPartitions = 10
-  private var storageLevel = StorageLevel.MEMORY_ONLY
+  private var storageLevel = StorageLevel.MEMORY_ONLY_SER
 
   private var backend: PrefetchBackend = _
 
