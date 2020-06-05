@@ -17,8 +17,8 @@
 
 package org.apache.spark.prefetch
 
-case class PrefetchReporter(taskId: String, elements: Long, duration: Long) {
+case class PrefetchReporter(taskId: String, duration: Long) {
   override def toString: String = {
-    taskId + "," + elements + "," + duration + "\n"
+    taskId  + "," + duration + "\n"
   }
 }

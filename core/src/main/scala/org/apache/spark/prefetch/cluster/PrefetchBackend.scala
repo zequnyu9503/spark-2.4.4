@@ -21,11 +21,12 @@ import scala.collection.mutable
 import org.slf4j.LoggerFactory
 
 import org.apache.spark.SparkContext
-import org.apache.spark.prefetch.DataSizeForecast
+import org.apache.spark.prefetch.{DataSizeForecast, PrefetchReporter}
 import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.TaskLocality
 
+import scala.collection.mutable.ArrayBuffer
 
 class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
 
@@ -47,7 +48,8 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   private var load_local: Double = sc.conf.getDouble("load.local.prefetch", 0d)
 
   // Loading velocity for loading remote data.
-  private var load_remote: Double = sc.conf.getDouble("load.remote.prefetch", 0d)
+  private var load_remote: Double =
+    sc.conf.getDouble("load.remote.prefetch", 0d)
 
   // Variation factor of local result in culster.
   private var variation: Double = sc.conf.getDouble("variation.prefetch", 0d)
@@ -97,10 +99,10 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
     val size: Long = randomWinSize(plan.winId).getOrElse(0L)
     val partitionSize: Long = size / plan.partitions.toLong
     val batches = plan.maxLocality.map {
-        case TaskLocality.NODE_LOCAL => load_local * partitionSize
-        case TaskLocality.ANY => load_remote * partitionSize
-        case _ => 0L
-      }
+      case TaskLocality.NODE_LOCAL => load_local * partitionSize
+      case TaskLocality.ANY => load_remote * partitionSize
+      case _ => 0L
+    }
     batches.sum.toLong
   }
 
@@ -142,7 +144,8 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   }
 
   def canPrefetch(plan: PrefetchPlan): Boolean = {
-    logger.info(s"Attempt to check plan [${plan.winId}] while winId [${winId}].")
+    logger.info(
+      s"Attempt to check plan [${plan.winId}] while winId [${winId}].")
     if (plan.winId > min) {
       val prefetch = prefetch_duration(plan)
       logger.info(s"Prefetch duration: $prefetch ms.")
@@ -153,7 +156,8 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
         val requirement = prefetch_requirement(plan)
         logger.info(s"Prefetch require $requirement bytes memory space.")
         val availability = cluster_availability(plan)
-        logger.info(s"The cluster can only provide $availability bytes of memory.")
+        logger.info(
+          s"The cluster can only provide $availability bytes of memory.")
 
         if (requirement < availability) {
           logger.info("Trigger time and space condition.")
@@ -163,15 +167,38 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
     } else false
   }
 
+  def updateVelocity(plan: PrefetchPlan, reporters: Seq[PrefetchReporter]): Unit = {
+    val velocity_local = new ArrayBuffer[Double]()
+    val velocity_remote = new ArrayBuffer[Double]()
+    plan.schedule.flatten.foreach(desc => {
+      val duration = reporters.find(_.taskId.equals(desc.taskId)) match {
+        case Some(reporter) => reporter.duration
+        case _ => 0L
+      }
+      val size = scheduler.blockSize(plan.rdd[_, _], desc.taskId.toInt, desc.executorId)
+      desc.locality match {
+        case TaskLocality.NODE_LOCAL =>
+          velocity_local += (duration.toDouble / size.toDouble)
+        case TaskLocality.ANY =>
+          velocity_remote += (duration.toDouble / size.toDouble)
+      }
+    })
+    if (velocity_local.nonEmpty) load_local = velocity_local.max
+    if (velocity_remote.nonEmpty) load_remote = velocity_remote.max
+  }
+
   def doPrefetch(plan: PrefetchPlan): Unit = {
     val id = plan.winId
     if (!pending.contains(id) && !finished.contains(id)) {
       pending(id) = plan.rdd
 
       logger.info(s"Start prefetching time window [$id].")
-      scheduler.prefetch(plan.rdd)
-
-      finished(id) = plan.rdd
+      scheduler.prefetch(plan.rdd) match {
+        case Some(reporters) =>
+          updateVelocity(plan, reporters)
+          finished(id) = plan.rdd
+        case _ =>
+      }
       pending.remove(id)
     }
   }

@@ -22,6 +22,7 @@ import org.apache.spark.scheduler.TaskLocality.TaskLocality
 
 
 class PrefetchPlan(winId$: Int, rdd$: RDD[_]) {
+
   var schedule: Array[Array[PrefetchTaskDescription]] = _
 
   def maxLocality: Array[TaskLocality] = {

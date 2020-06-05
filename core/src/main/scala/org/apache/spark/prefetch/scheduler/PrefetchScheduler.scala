@@ -31,7 +31,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.{DAGScheduler, SchedulerBackend, TaskLocation, TaskScheduler}
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
 import org.apache.spark.serializer.SerializerInstance
-import org.apache.spark.storage.{BlockId, BlockManagerMaster, RDDBlockId, StorageLevel}
+import org.apache.spark.storage.{RDDBlockId, StorageLevel}
 
 class PrefetchScheduler(val sc: SparkContext,
                         val backend: SchedulerBackend,
@@ -153,6 +153,12 @@ class PrefetchScheduler(val sc: SparkContext,
       }
     })
     memSize
+  }
+
+  def blockSize(rdd: RDD[_], bId: Int, eId: String): Long = {
+    val blockId = RDDBlockId(rdd.id, bId)
+    SparkEnv.get.blockManager.master.getBlockStatus(blockId).
+      find(_._1.executorId.equals(eId)).get._2.memSize
   }
 
   def makePlan(winId: Int, rdd: RDD[_]): Option[PrefetchPlan] = {
