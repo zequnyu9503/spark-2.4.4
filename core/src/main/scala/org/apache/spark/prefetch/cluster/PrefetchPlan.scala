@@ -35,5 +35,7 @@ class PrefetchPlan(winId$: Int, rdd$: RDD[_]) {
 
   def winId: Int = winId$
 
+  def rdd: RDD[_] = rdd$
+
   def rdd[T, V]: RDD[(T, V)] = rdd$.asInstanceOf[RDD[(T, V)]]
 }

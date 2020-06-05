@@ -17,6 +17,7 @@
 package org.apache.spark.prefetch.cluster
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 import org.slf4j.LoggerFactory
 
@@ -25,8 +26,6 @@ import org.apache.spark.prefetch.{DataSizeForecast, PrefetchReporter}
 import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.TaskLocality
-
-import scala.collection.mutable.ArrayBuffer
 
 class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
 
@@ -175,7 +174,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
         case Some(reporter) => reporter.duration
         case _ => 0L
       }
-      val size = scheduler.blockSize(plan.rdd[_, _], desc.taskId.toInt, desc.executorId)
+      val size = scheduler.blockSize(plan.rdd, desc.taskId.toInt, desc.executorId)
       desc.locality match {
         case TaskLocality.NODE_LOCAL =>
           velocity_local += (duration.toDouble / size.toDouble)
