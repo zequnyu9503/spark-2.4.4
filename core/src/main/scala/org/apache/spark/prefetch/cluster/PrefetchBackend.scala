@@ -37,13 +37,18 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   // Historical time window data size.
   private val winSize = new mutable.HashMap[Int, Long]()
 
+  // Historical local results size.
+  private val localSize = new mutable.HashMap[Int, Long]()
+
   // CPU cores for prefetching on each executors.
   private var cores: Int = sc.conf.getInt("cores.prefetch.executors", 4)
 
   // Velocity of computation.
+  // Updated.
   private var calc: Double = sc.conf.getDouble("calc.prefetch", 0)
 
   // Loading velocity for loading local data.
+  // Updated.
   private var load_local: Double = sc.conf.getDouble("load.local.prefetch", 0d)
 
   // Loading velocity for loading remote data.
@@ -51,6 +56,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
     sc.conf.getDouble("load.remote.prefetch", 0d)
 
   // Variation factor of local result in culster.
+  // Updated.
   private var variation: Double = sc.conf.getDouble("variation.prefetch", 0d)
 
   // Minimize windows accepted for prefetching.
@@ -219,7 +225,9 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   def updateLocalResults(id: Int, rdd: RDD[_]): Unit = synchronized {
     if (!localResults.contains(id)) {
       localResults(id) = rdd
-      logger.info(s"Update local results [${rdd.id}].")
+      val sizeInMem: Long = scheduler.sizeInMem(rdd)
+      localSize(id) = sizeInMem
+      logger.info(s"Update local results [${rdd.id}] size of [$sizeInMem] bytes.")
     } else {
       logger.info("Update failed: winId already exists.")
     }

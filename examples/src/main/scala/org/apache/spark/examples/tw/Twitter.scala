@@ -17,11 +17,11 @@
 package org.apache.spark.examples.tw
 
 import com.alibaba.fastjson.JSON
-
 import org.slf4j.LoggerFactory
 
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.timewindow.TimeWindowRDD
 
 
@@ -55,7 +55,10 @@ object Twitter extends Serializable {
     }
 
     val twRDD = new TimeWindowRDD[Long, String, (String, Long)](sc, 1, 1, load).
-      setScope(start, end).setPartitionsLimitations(20).allowPrefetch(isPrefetch)
+      setScope(start, end).
+      setPartitionsLimitations(60).
+      setStorageLevel(StorageLevel.MEMORY_ONLY).
+      allowPrefetch(isPrefetch)
     val itr = twRDD.iterator()
 
     while (itr.hasNext) {

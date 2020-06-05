@@ -158,7 +158,7 @@ class WindowController[T, V, X] (
   }
 
   def localAsRDD(): RDD[X] = {
-    localResults.values.reduce((a, b) => a.union(b)).coalesce(maxPartitions)
+    localResults.values.reduce((a, b) => a.union(b).coalesce(maxPartitions))
   }
 
   def next: RDD[(T, V)] = {

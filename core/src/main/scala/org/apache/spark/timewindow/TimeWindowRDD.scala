@@ -45,9 +45,7 @@ sealed class TimeWindowRDD[T, V, X](sc: SparkContext, winSize: T,
   }
 
   def setStorageLevel(level: StorageLevel): TimeWindowRDD[T, V, X] = {
-    if (level.useMemory && !level.useDisk) {
-
-    }
+    controller.setStorageLevel(level)
     this
   }
 
