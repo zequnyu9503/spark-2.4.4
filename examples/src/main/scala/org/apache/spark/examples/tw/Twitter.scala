@@ -18,11 +18,16 @@ package org.apache.spark.examples.tw
 
 import com.alibaba.fastjson.JSON
 
+import org.slf4j.LoggerFactory
+
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.timewindow.TimeWindowRDD
 
+
 object Twitter extends Serializable {
+
+  private val logger = LoggerFactory.getLogger("tw")
 
   def main(args: Array[String]): Unit = {
     val isPrefetch = args(0).toBoolean
