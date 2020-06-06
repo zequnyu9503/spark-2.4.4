@@ -26,7 +26,8 @@ import org.apache.spark.{SparkConf, SparkContext}
 object Velocity {
 
   def main(args: Array[String]): Unit = {
-    val conf = new SparkConf().setAppName("Velocity")
+    val conf = new SparkConf().setAppName("Velocity").
+      set("cores.prefetch.executors", "12")
     val sc = new SparkContext(conf)
 
     val file = new File("/home/zc/yzq/repoters.txt")
