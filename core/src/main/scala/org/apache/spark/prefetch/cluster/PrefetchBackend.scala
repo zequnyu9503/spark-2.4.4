@@ -249,6 +249,6 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
 
   def updateWinSize(winId: Int, size: Long): Unit = {
     if (!winSize.contains(winId)) winSize(winId) = size
-    logger.info(s"Update window [$winId] size of [$size] bytes in memory.")
+    logger.info(s"Update window [$winId] size of [$size] bytes on disk.")
   }
 }

@@ -116,7 +116,7 @@ class WindowController[T, V, X] (
           rdd
         case None =>
           logger.info("We need to create tw rdd manually.")
-          func(line._1.asInstanceOf[T], line._2.asInstanceOf[T]).persist(storageLevel)
+          func(line._1.asInstanceOf[T], line._2.asInstanceOf[T])
       }
     }
   }

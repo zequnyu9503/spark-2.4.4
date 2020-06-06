@@ -46,7 +46,7 @@ object Twitter extends Serializable {
     val output = s"hdfs://centos3:9000/results/twitter-${System.currentTimeMillis()}"
 
     val conf = new SparkConf().setAppName("Twitter-" + System.currentTimeMillis())
-      .set("cores.prefetch.executors", "6")
+      .set("cores.prefetch.executors", "12")
       .set("expansion.hdfs", "1.833274997")
       .set("calc.prefetch", "1.50925e-6")
       .set("load.local.prefetch", "3.912299871444702e-5")
