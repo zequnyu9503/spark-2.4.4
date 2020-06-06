@@ -27,7 +27,7 @@ object Velocity {
 
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf().setAppName("Velocity").
-      set("cores.prefetch.executors", "12")
+      set("cores.prefetch.executors", "8")
     val sc = new SparkContext(conf)
 
     val file = new File("/home/zc/yzq/repoters.txt")
@@ -50,6 +50,7 @@ object Velocity {
       }
     }).start()
 
+    rdd_1.count()
     rdd_1.count()
   }
 }
