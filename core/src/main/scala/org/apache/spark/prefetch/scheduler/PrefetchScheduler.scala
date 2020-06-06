@@ -41,6 +41,8 @@ class PrefetchScheduler(val sc: SparkContext,
 
   logInfo("Initialize PrefetchScheduler.")
 
+  private val cores_exe = sc.getConf.getInt("cores.prefetch.executors", 2)
+
   private val cgsb_ : CoarseGrainedSchedulerBackend = {
     backend match {
       case backend: CoarseGrainedSchedulerBackend =>
@@ -51,13 +53,13 @@ class PrefetchScheduler(val sc: SparkContext,
   }
 
   // core function.
-  def prefetch(rdd: RDD[_]): Option[Seq[PrefetchReporter]] = {
+  def prefetch(rdd: RDD[_], cores: Int = cores_exe): Option[Seq[PrefetchReporter]] = {
     createPrefetchJob(rdd) match {
       case Some(job) =>
         logInfo(s"Create prefetch job for rdd [${rdd.name}].")
         val offers = makePrefetchOffers()
         logInfo(s"Make resources [${offers.size} exes] for prefetch job.")
-        job.schedules = makeSchedules(job, offers)
+        job.schedules = makeSchedules(job, offers, cores)
         logInfo(s"Make schedules [${job.schedules.length} batches] for prefetch job.")
         val taskManager = new PrefetchTaskManager(cgsb_, job)
         taskManager.execute()
@@ -116,7 +118,7 @@ class PrefetchScheduler(val sc: SparkContext,
     }.toSeq
   }
 
-  private def makeSchedules(jobs: PrefetchJob, offers: Seq[PrefetchOffer]):
+  private def makeSchedules(jobs: PrefetchJob, offers: Seq[PrefetchOffer], cores: Int):
   Array[Array[PrefetchTaskDescription]] = {
     val hostToExecutors = new mutable.HashMap[String, ArrayBuffer[String]]()
     for (o <- offers) {
@@ -124,7 +126,7 @@ class PrefetchScheduler(val sc: SparkContext,
     }
     val pts = new PrefetchTaskScheduler(offers,
       hostToExecutors, jobs.tasks.keys.toSeq)
-    pts.makeResources()
+    pts.makeResources(cores)
   }
 
   // Synchronize process.
@@ -166,7 +168,7 @@ class PrefetchScheduler(val sc: SparkContext,
     createPrefetchJob(rdd) match {
       case Some(job) =>
         val offers = makePrefetchOffers()
-        plan.schedule = makeSchedules(job, offers)
+        plan.schedule = makeSchedules(job, offers, cores_exe)
         Some(plan)
       case None => None
     }

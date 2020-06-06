@@ -34,8 +34,6 @@ class PrefetchTaskScheduler(
   private val env = SparkEnv.get
   private val ser = env.closureSerializer.newInstance()
 
-  private val cores_exe = env.conf.getInt("cores.prefetch.executors", 2)
-
   private val forExecutors =
     new mutable.HashMap[String, ArrayBuffer[SinglePrefetchTask[_]]]()
   private val forHosts =
@@ -43,12 +41,7 @@ class PrefetchTaskScheduler(
   private val forNoRefs = new ArrayBuffer[SinglePrefetchTask[_]]()
   private val forAll = new ArrayBuffer[SinglePrefetchTask[_]]()
 
-  private val isScheduledforTasks =
-    new mutable.HashMap[SinglePrefetchTask[_], Boolean]()
-
-  def isAllScheduled: Boolean = {
-    !isScheduledforTasks.exists(_._2.equals(false))
-  }
+  def isAllScheduled: Boolean = forAll.nonEmpty
 
   addPendingTasks()
 
@@ -78,97 +71,55 @@ class PrefetchTaskScheduler(
         }
         forAll += pTasks(i)
       }
-      isScheduledforTasks(pTasks(i)) = false
     }
   }
 
-  private def computeValidLocalityLevels(): Array[TaskLocality] = {
-    import TaskLocality.{ANY, NODE_LOCAL, NO_PREF, PROCESS_LOCAL}
-    val levels = new ArrayBuffer[TaskLocality.TaskLocality]
-    if (forExecutors.nonEmpty) levels += PROCESS_LOCAL
-    if (forHosts.nonEmpty) levels += NODE_LOCAL
-    if (forNoRefs.nonEmpty) levels += NO_PREF
-    if (forAll.nonEmpty) levels += ANY
-    levels.toArray
+  private def pickTaskFromOffer(offer: PrefetchOffer): Option[PrefetchTaskDescription] = {
+    var task: SinglePrefetchTask[_] = null
+    var maxLocality: TaskLocality = null
+    if (task.eq(null) && forExecutors.nonEmpty && forExecutors.contains(offer.executorId)) {
+      maxLocality = TaskLocality.PROCESS_LOCAL
+      task = forExecutors(offer.executorId)(0).clone().asInstanceOf[SinglePrefetchTask[_]]
+      forExecutors(offer.executorId).remove(0)
+    }
+    if (task.eq(null) && forHosts.nonEmpty && forHosts.contains(offer.executorId)) {
+      maxLocality = TaskLocality.NODE_LOCAL
+      task = forHosts(offer.host)(0).clone().asInstanceOf[SinglePrefetchTask[_]]
+      forHosts(offer.host).remove(0)
+    }
+    if (task.eq(null) && forNoRefs.nonEmpty) {
+      maxLocality = TaskLocality.NO_PREF
+      task = forNoRefs(0)
+      forNoRefs.remove(0)
+    }
+    if (task.eq(null) && forAll.nonEmpty) {
+      maxLocality = TaskLocality.ANY
+      task = forAll(0)
+      forAll.remove(0)
+    }
+    if (!task.eq(null)) {
+      val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
+      desc.locality = maxLocality
+      Option(desc)
+    } else None
   }
 
-  private def resourceOffer(executorId: String,
-                            host: String,
-                            maxLocality: TaskLocality.TaskLocality)
-    : Option[PrefetchTaskDescription] = {
-    dequeueTask(executorId, host, maxLocality) match {
-      case Some(blend) =>
-        val desc = new PrefetchTaskDescription(executorId, blend._1.taskId, ser.serialize(blend._1))
-        desc.locality = blend._2
-        Some(desc)
-      case _ => None
-    }
-  }
-
-  private def dequeueTask(executorId: String, host: String,
-                          maxLocality: TaskLocality.TaskLocality)
-    : Option[(SinglePrefetchTask[_], TaskLocality.Value)] = {
-    for (task <- dequeueTaskFromList(executorId,
-           host, forExecutors.getOrElse(executorId, ArrayBuffer()))) {
-      return Some((task, TaskLocality.PROCESS_LOCAL))
-    }
-    if (TaskLocality.isAllowed(maxLocality, TaskLocality.NODE_LOCAL)) {
-      for (task <- dequeueTaskFromList(
-             executorId, host, forHosts.getOrElse(host, ArrayBuffer()))) {
-        return Some((task, TaskLocality.NODE_LOCAL))
-      }
-    }
-    if (TaskLocality.isAllowed(maxLocality, TaskLocality.NO_PREF)) {
-      for (task <- dequeueTaskFromList(executorId, host, forNoRefs)) {
-        return Some((task, TaskLocality.NO_PREF))
-      }
-    }
-    if (TaskLocality.isAllowed(maxLocality, TaskLocality.ANY)) {
-      for (task <- dequeueTaskFromList(executorId, host, forAll)) {
-        return Some((task, TaskLocality.ANY))
-      }
-    }
-    None
-  }
-
-  private def dequeueTaskFromList(
-      executorId: String,
-      host: String,
-      tasks: ArrayBuffer[SinglePrefetchTask[_]]): Option[SinglePrefetchTask[_]] = {
-    var index = tasks.size
-    while (index > 0) {
-      index -= 1
-      val task = tasks(index)
-      if (!isScheduledforTasks(task)) {
-        isScheduledforTasks(task) = true
-        return Option(task)
-      }
-    }
-    None
-  }
-
-  protected[prefetch] def makeResources(): Array[Array[PrefetchTaskDescription]] = {
+  protected[prefetch] def makeResources(cores_exe: Int): Array[Array[PrefetchTaskDescription]] = {
     val descriptions = new ArrayBuffer[Array[PrefetchTaskDescription]]()
     var subDesc = new ArrayBuffer[PrefetchTaskDescription]()
-    val maxLocalityLevels = computeValidLocalityLevels()
-    var tasksPerExe = 0
     while (!isAllScheduled) {
-      // Until All tasks are scheduled.
-      for (taskLocality <- maxLocalityLevels) {
+      var cores = 0
+      while (cores < cores_exe) {
         for (offer <- offers) {
-          // Find fittest tasks launched on every executor.
-          resourceOffer(offer.executorId, offer.host, taskLocality) match {
+          pickTaskFromOffer(offer) match {
             case Some(desc) => subDesc += desc
-            case _ => logError("No resource matched.")
+            case None =>
           }
         }
-        tasksPerExe += 1
-
-        if (tasksPerExe % cores_exe == 0) {
-          descriptions += subDesc.toArray
-          subDesc = new ArrayBuffer[PrefetchTaskDescription]()
-        }
+        cores += 1
       }
+      descriptions += subDesc.toArray
+      cores = 0
     }
     descriptions.toArray
   }

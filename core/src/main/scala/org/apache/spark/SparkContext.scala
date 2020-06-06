@@ -2448,8 +2448,8 @@ class SparkContext(config: SparkConf) extends Logging {
   def prefetchScheduler: PrefetchScheduler = _prefetchScheduler
 
   @deprecated
-  def prefetch(rdd: RDD[_]): Option[Seq[PrefetchReporter]] = {
-    _prefetchScheduler.prefetch(rdd)
+  def prefetch(rdd: RDD[_], cores: Int): Option[Seq[PrefetchReporter]] = {
+    _prefetchScheduler.prefetch(rdd, cores)
   }
 
   @deprecated
