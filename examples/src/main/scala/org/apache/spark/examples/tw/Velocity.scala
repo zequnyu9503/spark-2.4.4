@@ -33,10 +33,12 @@ object Velocity {
     val scheduler = sc.prefetchScheduler
     val file = new File("/home/zc/yzq/repoters.txt")
 
-    val rdd_0 = sc.textFile("hdfs://centos3:9000/real-world/2019-4-01.json")
-    val rdd_1 = sc.textFile("hdfs://centos3:9000/real-world/2019-4-02.json")
+    val rdd_0 = sc.textFile("hdfs://centos3:9000/real-world/2019-4-02.json")
+    val rdd_1 = sc.textFile("hdfs://centos3:9000/real-world/2019-4-01.json")
 
-    rdd_1.count()
+    rdd_1.flatMap(txt => txt.split(" ")).
+      map(e => (e, 1L)).reduceByKey(_ + _).
+      saveAsTextFile("hdfs://centos3:9000/" + System.currentTimeMillis())
 
     new Thread(new Runnable {
       override def run(): Unit = {
@@ -51,8 +53,14 @@ object Velocity {
       }
     }).start()
 
-    rdd_1.count()
-    rdd_1.count()
-    rdd_1.count()
+    rdd_1.flatMap(txt => txt.split(" ")).
+      map(e => (e, 1L)).reduceByKey(_ + _).
+      saveAsTextFile("hdfs://centos3:9000/" + System.currentTimeMillis())
+    rdd_1.flatMap(txt => txt.split(" ")).
+      map(e => (e, 1L)).reduceByKey(_ + _).
+      saveAsTextFile("hdfs://centos3:9000/" + System.currentTimeMillis())
+    rdd_1.flatMap(txt => txt.split(" ")).
+      map(e => (e, 1L)).reduceByKey(_ + _).
+      saveAsTextFile("hdfs://centos3:9000/" + System.currentTimeMillis())
   }
 }
