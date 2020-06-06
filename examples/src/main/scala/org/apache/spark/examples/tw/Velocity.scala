@@ -30,6 +30,7 @@ object Velocity {
       set("cores.prefetch.executors", "12")
     val sc = new SparkContext(conf)
 
+    val scheduler = sc.prefetchScheduler
     val file = new File("/home/zc/yzq/repoters.txt")
 
     val rdd_0 = sc.textFile("hdfs://centos3:9000/real-world/2019-4-01.json")
@@ -39,7 +40,7 @@ object Velocity {
 
     new Thread(new Runnable {
       override def run(): Unit = {
-        sc.prefetch(rdd_0) match {
+        scheduler.prefetch(rdd_0) match {
           case Some(reporters) =>
             reporters.foreach(reporter => {
               Files.append(reporter.toString + "\n", file, StandardCharsets.UTF_8)
@@ -50,8 +51,6 @@ object Velocity {
       }
     }).start()
 
-    rdd_1.count()
-    rdd_1.count()
     rdd_1.count()
     rdd_1.count()
     rdd_1.count()
