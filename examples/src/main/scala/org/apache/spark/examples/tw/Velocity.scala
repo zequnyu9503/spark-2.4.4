@@ -37,11 +37,10 @@ object Velocity {
     val rdd_1 = sc.textFile("hdfs://centos3:9000/real-world/2019-4-01.json")
 
     rdd_1.count()
-    rdd_1.count()
 
     new Thread(new Runnable {
       override def run(): Unit = {
-        scheduler.prefetch(rdd_0) match {
+        scheduler.prefetch(rdd_0, 6) match {
           case Some(reporters) =>
             reporters.foreach(reporter => {
               if (reporter != null) {
@@ -60,9 +59,5 @@ object Velocity {
     rdd_1.count()
     rdd_1.count()
     rdd_1.count()
-    rdd_1.count()
-    rdd_1.count()
-    rdd_1.count()
-
   }
 }
