@@ -71,7 +71,7 @@ class WindowController[T, V, X] (
 
     val prevWinId = if (winId.get() > 0) winId.get() - 1 else 0
     if (windows.contains(prevWinId)) {
-      val size = backend.scheduler.sizeInMem(windows(prevWinId))
+      val size = sc.rddCacheInMemory(windows(prevWinId))
       backend.updateWinSize(prevWinId, size)
     }
   }
@@ -153,7 +153,8 @@ class WindowController[T, V, X] (
   def addLocalResult(rdd: RDD[X]): Unit = {
     localResults(winId.get()) = rdd
     if (!backend.eq(null)) {
-      backend.updateLocalResults(winId.get(), rdd)
+      val size = sc.rddCacheInMemory(rdd)
+      backend.updateLocalResults(winId.get(), rdd, size)
     }
   }
 

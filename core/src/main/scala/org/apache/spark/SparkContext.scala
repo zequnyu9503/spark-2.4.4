@@ -2457,7 +2457,6 @@ class SparkContext(config: SparkConf) extends Logging {
     _prefetchScheduler.freeStorageMemory()
   }
 
-  @deprecated
   def rddCacheInMemory(rdd: RDD[_]): Long = {
     _prefetchScheduler.sizeInMem(rdd)
   }

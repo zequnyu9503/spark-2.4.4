@@ -237,12 +237,11 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
     }
   }
 
-  def updateLocalResults(id: Int, rdd: RDD[_]): Unit = synchronized {
+  def updateLocalResults(id: Int, rdd: RDD[_], size: Long): Unit = synchronized {
     if (!localResults.contains(id)) {
       localResults(id) = rdd
-      val sizeInMem: Long = scheduler.sizeInMem(rdd)
-      localSize(id) = sizeInMem
-      logger.info(s"Update local results [${rdd.id}] size of [$sizeInMem] bytes.")
+      localSize(id) = size
+      logger.info(s"Update local results [${rdd.id}] size of [$size] bytes.")
     } else {
       logger.info("Update failed: winId already exists.")
     }
