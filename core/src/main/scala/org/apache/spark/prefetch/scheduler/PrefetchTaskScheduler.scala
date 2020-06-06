@@ -87,7 +87,6 @@ class PrefetchTaskScheduler(
         val task = forHosts(offer.host)(0)
         val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
         desc.locality = TaskLocality.NODE_LOCAL
-        logInfo(s"task ${desc.taskId} scheduled on host ${offer.host}")
         return Option(desc)
       }
     }
@@ -116,6 +115,7 @@ class PrefetchTaskScheduler(
         }
         cores += 1
       }
+      logInfo(subDesc.map(_.taskId).mkString(","))
       descriptions += subDesc.toArray
       subDesc = new ArrayBuffer[PrefetchTaskDescription]()
       cores = 0
