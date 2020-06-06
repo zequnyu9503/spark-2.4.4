@@ -54,6 +54,11 @@ sealed class TimeWindowRDD[T, V, X](sc: SparkContext, winSize: T,
     this
   }
 
+  def setDaySize(daySize: Seq[Long]): TimeWindowRDD[T, V, X] = {
+    controller.setDaySize(daySize)
+    this
+  }
+
   def allowPrefetch(bool: Boolean): TimeWindowRDD[T, V, X] = {
     if (bool) {
       val winFetcher = new WinFetcher[T, V](sc, controller, sc.prefetchScheduler)

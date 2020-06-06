@@ -101,7 +101,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   }
 
   private def prefetch_duration(plan: PrefetchPlan): Long = {
-    val size: Long = randomWinSize(plan.winId).getOrElse(0L)
+    val size: Long = randomWinSize(plan.winId).getOrElse(Long.MaxValue)
     val partitionSize: Long = size / plan.partitions.toLong
     val batches = plan.maxLocality.map {
       case TaskLocality.NODE_LOCAL => load_local * partitionSize
@@ -130,8 +130,8 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
 
   private def prefetch_requirement(plan: PrefetchPlan): Long = {
     randomWinSize(plan.winId) match {
-      case Some(size) => size
-      case None => 0L
+      case Some(size) => (size * expansion).toLong
+      case None => Long.MaxValue
     }
   }
 

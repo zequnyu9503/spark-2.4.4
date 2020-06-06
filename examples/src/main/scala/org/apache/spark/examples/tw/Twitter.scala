@@ -29,6 +29,14 @@ object Twitter extends Serializable {
 
   private val logger = LoggerFactory.getLogger("tw")
 
+  private val daySize = Seq(11825783079L, 9351172561L, 11243611348L, 20406366705L,
+    19392728397L, 19682386615L, 21082494394L, 13313777046L, 19920937770L,
+    20207386576L, 20086139197L, 21112343537L, 20102665431L, 20479471790L,
+    19854391546L, 20017970190L, 20185603932L, 20264545173L, 19693594884L,
+    17713865605L, 20320328049L, 21683713659L, 21337064106L, 21493198522L,
+    21112255362L, 20402706128L, 20130745918L, 21136173886L, 20433117880L,
+    21758667067L)
+
   def main(args: Array[String]): Unit = {
     val isPrefetch = args(0).toBoolean
     val start = args(1).toInt
@@ -58,7 +66,8 @@ object Twitter extends Serializable {
       setScope(start, end).
       setPartitionsLimitations(60).
       setStorageLevel(StorageLevel.MEMORY_ONLY).
-      allowPrefetch(isPrefetch)
+      allowPrefetch(isPrefetch).
+      setDaySize(daySize)
     val itr = twRDD.iterator()
 
     while (itr.hasNext) {

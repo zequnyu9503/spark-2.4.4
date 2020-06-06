@@ -46,6 +46,7 @@ class WindowController[T, V, X] (
 
   private var maxPartitions = 10
   private var storageLevel = StorageLevel.MEMORY_ONLY
+  private var daySize: Seq[Long] = _
 
   private var backend: PrefetchBackend = _
 
@@ -71,8 +72,8 @@ class WindowController[T, V, X] (
 
     val prevWinId = if (winId.get() > 0) winId.get() - 1 else 0
     if (windows.contains(prevWinId)) {
-      val size = sc.rddCacheInMemory(windows(prevWinId))
-      backend.updateWinSize(prevWinId, size)
+      // BAD OPERATION.
+      backend.updateWinSize(prevWinId, daySize(prevWinId))
     }
   }
 
@@ -148,6 +149,10 @@ class WindowController[T, V, X] (
   def setBackend(pb: PrefetchBackend): Unit = {
     logger.info("Initialize prefetch backend.")
     backend = pb
+  }
+
+  def setDaySize(size: Seq[Long]): Unit = {
+    daySize = size
   }
 
   def addLocalResult(rdd: RDD[X]): Unit = {
