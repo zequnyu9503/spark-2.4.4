@@ -108,6 +108,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
       case TaskLocality.ANY => load_remote * partitionSize
       case _ => 0L
     }
+    logger.debug(s"Size is $size bytes: load_local is $load_local byte/millisecond.")
     batches.sum.toLong
   }
 
@@ -117,14 +118,17 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
       randomWinSize(id) match {
         case Some(size) =>
           if (finished.contains(id)) {
+            logger.debug(s"Win $id was cached in memory, calc only.")
             waiting += size * calc
           } else {
+            logger.debug(s"Win $id was NOT cached in memory, calc and load.")
             waiting += size * (calc + load_local)
           }
         case None => waiting += 0
       }
     }
     val used = System.currentTimeMillis() - startLine.maxBy(_._1)._2
+    logger.debug(s"Current window has consume $used millisecond")
     (waiting - used).toLong
   }
 
@@ -151,37 +155,37 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   def canPrefetch(plan: PrefetchPlan): Boolean = {
     if (plan.winId > min) {
       val prefetch = prefetch_duration(plan)
-      logger.info(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
+      logger.debug(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
         s"Prefetch duration: $prefetch ms.")
       val main = main_duration(plan)
-      logger.info(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
+      logger.debug(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
         s"Waiting duration: $main ms.")
 
       if (prefetch < main) {
         val requirement = prefetch_requirement(plan)
-        logger.info(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
+        logger.debug(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
           s"Prefetch require $requirement bytes memory space.")
         val availability = cluster_availability(plan)
-        logger.info(
+        logger.debug(
           s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
             s"The cluster can only provide $availability bytes of memory.")
 
         if (requirement < availability) {
-          logger.info(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
+          logger.debug(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
             "Trigger time and space condition.")
           true
         } else {
-          logger.error(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
+          logger.debug(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
             "Prefetch require more space than cluster.")
           false
         }
       } else {
-        logger.error(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
+        logger.debug(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
           s"Prefetch duration is more than main duration. ")
         false
       }
     } else {
-      logger.error(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
+      logger.debug(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
         s"Failed: ${plan.winId} is less than $min.")
       false
     }

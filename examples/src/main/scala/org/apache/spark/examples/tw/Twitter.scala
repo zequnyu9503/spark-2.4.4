@@ -49,7 +49,7 @@ object Twitter extends Serializable {
       .set("cores.prefetch.executors", "12")
       .set("expansion.hdfs", "1.833274997")
       .set("calc.prefetch", "1.50925e-6")
-      .set("load.local.prefetch", "3.912299871444702e-5")
+      .set("load.local.prefetch", "4.066275746634837E-5")
       .set("load.remote.prefetch", "0")
       .set("variation.prefetch", "0.018134686")
       .set("min.prefetch", "2")
