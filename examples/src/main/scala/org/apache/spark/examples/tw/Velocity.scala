@@ -27,7 +27,7 @@ object Velocity {
 
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf().setAppName("Velocity").
-      set("cores.prefetch.executors", "12")
+      set("cores.prefetch.executors", "8")
     val sc = new SparkContext(conf)
 
     val scheduler = sc.prefetchScheduler
@@ -36,9 +36,8 @@ object Velocity {
     val rdd_0 = sc.textFile("hdfs://centos3:9000/real-world/2019-4-02.json")
     val rdd_1 = sc.textFile("hdfs://centos3:9000/real-world/2019-4-01.json")
 
-    rdd_1.flatMap(txt => txt.split(" ")).
-      map(e => (e, 1L)).reduceByKey(_ + _).
-      saveAsTextFile("hdfs://centos3:9000/" + System.currentTimeMillis())
+    rdd_1.count()
+    rdd_1.count()
 
     new Thread(new Runnable {
       override def run(): Unit = {
@@ -62,5 +61,8 @@ object Velocity {
     rdd_1.count()
     rdd_1.count()
     rdd_1.count()
+    rdd_1.count()
+    rdd_1.count()
+
   }
 }
