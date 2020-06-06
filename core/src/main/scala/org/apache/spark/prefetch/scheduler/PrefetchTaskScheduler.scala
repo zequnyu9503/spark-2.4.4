@@ -23,7 +23,6 @@ import org.apache.spark.SparkEnv
 import org.apache.spark.internal.Logging
 import org.apache.spark.prefetch.{PrefetchOffer, PrefetchTaskDescription, SinglePrefetchTask}
 import org.apache.spark.scheduler.{ExecutorCacheTaskLocation, HDFSCacheTaskLocation, TaskLocality}
-import org.apache.spark.scheduler.TaskLocality.TaskLocality
 
 class PrefetchTaskScheduler(
     offers: Seq[PrefetchOffer],
@@ -75,33 +74,35 @@ class PrefetchTaskScheduler(
   }
 
   private def pickTaskFromOffer(offer: PrefetchOffer): Option[PrefetchTaskDescription] = {
-    var task: SinglePrefetchTask[_] = null
-    var maxLocality: TaskLocality = null
-    if (task.eq(null) && forExecutors.nonEmpty && forExecutors.contains(offer.executorId)) {
-      maxLocality = TaskLocality.PROCESS_LOCAL
-      task = forExecutors(offer.executorId)(0).clone().asInstanceOf[SinglePrefetchTask[_]]
-      forExecutors(offer.executorId).remove(0)
-    }
-    if (task.eq(null) && forHosts.nonEmpty && forHosts.contains(offer.executorId)) {
-      maxLocality = TaskLocality.NODE_LOCAL
-      task = forHosts(offer.host)(0).clone().asInstanceOf[SinglePrefetchTask[_]]
-      forHosts(offer.host).remove(0)
-    }
-    if (task.eq(null) && forNoRefs.nonEmpty) {
-      maxLocality = TaskLocality.NO_PREF
-      task = forNoRefs(0)
-      forNoRefs.remove(0)
-    }
-    if (task.eq(null) && forAll.nonEmpty) {
-      maxLocality = TaskLocality.ANY
-      task = forAll(0)
-      forAll.remove(0)
-    }
-    if (!task.eq(null)) {
+    if (forExecutors.nonEmpty && forExecutors.contains(offer.executorId)) {
+      val task = forExecutors(offer.executorId)(0)
       val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
-      desc.locality = maxLocality
-      Option(desc)
-    } else None
+      desc.locality = TaskLocality.PROCESS_LOCAL
+      forExecutors(offer.executorId).remove(0)
+      return Option(desc)
+    }
+    if (forHosts.nonEmpty && forHosts.contains(offer.executorId)) {
+      val task = forHosts(offer.host)(0)
+      val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
+      desc.locality = TaskLocality.NODE_LOCAL
+      forHosts(offer.host).remove(0)
+      return Option(desc)
+    }
+    if (forNoRefs.nonEmpty) {
+      val task = forNoRefs(0)
+      val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
+      desc.locality = TaskLocality.NO_PREF
+      forNoRefs.remove(0)
+      return Option(desc)
+    }
+    if (forAll.nonEmpty) {
+      val task = forAll(0)
+      val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
+      desc.locality = TaskLocality.ANY
+      forAll.remove(0)
+      return Option(desc)
+    }
+    None
   }
 
   protected[prefetch] def makeResources(cores_exe: Int): Array[Array[PrefetchTaskDescription]] = {
