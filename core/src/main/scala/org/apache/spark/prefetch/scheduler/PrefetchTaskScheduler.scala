@@ -74,13 +74,17 @@ class PrefetchTaskScheduler(
   }
 
   def removeTask(taskId: String, exeId: String, host: String): Unit = {
-    forExecutors(exeId).find(_.taskId.equals(taskId)) match {
-      case Some(onExe) => forExecutors(exeId) -= onExe
-      case None =>
+    if (forExecutors.contains(exeId)) {
+      forExecutors(exeId).find(_.taskId.equals(taskId)) match {
+        case Some(onExe) => forExecutors(exeId) -= onExe
+        case None =>
+      }
     }
-    forHosts(host).find(_.taskId.equals(taskId)) match {
-      case Some(onHost) => forHosts(host) -= onHost
-      case None =>
+    if (forHosts.contains(host)) {
+      forHosts(host).find(_.taskId.equals(taskId)) match {
+        case Some(onHost) => forHosts(host) -= onHost
+        case None =>
+      }
     }
     forNoRefs.find(_.taskId.equals(taskId)) match {
       case Some(noRef) => forNoRefs -= noRef
