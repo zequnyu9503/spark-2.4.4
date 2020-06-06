@@ -143,22 +143,16 @@ class PrefetchScheduler(val sc: SparkContext,
   }
 
   def sizeInMem(rdd: RDD[_]): Long = {
-    val memSize = new mutable.HashMap[Int, Long]()
+    var memSize: Long = 0L
     val bmm = SparkEnv.get.blockManager.master
     rdd.partitions.foreach(partition => {
       val blockId = RDDBlockId(rdd.id, partition.index)
       bmm.getLocationsAndStatus(blockId) match {
-        case Some(status) =>
-          memSize(partition.index) = status.status.memSize
-        case None => memSize(partition.index) = 0L
+        case Some(status) => memSize += status.status.memSize
+        case None => memSize += 0L
       }
     })
-    while (memSize.size < rdd.partitions.length) {
-      synchronized {
-        this.wait(100)
-      }
-    }
-    memSize.values.sum
+    memSize
   }
 
   def blockSize(rdd: RDD[_], bId: Int, eId: String): Long = {

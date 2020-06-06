@@ -45,7 +45,7 @@ class WindowController[T, V, X] (
   private val timeScope = new TimeScope()
 
   private var maxPartitions = 10
-  private var storageLevel = StorageLevel.MEMORY_ONLY_SER
+  private var storageLevel = StorageLevel.MEMORY_ONLY
 
   private var backend: PrefetchBackend = _
 
