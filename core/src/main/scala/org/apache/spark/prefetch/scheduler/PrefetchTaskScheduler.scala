@@ -33,18 +33,13 @@ class PrefetchTaskScheduler(
   private val env = SparkEnv.get
   private val ser = env.closureSerializer.newInstance()
 
-  private val forExecutors =
-    new mutable.HashMap[String, ArrayBuffer[SinglePrefetchTask[_]]]()
   private val forHosts =
     new mutable.HashMap[String, ArrayBuffer[SinglePrefetchTask[_]]]()
-  private val forNoRefs = new ArrayBuffer[SinglePrefetchTask[_]]()
   private val forAll = new ArrayBuffer[SinglePrefetchTask[_]]()
 
   def isAllScheduled: Boolean = forAll.isEmpty
 
   addPendingTasks()
-
-  logInfo(s"On host ${forHosts.values.flatten.size}")
 
   private def addPendingTasks(): Unit = {
     for (i <- pTasks.indices) {
@@ -67,24 +62,17 @@ class PrefetchTaskScheduler(
 //          case _ => // Nothing to do.
 //        }
         forHosts.getOrElseUpdate(loc.host, new ArrayBuffer[SinglePrefetchTask[_]]()) += pTasks(i)
-        if (pTasks(i).locs == Nil) {
-          forNoRefs += pTasks(i)
-        }
         forAll += pTasks(i)
       }
     }
   }
 
-  def removeTask(taskId: String, exeId: String, host: String): Unit = {
-    if (forHosts.contains(host)) {
+  def removeTask(taskId: String): Unit = {
+    for (host <- forHosts.keys) {
       forHosts(host).find(_.taskId.equals(taskId)) match {
-        case Some(onHost) => forHosts(host) -= onHost
+        case Some(toBeRem) => forHosts(host) -= toBeRem
         case None =>
       }
-    }
-    forNoRefs.find(_.taskId.equals(taskId)) match {
-      case Some(noRef) => forNoRefs -= noRef
-      case None =>
     }
     forAll.find(_.taskId.equals(taskId)) match {
       case Some(any) => forAll -= any
@@ -102,12 +90,6 @@ class PrefetchTaskScheduler(
         logInfo(s"task ${desc.taskId} scheduled on host ${offer.host}")
         return Option(desc)
       }
-    }
-    if (forNoRefs.nonEmpty) {
-      val task = forNoRefs(0)
-      val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
-      desc.locality = TaskLocality.NO_PREF
-      return Option(desc)
     }
     if (forAll.nonEmpty) {
       val task = forAll(0)
@@ -128,8 +110,7 @@ class PrefetchTaskScheduler(
           pickTaskFromOffer(offer) match {
             case Some(desc) =>
               subDesc += desc
-              removeTask(desc.taskId, offer.executorId, offer.host)
-              logInfo(s"On host ${forHosts.values.flatten.size}")
+              removeTask(desc.taskId)
             case None =>
           }
         }
