@@ -167,11 +167,11 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
             s"The cluster can only provide $availability bytes of memory.")
 
         if (requirement < availability) {
-          logger.info("Attempt to check plan [${plan.winId}] while winId [$winId];" +
+          logger.info(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
             "Trigger time and space condition.")
           true
         } else {
-          logger.error("Attempt to check plan [${plan.winId}] while winId [$winId];" +
+          logger.error(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
             "Prefetch require more space than cluster.")
           false
         }
