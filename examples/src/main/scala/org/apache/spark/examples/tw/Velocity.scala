@@ -45,7 +45,11 @@ object Velocity {
         scheduler.prefetch(rdd_0) match {
           case Some(reporters) =>
             reporters.foreach(reporter => {
-              Files.append(reporter.toString + "\n", file, StandardCharsets.UTF_8)
+              if (reporter != null) {
+                Files.append(reporter.toString + "\n", file, StandardCharsets.UTF_8)
+              } else {
+                Files.append(s"Fail ${reporter.taskId}" + "\n", file, StandardCharsets.UTF_8)
+              }
             })
           case _ =>
         }
@@ -53,14 +57,10 @@ object Velocity {
       }
     }).start()
 
-    rdd_1.flatMap(txt => txt.split(" ")).
-      map(e => (e, 1L)).reduceByKey(_ + _).
-      saveAsTextFile("hdfs://centos3:9000/" + System.currentTimeMillis())
-    rdd_1.flatMap(txt => txt.split(" ")).
-      map(e => (e, 1L)).reduceByKey(_ + _).
-      saveAsTextFile("hdfs://centos3:9000/" + System.currentTimeMillis())
-    rdd_1.flatMap(txt => txt.split(" ")).
-      map(e => (e, 1L)).reduceByKey(_ + _).
-      saveAsTextFile("hdfs://centos3:9000/" + System.currentTimeMillis())
+    rdd_1.count()
+    rdd_1.count()
+    rdd_1.count()
+    rdd_1.count()
+    rdd_1.count()
   }
 }
