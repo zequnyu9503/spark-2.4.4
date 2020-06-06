@@ -37,9 +37,9 @@ class PrefetchTaskRunner(val prefetcher: Prefetcher,
       val task = ser.deserialize[SinglePrefetchTask[Any]](
         taskDescription.serializedTask,
         Thread.currentThread.getContextClassLoader)
-      val memSize = task.startTask(TaskContext.empty())
+      task.startTask(TaskContext.empty())
       val endTime = System.currentTimeMillis()
-      val reporter = PrefetchReporter(task.taskId, endTime - startTime, memSize)
+      val reporter = PrefetchReporter(task.taskId, endTime - startTime)
       prefetcher.reportTaskFinished(reporter)
     } catch {
       case t: Throwable =>

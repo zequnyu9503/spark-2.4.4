@@ -41,10 +41,8 @@ class SinglePrefetchTask[T](taskBinary: Broadcast[Array[Byte]],
       ByteBuffer.wrap(taskBinary.value),
       Thread.currentThread.getContextClassLoader)
     val iterator = rdd.iterator(partition_, context)
-    var size: Long = 0L
     while (iterator.hasNext) {
-      size += SizeEstimator.estimate(iterator.next().asInstanceOf[AnyRef])
+      iterator.next()
     }
-    size
   }
 }
