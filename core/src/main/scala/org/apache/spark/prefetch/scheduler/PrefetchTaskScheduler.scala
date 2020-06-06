@@ -62,8 +62,8 @@ class PrefetchTaskScheduler(
 //          case _ => // Nothing to do.
 //        }
         forHosts.getOrElseUpdate(loc.host, new ArrayBuffer[SinglePrefetchTask[_]]()) += pTasks(i)
-        forAll += pTasks(i)
       }
+      forAll += pTasks(i)
     }
   }
 
