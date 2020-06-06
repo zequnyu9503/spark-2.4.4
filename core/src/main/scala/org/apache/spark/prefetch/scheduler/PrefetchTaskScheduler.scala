@@ -44,6 +44,8 @@ class PrefetchTaskScheduler(
 
   addPendingTasks()
 
+  logInfo(s"On host ${forHosts.values.flatten.size}")
+
   private def addPendingTasks(): Unit = {
     for (i <- pTasks.indices) {
       for (loc <- pTasks(i).locs) {
@@ -97,7 +99,7 @@ class PrefetchTaskScheduler(
         val task = forHosts(offer.host)(0)
         val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
         desc.locality = TaskLocality.NODE_LOCAL
-        removeTask(task.taskId, offer.executorId, offer.host)
+        logInfo(s"task ${desc.taskId} scheduled on host ${offer.host}")
         return Option(desc)
       }
     }
@@ -105,14 +107,12 @@ class PrefetchTaskScheduler(
       val task = forNoRefs(0)
       val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
       desc.locality = TaskLocality.NO_PREF
-      removeTask(task.taskId, offer.executorId, offer.host)
       return Option(desc)
     }
     if (forAll.nonEmpty) {
       val task = forAll(0)
       val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
       desc.locality = TaskLocality.ANY
-      removeTask(task.taskId, offer.executorId, offer.host)
       return Option(desc)
     }
     None
@@ -126,7 +126,10 @@ class PrefetchTaskScheduler(
       while (cores < cores_exe) {
         for (offer <- offers) {
           pickTaskFromOffer(offer) match {
-            case Some(desc) => subDesc += desc
+            case Some(desc) =>
+              subDesc += desc
+              removeTask(desc.taskId, offer.executorId, offer.host)
+              logInfo(s"On host ${forHosts.values.flatten.size}")
             case None =>
           }
         }
