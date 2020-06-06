@@ -104,7 +104,7 @@ class PrefetchTaskScheduler(
       removeTask(task.taskId, offer.executorId, offer.host)
       return Option(desc)
     }
-    if (forHosts.nonEmpty && forHosts.contains(offer.executorId)) {
+    if (forHosts.nonEmpty && forHosts.contains(offer.host)) {
       val task = forHosts(offer.host)(0)
       val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
       desc.locality = TaskLocality.NODE_LOCAL

@@ -56,7 +56,7 @@ class PrefetchScheduler(val sc: SparkContext,
   def prefetch(rdd: RDD[_], cores: Int = cores_exe): Option[Seq[PrefetchReporter]] = {
     createPrefetchJob(rdd) match {
       case Some(job) =>
-        logInfo(s"Create prefetch job for rdd [${rdd.name}].")
+        logInfo(s"Create prefetch job [${job.taskCount}] for rdd [${rdd.name}].")
         val offers = makePrefetchOffers()
         logInfo(s"Make resources [${offers.size} exes] for prefetch job.")
         job.schedules = makeSchedules(job, offers, cores)
