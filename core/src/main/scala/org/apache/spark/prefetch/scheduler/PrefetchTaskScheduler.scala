@@ -40,7 +40,7 @@ class PrefetchTaskScheduler(
   private val forNoRefs = new ArrayBuffer[SinglePrefetchTask[_]]()
   private val forAll = new ArrayBuffer[SinglePrefetchTask[_]]()
 
-  def isAllScheduled: Boolean = forAll.nonEmpty
+  def isAllScheduled: Boolean = forAll.isEmpty
 
   addPendingTasks()
 
@@ -73,33 +73,52 @@ class PrefetchTaskScheduler(
     }
   }
 
+  def removeTask(taskId: String, exeId: String, host: String): Unit = {
+    forExecutors(exeId).find(_.taskId.equals(taskId)) match {
+      case Some(onExe) => forExecutors(exeId) -= onExe
+      case None =>
+    }
+    forHosts(host).find(_.taskId.equals(taskId)) match {
+      case Some(onHost) => forHosts(host) -= onHost
+      case None =>
+    }
+    forNoRefs.find(_.taskId.equals(taskId)) match {
+      case Some(noRef) => forNoRefs -= noRef
+      case None =>
+    }
+    forAll.find(_.taskId.equals(taskId)) match {
+      case Some(any) => forAll -= any
+      case None =>
+    }
+  }
+
   private def pickTaskFromOffer(offer: PrefetchOffer): Option[PrefetchTaskDescription] = {
     if (forExecutors.nonEmpty && forExecutors.contains(offer.executorId)) {
       val task = forExecutors(offer.executorId)(0)
       val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
       desc.locality = TaskLocality.PROCESS_LOCAL
-      forExecutors(offer.executorId).remove(0)
+      removeTask(task.taskId, offer.executorId, offer.host)
       return Option(desc)
     }
     if (forHosts.nonEmpty && forHosts.contains(offer.executorId)) {
       val task = forHosts(offer.host)(0)
       val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
       desc.locality = TaskLocality.NODE_LOCAL
-      forHosts(offer.host).remove(0)
+      removeTask(task.taskId, offer.executorId, offer.host)
       return Option(desc)
     }
     if (forNoRefs.nonEmpty) {
       val task = forNoRefs(0)
       val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
       desc.locality = TaskLocality.NO_PREF
-      forNoRefs.remove(0)
+      removeTask(task.taskId, offer.executorId, offer.host)
       return Option(desc)
     }
     if (forAll.nonEmpty) {
       val task = forAll(0)
       val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
       desc.locality = TaskLocality.ANY
-      forAll.remove(0)
+      removeTask(task.taskId, offer.executorId, offer.host)
       return Option(desc)
     }
     None
@@ -120,6 +139,7 @@ class PrefetchTaskScheduler(
         cores += 1
       }
       descriptions += subDesc.toArray
+      subDesc = new ArrayBuffer[PrefetchTaskDescription]()
       cores = 0
     }
     descriptions.toArray
