@@ -47,23 +47,23 @@ class PrefetchTaskScheduler(
   private def addPendingTasks(): Unit = {
     for (i <- pTasks.indices) {
       for (loc <- pTasks(i).locs) {
-        loc match {
-          case exe: ExecutorCacheTaskLocation =>
-            // which means partition located on running executors.
-            forExecutors.getOrElseUpdate(exe.executorId,
-              new ArrayBuffer[SinglePrefetchTask[_]]()) += pTasks(i)
-          case hdfs: HDFSCacheTaskLocation =>
-            // Find executors which hold cached data.
-            val executors = hostToExecutors(hdfs.host)
-            if (executors.nonEmpty) {
-              executors.foreach { e => forExecutors.getOrElseUpdate(
-                  e, new ArrayBuffer[SinglePrefetchTask[_]]()) += pTasks(i)
-              }
-            } else {
-              logError(s"Task [${pTasks(i).taskId}] preferred Executor lost.")
-            }
-          case _ => // Nothing to do.
-        }
+//        loc match {
+//          case exe: ExecutorCacheTaskLocation =>
+//            // which means partition located on running executors.
+//            forExecutors.getOrElseUpdate(exe.executorId,
+//              new ArrayBuffer[SinglePrefetchTask[_]]()) += pTasks(i)
+//          case hdfs: HDFSCacheTaskLocation =>
+//            // Find executors which hold cached data.
+//            val executors = hostToExecutors(hdfs.host)
+//            if (executors.nonEmpty) {
+//              executors.foreach { e => forExecutors.getOrElseUpdate(
+//                  e, new ArrayBuffer[SinglePrefetchTask[_]]()) += pTasks(i)
+//              }
+//            } else {
+//              logError(s"Task [${pTasks(i).taskId}] preferred Executor lost.")
+//            }
+//          case _ => // Nothing to do.
+//        }
         forHosts.getOrElseUpdate(loc.host, new ArrayBuffer[SinglePrefetchTask[_]]()) += pTasks(i)
         if (pTasks(i).locs == Nil) {
           forNoRefs += pTasks(i)
@@ -74,12 +74,6 @@ class PrefetchTaskScheduler(
   }
 
   def removeTask(taskId: String, exeId: String, host: String): Unit = {
-    if (forExecutors.contains(exeId)) {
-      forExecutors(exeId).find(_.taskId.equals(taskId)) match {
-        case Some(onExe) => forExecutors(exeId) -= onExe
-        case None =>
-      }
-    }
     if (forHosts.contains(host)) {
       forHosts(host).find(_.taskId.equals(taskId)) match {
         case Some(onHost) => forHosts(host) -= onHost
@@ -97,19 +91,15 @@ class PrefetchTaskScheduler(
   }
 
   private def pickTaskFromOffer(offer: PrefetchOffer): Option[PrefetchTaskDescription] = {
-    if (forExecutors.nonEmpty && forExecutors.contains(offer.executorId)) {
-      val task = forExecutors(offer.executorId)(0)
-      val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
-      desc.locality = TaskLocality.PROCESS_LOCAL
-      removeTask(task.taskId, offer.executorId, offer.host)
-      return Option(desc)
-    }
     if (forHosts.nonEmpty && forHosts.contains(offer.host)) {
-      val task = forHosts(offer.host)(0)
-      val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
-      desc.locality = TaskLocality.NODE_LOCAL
-      removeTask(task.taskId, offer.executorId, offer.host)
-      return Option(desc)
+      val onHost = forHosts(offer.host)
+      if (onHost.nonEmpty) {
+        val task = forHosts(offer.host)(0)
+        val desc = new PrefetchTaskDescription(offer.executorId, task.taskId, ser.serialize(task))
+        desc.locality = TaskLocality.NODE_LOCAL
+        removeTask(task.taskId, offer.executorId, offer.host)
+        return Option(desc)
+      }
     }
     if (forNoRefs.nonEmpty) {
       val task = forNoRefs(0)
