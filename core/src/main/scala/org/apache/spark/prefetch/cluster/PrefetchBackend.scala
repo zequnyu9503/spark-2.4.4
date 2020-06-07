@@ -35,7 +35,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   private var expansion: Double = sc.conf.getDouble("expansion.hdfs", 2d)
 
   // Historical time window data size.
-  private val winSize = new mutable.HashMap[Int, Long]()
+  private [prefetch] val winSize = new mutable.HashMap[Int, Long]()
 
   // Historical local results size.
   private val localSize = new mutable.HashMap[Int, Long]()
@@ -85,15 +85,15 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   val finished = new mutable.HashMap[Int, RDD[_]]()
 
   // Forecast future window data size.
-  private def randomWinSize(id: Int): Option[Long] = {
-    if (winSize.size > min) {
+  private [prefetch] def randomWinSize(id: Int): Option[Long] = {
+    if (winSize.size >= min) {
       if (id < winSize.size) {
         Option(winSize(id))
       } else {
         val history: Array[java.lang.Long] =
           winSize.values.toArray.map(java.lang.Long.valueOf)
-        val nextSeri = forecast.forecastNextN(history, id - winSize.keySet.max)
-        Option(nextSeri.get(nextSeri.size() - 1).toLong)
+        val nextSer = forecast.forecastNextN(history, id - winSize.keySet.max)
+        Option(nextSer.get(nextSer.size() - 1).toLong)
       }
     } else {
       None
@@ -103,6 +103,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   private def prefetch_duration(plan: PrefetchPlan): Long = {
     val size: Long = randomWinSize(plan.winId).getOrElse(Long.MaxValue)
     val partitionSize: Long = size / plan.partitions.toLong
+    logger.debug(s"partitionSize is $partitionSize. batches are ${plan.maxLocality.length}")
     val batches = plan.maxLocality.map {
       case TaskLocality.NODE_LOCAL => load_local * partitionSize
       case TaskLocality.ANY => load_remote * partitionSize
