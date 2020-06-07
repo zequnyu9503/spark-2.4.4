@@ -58,7 +58,6 @@ object Twitter extends Serializable {
 
     def load(start: Long, end: Long): RDD[(Long, String)] = {
       sc.textFile(s"$root/2019-4-${"%02d".format(start)}.json").
-        map(_.toString).
         map(line => JSON.parseObject(line)).
         map(json => (start, json.getOrDefault("text", "").toString))
     }

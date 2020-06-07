@@ -226,7 +226,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
         case Some(reporters) =>
           logger.info(s"Pefetch ${plan.prefetch.id} successfully. Then update it.")
           updateVelocity(plan, reporters)
-          finished(id) = plan.prefetch
+          finished(id) = plan.rdd
         case _ =>
       }
       pending.remove(id)
