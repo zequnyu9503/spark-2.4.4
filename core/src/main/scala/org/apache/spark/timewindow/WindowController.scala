@@ -64,7 +64,7 @@ class WindowController[T, V, X] (
       None
     }
   }
-  
+
   private def updateBackend(): Unit = {
     if (backend.eq(null)) return
     backend.updateWinId(winId.get())
