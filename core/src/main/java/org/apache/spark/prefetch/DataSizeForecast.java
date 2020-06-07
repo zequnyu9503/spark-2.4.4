@@ -13,11 +13,11 @@ import java.util.List;
 public class DataSizeForecast {
 
     // Coefficient for moving-average.
-    private int qMax = 3;
+    private int qMax = 2;
     // Coefficient for autoregressive.
-    private int pMax = 3;
+    private int pMax = 1;
     // Coefficient for difference.
-    private int dMax = 2;
+    private int dMax = 1;
 
     private List<ArimaOrder> orders;
     private ArimaOrder best;

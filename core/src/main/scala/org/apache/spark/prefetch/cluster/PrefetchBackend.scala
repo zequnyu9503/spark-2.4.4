@@ -103,13 +103,14 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   private def prefetch_duration(plan: PrefetchPlan): Long = {
     val size: Long = randomWinSize(plan.winId).getOrElse(Long.MaxValue)
     val partitionSize: Long = size / plan.partitions.toLong
-    logger.debug(s"partitionSize is $partitionSize. batches are ${plan.maxLocality.length}")
+    logger.debug(s"Partition size is $partitionSize. ${plan.maxLocality.length} " +
+      s"batches needed. load_local is ${load_local.toLong}." +
+      s"load_remote is ${load_remote.toLong}")
     val batches = plan.maxLocality.map {
       case TaskLocality.NODE_LOCAL => load_local * partitionSize
       case TaskLocality.ANY => load_remote * partitionSize
       case _ => 0L
     }
-    logger.debug(s"Size is $size bytes: load_local is $load_local byte/millisecond.")
     batches.sum.toLong
   }
 
@@ -142,7 +143,6 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
 
   private def cluster_availability(plan: PrefetchPlan): Long = {
     val currentFreeStorage = scheduler.freeStorageMemory().values.sum
-    val local = localResults.values.map(rdd => scheduler.sizeInMem(rdd)).sum
     var enlarged: Long = 0L
     for (id <- winId until plan.winId) {
       randomWinSize(id) match {
@@ -150,7 +150,8 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
         case None => enlarged += 0L
       }
     }
-    currentFreeStorage - (local + enlarged)
+    logger.debug(s"Culster free: $currentFreeStorage. Expansion of local result: $enlarged")
+    currentFreeStorage - enlarged
   }
 
   def canPrefetch(plan: PrefetchPlan): Boolean = {
@@ -165,7 +166,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
       if (prefetch < main) {
         val requirement = prefetch_requirement(plan)
         logger.debug(s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
-          s"Prefetch require $requirement bytes memory space.")
+          s"Prefetch require $requirement bytes of memory space.")
         val availability = cluster_availability(plan)
         logger.debug(
           s"Attempt to check plan [${plan.winId}] while winId [$winId];" +
@@ -220,6 +221,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
       logger.info(s"Start prefetching time window [$id].")
       scheduler.prefetch(plan.rdd) match {
         case Some(reporters) =>
+          logger.info(s"Pefetch ${plan.rdd.id} successfully. Then update it.")
           updateVelocity(plan, reporters)
           finished(id) = plan.rdd
         case _ =>
