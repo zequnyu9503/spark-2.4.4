@@ -20,15 +20,13 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 import org.apache.spark.SparkEnv
-import org.apache.spark.internal.Logging
 import org.apache.spark.prefetch.{PrefetchOffer, PrefetchTaskDescription, SinglePrefetchTask}
 import org.apache.spark.scheduler.TaskLocality
 
 class PrefetchTaskScheduler(
     offers: Seq[PrefetchOffer],
     hostToExecutors: mutable.HashMap[String, ArrayBuffer[String]],
-    pTasks: Seq[SinglePrefetchTask[_]])
-    extends Logging {
+    pTasks: Seq[SinglePrefetchTask[_]]) {
 
   private val env = SparkEnv.get
   private val ser = env.closureSerializer.newInstance()
@@ -115,7 +113,6 @@ class PrefetchTaskScheduler(
         }
         cores += 1
       }
-      logInfo(subDesc.map(_.taskId).mkString(","))
       descriptions += subDesc.toArray
       subDesc = new ArrayBuffer[PrefetchTaskDescription]()
       cores = 0

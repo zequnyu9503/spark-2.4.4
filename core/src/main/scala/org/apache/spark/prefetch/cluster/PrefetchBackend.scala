@@ -201,7 +201,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
         case Some(reporter) => reporter.duration
         case _ => 0L
       }
-      val size = scheduler.blockSize(plan.rdd, desc.taskId.toInt, desc.executorId)
+      val size = scheduler.blockSize(plan.prefetch, desc.taskId.toInt, desc.executorId)
       desc.locality match {
         case TaskLocality.NODE_LOCAL =>
           velocity_local += (duration.toDouble / size.toDouble)
@@ -216,14 +216,14 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   def doPrefetch(plan: PrefetchPlan): Unit = {
     val id = plan.winId
     if (!pending.contains(id) && !finished.contains(id)) {
-      pending(id) = plan.rdd
+      pending(id) = plan.prefetch
 
       logger.info(s"Start prefetching time window [$id].")
-      scheduler.prefetch(plan.rdd) match {
+      scheduler.prefetch(plan.prefetch) match {
         case Some(reporters) =>
-          logger.info(s"Pefetch ${plan.rdd.id} successfully. Then update it.")
+          logger.info(s"Pefetch ${plan.prefetch.id} successfully. Then update it.")
           updateVelocity(plan, reporters)
-          finished(id) = plan.rdd
+          finished(id) = plan.prefetch
         case _ =>
       }
       pending.remove(id)

@@ -33,6 +33,8 @@ class PrefetchPlan(winId$: Int, rdd$: RDD[_]) {
 
   def partitions: Int = rdd$.partitions.length
 
+  def prefetch: RDD[_] = rdd$
+
   def winId: Int = winId$
 
   def rdd[T, V]: RDD[(T, V)] = rdd$.asInstanceOf[RDD[(T, V)]]
