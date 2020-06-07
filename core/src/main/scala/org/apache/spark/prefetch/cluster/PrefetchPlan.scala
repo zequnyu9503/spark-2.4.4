@@ -16,6 +16,9 @@
  */
 package org.apache.spark.prefetch.cluster
 
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
+
 import org.apache.spark.prefetch.PrefetchTaskDescription
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.TaskLocality.TaskLocality
@@ -31,9 +34,32 @@ class PrefetchPlan(winId$: Int, rdd$: RDD[_]) {
     } else null
   }
 
+  def rootRDD(rdd: RDD[_]): Seq[RDD[_]] = {
+    val roots = new ArrayBuffer[RDD[_]]()
+    val visited = new ArrayBuffer[RDD[_]]()
+    val stack = new mutable.Stack[RDD[_]]()
+    stack.push(rdd)
+    while (stack.nonEmpty) {
+      val current = stack.pop()
+      if (current.dependencies.nonEmpty) {
+        var keepSearching = true
+        for (parent <- current.dependencies if keepSearching) {
+          if (!visited.contains(parent.rdd)) {
+            stack.push(parent.rdd)
+            keepSearching = false
+          }
+        }
+      } else {
+        roots += current
+      }
+      visited += current
+    }
+    roots
+  }
+
   def partitions: Int = rdd$.partitions.length
 
-  def prefetch: RDD[_] = rdd$
+  def prefetch: RDD[_] = rootRDD(rdd$).head
 
   def winId: Int = winId$
 
