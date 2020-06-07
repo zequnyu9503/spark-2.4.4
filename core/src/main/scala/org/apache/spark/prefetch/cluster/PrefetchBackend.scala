@@ -202,11 +202,14 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
         case _ => 0L
       }
       val size = scheduler.blockSize(plan.prefetch, desc.taskId.toInt, desc.executorId)
-      desc.locality match {
-        case TaskLocality.NODE_LOCAL =>
-          velocity_local += (duration.toDouble / size.toDouble)
-        case TaskLocality.ANY =>
-          velocity_remote += (duration.toDouble / size.toDouble)
+      if (size > 0) {
+        // Make sure the data are loaded into memory.
+        desc.locality match {
+          case TaskLocality.NODE_LOCAL =>
+            velocity_local += (duration.toDouble / size.toDouble)
+          case TaskLocality.ANY =>
+            velocity_remote += (duration.toDouble / size.toDouble)
+        }
       }
     })
     if (velocity_local.nonEmpty) load_local = velocity_local.max

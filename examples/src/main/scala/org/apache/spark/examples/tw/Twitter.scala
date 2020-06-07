@@ -52,7 +52,7 @@ object Twitter extends Serializable {
       .set("load.local.prefetch", "4.066275746634837E-5")
       .set("load.remote.prefetch", "0")
       .set("variation.prefetch", "0.018134686")
-      .set("min.prefetch", "2")
+      .set("min.prefetch", "4")
 
     val sc = new SparkContext(conf)
 

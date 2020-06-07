@@ -45,7 +45,7 @@ class PrefetchSchedulerSuite extends SparkFunSuite {
       21112255362L, 20402706128L, 20130745918L, 21136173886L, 20433117880L,
       21758667067L).map(tv => java.lang.Long.valueOf(tv))
 
-    for (ds <- 2 to 29) {
+    for (ds <- 4 to 29) {
       val subDaySize = new Array[java.lang.Long](ds)
       for (si <- subDaySize.indices) subDaySize(si) = daySize(si)
       val next = new DataSizeForecast().forecastNext(subDaySize)
