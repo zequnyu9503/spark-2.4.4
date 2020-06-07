@@ -44,7 +44,7 @@ class WindowController[T, V, X] (
 
   private val timeScope = new TimeScope()
 
-  private var maxPartitions = 10
+  private var maxPartitions = 120
   private var storageLevel = StorageLevel.MEMORY_ONLY
   private var daySize: Seq[Long] = _
 
@@ -164,7 +164,7 @@ class WindowController[T, V, X] (
   }
 
   def localAsRDD(): RDD[X] = {
-    localResults.values.reduce((a, b) => a.union(b).coalesce(maxPartitions))
+    localResults.values.reduce((a, b) => a.union(b)).coalesce(maxPartitions)
   }
 
   def next: RDD[(T, V)] = {

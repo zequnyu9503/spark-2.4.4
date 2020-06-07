@@ -64,7 +64,7 @@ object Twitter extends Serializable {
 
     val twRDD = new TimeWindowRDD[Long, String, (String, Long)](sc, 1, 1, load).
       setScope(start, end).
-      setPartitionsLimitations(60).
+      setPartitionsLimitations(120).
       setStorageLevel(StorageLevel.MEMORY_ONLY).
       allowPrefetch(isPrefetch).
       setDaySize(daySize)
