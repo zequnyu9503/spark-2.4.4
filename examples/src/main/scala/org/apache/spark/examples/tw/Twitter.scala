@@ -49,7 +49,7 @@ object Twitter extends Serializable {
       .set("cores.prefetch.executors", "12")
       .set("expansion.hdfs", "1.833274997")
       .set("calc.prefetch", "1.50925e-6")
-      .set("load.local.prefetch", "4.066275746634837E-5")
+      .set("load.local.prefetch", "8.04663E-5")
       .set("load.remote.prefetch", "0")
       .set("variation.prefetch", "0.018134686")
       .set("min.prefetch", "4")
@@ -74,7 +74,7 @@ object Twitter extends Serializable {
       val winRDD = itr.next()
       val result = winRDD.map(_._2).flatMap(txt => txt.split(" ")).
         map(e => (e, 1L)).reduceByKey(_ + _)
-      result.cache().count()
+      result.persist(StorageLevel.MEMORY_AND_DISK).count()
       twRDD.saveLocalResult(result)
     }
 

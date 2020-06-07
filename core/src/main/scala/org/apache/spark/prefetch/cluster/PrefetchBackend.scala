@@ -104,8 +104,8 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
     val size: Long = randomWinSize(plan.winId).getOrElse(Long.MaxValue)
     val partitionSize: Long = size / plan.partitions.toLong
     logger.debug(s"Partition size is $partitionSize. ${plan.maxLocality.length} " +
-      s"batches needed. load_local is ${load_local.toLong}." +
-      s"load_remote is ${load_remote.toLong}")
+      s"batches needed. load_local is $load_local." +
+      s"load_remote is $load_remote")
     val batches = plan.maxLocality.map {
       case TaskLocality.NODE_LOCAL => load_local * partitionSize
       case TaskLocality.ANY => load_remote * partitionSize
