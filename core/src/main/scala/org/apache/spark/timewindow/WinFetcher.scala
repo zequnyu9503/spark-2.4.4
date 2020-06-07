@@ -64,10 +64,18 @@ class WinFetcher[T, V] (sc: SparkContext,
     synchronized {
       logger.info("Prefetch service launched.")
       while (isRunning) {
-        isAllowed(controller.winId.get()) match {
-          case Some(plan) => doPrefetch(plan)
-          case None =>
+        var tryId = controller.winId.get()
+        var allowed = false
+        while (!allowed) {
+          isAllowed(tryId) match {
+            case Some(plan) =>
+              allowed = true
+              doPrefetch(plan)
+            case None =>
+          }
+          tryId += 1
         }
+
         suspend()
       }
     }
