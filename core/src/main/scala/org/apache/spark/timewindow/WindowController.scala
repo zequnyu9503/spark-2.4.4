@@ -38,6 +38,8 @@ class WindowController[T, V, X] (
   // Time window ID.
   val winId = new AtomicInteger(0)
 
+  def id: Int = winId.get()
+
   private val windows = new mutable.HashMap[Int, RDD[(T, V)]]()
 
   private val localResults = new mutable.HashMap[Int, RDD[X]]()

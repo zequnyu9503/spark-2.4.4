@@ -11,16 +11,19 @@ public class CustomizedFileAppender extends FileAppender {
 
     public CustomizedFileAppender() {}
 
-    public CustomizedFileAppender(Layout layout, String filename, boolean append, boolean bufferedIO,
+    public CustomizedFileAppender(Layout layout,
+                                  String filename, boolean append, boolean bufferedIO,
                         int bufferSize) throws IOException {
         super(layout, filename, append, bufferedIO, bufferSize);
     }
 
-    public CustomizedFileAppender(Layout layout, String filename, boolean append) throws IOException {
+    public CustomizedFileAppender(Layout layout,
+                                  String filename, boolean append) throws IOException {
         super(layout, filename, append);
     }
 
-    public CustomizedFileAppender(Layout layout, String filename) throws IOException {
+    public CustomizedFileAppender(Layout layout,
+                                  String filename) throws IOException {
         super(layout, filename);
     }
 
@@ -29,7 +32,8 @@ public class CustomizedFileAppender extends FileAppender {
         if(fileName != null) {
             try {
                 final String CONN = "-yzq-";
-                fileName = fileName.replace(".log", CONN +System.currentTimeMillis() + ".log");
+                fileName = fileName.replace(".log",
+                        CONN +System.currentTimeMillis() + ".log");
                 super.setFile(fileName, fileAppend, bufferedIO, bufferSize);
             }
             catch(java.io.IOException e) {
