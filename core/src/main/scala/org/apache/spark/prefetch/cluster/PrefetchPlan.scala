@@ -57,8 +57,6 @@ class PrefetchPlan(winId$: Int, rdd$: RDD[_]) {
     roots
   }
 
-  def partitions: Int = rdd$.partitions.length
-
   def prefetch: RDD[_] = rootRDD(rdd$).head
 
   def winId: Int = winId$
