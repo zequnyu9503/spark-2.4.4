@@ -16,8 +16,9 @@
  */
 package org.apache.spark.examples.tw
 
+import com.alibaba.fastjson.JSON
+
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.storage.StorageLevel
 
 object XTwitter {
 
@@ -27,11 +28,19 @@ object XTwitter {
     val conf = new SparkConf().setAppName("Twitter-" + System.currentTimeMillis())
     val sc = new SparkContext(conf)
 
-    val common = new TwitterCommon(sc)
-
-    val twitter = common.loadAsTwitter(args(0)).count()
-//    val washed = common.washTwitter(twitter)
-//    val wc = washed.flatMap(_.text).map(word => (word, 1L)).reduceByKey(_ + _)
-//    wc.count()
+    val twitter = sc.textFile(args(0)).
+      map(line => JSON.parseObject(line)).
+      filter(json => !json.containsKey("delete")).
+      map(json =>
+        TwitterData(
+          json.getLong("id"),
+          json.getOrDefault("text", "").toString.split(" "),
+          json.getJSONObject("user").getLong("id"),
+          json.getJSONObject("user").getString("name"),
+          json.getJSONObject("user").getString("description"),
+          json.getJSONObject("user").getString("created_at"),
+          json.getOrDefault("lang", "default").toString,
+          json.getString("timestamp_ms").toLong
+        )).count()
   }
 }
