@@ -24,7 +24,7 @@ class TwitterData(
                         var description: String,
                         var userCreated: String,
                         var lang: String,
-                        var ts: Long) extends Serializable {
+                        var ts: Long) {
 
   def washText(): TwitterData = {
     text = text.map(word => word.replaceAll("[\\s\\d\\p{Punct}]+", ""))
