@@ -28,19 +28,19 @@ object XTwitter {
     val conf = new SparkConf().setAppName("Twitter-" + System.currentTimeMillis())
     val sc = new SparkContext(conf)
 
-    val twitter = sc.textFile(args(0)).
-      map(line => JSON.parseObject(line)).
-      filter(json => !json.containsKey("delete")).
-      map(json =>
-        TwitterData(
-          json.getLong("id"),
-          json.getOrDefault("text", "").toString.split(" "),
-          json.getJSONObject("user").getLong("id"),
-          json.getJSONObject("user").getString("name"),
-          json.getJSONObject("user").getString("description"),
-          json.getJSONObject("user").getString("created_at"),
-          json.getOrDefault("lang", "default").toString,
-          json.getString("timestamp_ms").toLong
-        )).count()
+    val twitter = sc.textFile(args(0)).count()
+//      map(line => JSON.parseObject(line)).
+//      filter(json => !json.containsKey("delete")).
+//      map(json =>
+//        TwitterData(
+//          json.getLong("id"),
+//          json.getOrDefault("text", "").toString.split(" "),
+//          json.getJSONObject("user").getLong("id"),
+//          json.getJSONObject("user").getString("name"),
+//          json.getJSONObject("user").getString("description"),
+//          json.getJSONObject("user").getString("created_at"),
+//          json.getOrDefault("lang", "default").toString,
+//          json.getString("timestamp_ms").toLong
+//        )).count()
   }
 }
