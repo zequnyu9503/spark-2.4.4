@@ -29,11 +29,9 @@ object XTwitter {
 
     val common = new TwitterCommon(sc)
 
-    val twitter = common.loadAsTwitter(args(0)).persist(StorageLevel.MEMORY_ONLY_SER)
-    val langText = twitter.
-      map(t => t.text.split(spliter).foreach(seg => LangText(t.lang, seg))).
-      map(lt => (lt, 1L)).
-      reduceByKey(_ + _).persist(StorageLevel.MEMORY_ONLY_SER)
-    langText.count()
+    val twitter = common.loadAsTwitter(args(0))
+    val washed = common.washTwitter(twitter)
+    val wc = washed.flatMap(_.text).map(word => (word, 1L)).reduceByKey(_ + _)
+    wc.count()
   }
 }

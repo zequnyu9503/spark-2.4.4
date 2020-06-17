@@ -18,26 +18,16 @@ package org.apache.spark.examples.tw
 
 case class TwitterData(
                  var id: Long,
-                 var text: String,
+                 var text: Array[String],
                  var userId: Long,
                  var userName: String,
                  var description: String,
                  var userCreated: String,
                  var lang: String,
                  var ts: Long) {
-}
 
-case class LangText(lang: String, text: String) {
-
-  override def hashCode(): Int = {
-    lang.hashCode * 31 + text.hashCode * 31
-  }
-
-  override def equals(obj: Any): Boolean = {
-    obj match {
-      case lt: LangText =>
-        lt.lang.equals(lang) && lt.text.equals(text)
-      case _ => false
-    }
+  def washText(): TwitterData = {
+    text = text.map(word => word.replaceAll("[\\s\\d\\p{Punct}]+", ""))
+    this
   }
 }

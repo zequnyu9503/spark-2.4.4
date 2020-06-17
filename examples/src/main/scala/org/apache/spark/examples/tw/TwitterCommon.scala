@@ -20,6 +20,7 @@ import com.alibaba.fastjson.JSON
 
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
+import org.apache.spark.storage.StorageLevel
 
 class TwitterCommon(sc: SparkContext) {
 
@@ -91,7 +92,7 @@ class TwitterCommon(sc: SparkContext) {
       "de"
     )
 
-  def load(file: String): RDD[String] = sc.textFile(file)
+  def load(file: String): RDD[String] = sc.textFile(file).persist(StorageLevel.MEMORY_ONLY_SER)
 
   def loadAsTwitter(file: String): RDD[TwitterData] =
     load(file)
@@ -100,7 +101,7 @@ class TwitterCommon(sc: SparkContext) {
       .map(json =>
         TwitterData(
           json.getLong("id"),
-          json.getOrDefault("text", "").toString,
+          json.getOrDefault("text", "").toString.split(" "),
           json.getJSONObject("user").getLong("id"),
           json.getJSONObject("user").getString("name"),
           json.getJSONObject("user").getString("description"),
@@ -108,4 +109,10 @@ class TwitterCommon(sc: SparkContext) {
           json.getOrDefault("lang", "default").toString,
           json.getString("timestamp_ms").toLong
       ))
+
+  def washTwitter(rdd: RDD[TwitterData]): RDD[TwitterData] = {
+    rdd.
+      filter(_.text.length > 0).
+      map(_.washText())
+  }
 }
