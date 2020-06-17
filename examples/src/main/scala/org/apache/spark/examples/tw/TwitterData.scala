@@ -16,14 +16,15 @@
  */
 package org.apache.spark.examples.tw
 
-case class TwitterData(var id: Long,
-                   var text: Array[String],
-                   var userId: Long,
-                   var userName: String,
-                   var description: String,
-                   var userCreated: String,
-                   var lang: String,
-                   var ts: Long) extends Serializable {
+class TwitterData(
+                        var id: Long,
+                        var text: Array[String],
+                        var userId: Long,
+                        var userName: String,
+                        var description: String,
+                        var userCreated: String,
+                        var lang: String,
+                        var ts: Long) extends Serializable {
 
   def washText(): TwitterData = {
     text = text.map(word => word.replaceAll("[\\s\\d\\p{Punct}]+", ""))

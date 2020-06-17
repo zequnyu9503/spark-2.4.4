@@ -58,8 +58,7 @@ object Twitter extends Serializable {
     def load(start: Long, end: Long): RDD[(Long, String)] = {
       sc.textFile(s"$root/2019-4-${"%02d".format(start)}.json").
         map(line => JSON.parseObject(line)).
-        map(json => TwitterData(
-                json.getLong("id"),
+        map(json => new TwitterData(json.getLong("id"),
                 json.getOrDefault("text", "").toString.split(" "),
                 json.getJSONObject("user").getLong("id"),
                 json.getJSONObject("user").getString("name"),
