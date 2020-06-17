@@ -25,7 +25,7 @@ import org.apache.spark.storage.StorageLevel
 import org.apache.spark.timewindow.TimeWindowRDD
 
 
-class Twitter(var id: Long,
+case class Twitter(var id: Long,
                var text: Array[String],
                var userId: Long,
                var userName: String,
@@ -75,7 +75,7 @@ object Twitter extends Serializable {
     def load(start: Long, end: Long): RDD[(Long, String)] = {
       sc.textFile(s"$root/2019-4-${"%02d".format(start)}.json").
         map(line => JSON.parseObject(line)).
-        map(json => new Twitter(
+        map(json => Twitter(
                 json.getLong("id"),
                 json.getOrDefault("text", "").toString.split(" "),
                 json.getJSONObject("user").getLong("id"),
