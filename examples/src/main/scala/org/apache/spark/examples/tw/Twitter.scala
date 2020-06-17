@@ -25,6 +25,22 @@ import org.apache.spark.storage.StorageLevel
 import org.apache.spark.timewindow.TimeWindowRDD
 
 
+class Twitter(var id: Long,
+               var text: Array[String],
+               var userId: Long,
+               var userName: String,
+               var description: String,
+               var userCreated: String,
+               var lang: String,
+               var ts: Long) extends Serializable {
+
+  def washText(): Twitter = {
+    text = text.map(word => word.replaceAll("[\\s\\d\\p{Punct}]+", ""))
+    this
+  }
+
+}
+
 object Twitter extends Serializable {
 
   private val logger = LoggerFactory.getLogger("tw")
@@ -59,7 +75,19 @@ object Twitter extends Serializable {
     def load(start: Long, end: Long): RDD[(Long, String)] = {
       sc.textFile(s"$root/2019-4-${"%02d".format(start)}.json").
         map(line => JSON.parseObject(line)).
-        map(json => (start, json.getOrDefault("text", "").toString))
+        map(json => new Twitter(
+                json.getLong("id"),
+                json.getOrDefault("text", "").toString.split(" "),
+                json.getJSONObject("user").getLong("id"),
+                json.getJSONObject("user").getString("name"),
+                json.getJSONObject("user").getString("description"),
+                json.getJSONObject("user").getString("created_at"),
+                json.getOrDefault("lang", "default").toString,
+                json.getString("timestamp_ms").toLong)).
+        filter(_.text.length > 0).
+        map(_.washText()).
+        flatMap(_.text).
+        map(word => (start, word))
     }
 
     val twRDD = new TimeWindowRDD[Long, String, (String, Long)](sc, 1, 1, load).
@@ -72,8 +100,7 @@ object Twitter extends Serializable {
 
     while (itr.hasNext) {
       val winRDD = itr.next()
-      val result = winRDD.map(_._2).flatMap(txt => txt.split(" ")).
-        map(e => (e, 1L)).reduceByKey(_ + _)
+      val result = winRDD.map(tt => (tt._2, 1L)).reduceByKey(_ + _)
       result.persist(StorageLevel.MEMORY_AND_DISK).count()
       twRDD.saveLocalResult(result)
     }
