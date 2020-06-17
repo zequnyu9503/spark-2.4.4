@@ -29,9 +29,9 @@ object XTwitter {
 
     val common = new TwitterCommon(sc)
 
-    val twitter = common.loadAsTwitter(args(0))
-    val washed = common.washTwitter(twitter)
-    val wc = washed.flatMap(_.text).map(word => (word, 1L)).reduceByKey(_ + _)
-    wc.count()
+    val twitter = common.loadAsTwitter(args(0)).count()
+//    val washed = common.washTwitter(twitter)
+//    val wc = washed.flatMap(_.text).map(word => (word, 1L)).reduceByKey(_ + _)
+//    wc.count()
   }
 }
