@@ -59,7 +59,7 @@ object Twitter extends Serializable {
       sc.textFile(s"$root/2019-4-${"%02d".format(start)}.json").
         map(line => JSON.parseObject(line)).
         map(json => {
-          new TwitterData(json.getLong("id"),
+          val data = new TwitterData(json.getLong("id"),
             json.getOrDefault("text", "").toString.split(" "),
             json.getJSONObject("user").getLong("id"),
             json.getJSONObject("user").getString("name"),
@@ -67,6 +67,7 @@ object Twitter extends Serializable {
             json.getJSONObject("user").getString("created_at"),
             json.getOrDefault("lang", "default").toString,
             json.getString("timestamp_ms").toLong)
+          data
         }).
         filter(_.text.length > 0).
         map(_.washText()).
