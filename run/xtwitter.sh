@@ -11,4 +11,5 @@ spark-submit \
 --class org.apache.spark.examples.tw.XTwitter \
 --driver-java-options "-Dlog4j.configuration=file:${log_path}" \
 --jars ${libs_dir}/fastjson-1.2.35.jar \
-examples/target/original-spark-examples_2.11-2.4.4.jar
+examples/target/original-spark-examples_2.11-2.4.4.jar \
+hdfs://centos3:9000/real-world/	2019-4-01.json
