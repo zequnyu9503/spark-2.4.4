@@ -58,8 +58,9 @@ object Twitter extends Serializable {
     def load(start: Long, end: Long): RDD[(Long, String)] = {
       sc.textFile(s"$root/2019-4-${"%02d".format(start)}.json").
         map(line => JSON.parseObject(line)).
+        filter(!_.containsKey("delete")).
         map(json => {
-          val data = new TwitterData(json.getLong("id"),
+          new TwitterData(json.getLong("id"),
             json.getOrDefault("text", "").toString.split(" "),
             json.getJSONObject("user").getLong("id"),
             json.getJSONObject("user").getString("name"),
@@ -67,7 +68,6 @@ object Twitter extends Serializable {
             json.getJSONObject("user").getString("created_at"),
             json.getOrDefault("lang", "default").toString,
             json.getString("timestamp_ms").toLong)
-          data
         }).
         filter(_.text.length > 0).
         map(_.washText()).
