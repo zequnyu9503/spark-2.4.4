@@ -24,23 +24,6 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.timewindow.TimeWindowRDD
 
-
-case class Twitter(var id: Long,
-               var text: Array[String],
-               var userId: Long,
-               var userName: String,
-               var description: String,
-               var userCreated: String,
-               var lang: String,
-               var ts: Long) extends Serializable {
-
-  def washText(): Twitter = {
-    text = text.map(word => word.replaceAll("[\\s\\d\\p{Punct}]+", ""))
-    this
-  }
-
-}
-
 object Twitter extends Serializable {
 
   private val logger = LoggerFactory.getLogger("tw")
@@ -75,7 +58,7 @@ object Twitter extends Serializable {
     def load(start: Long, end: Long): RDD[(Long, String)] = {
       sc.textFile(s"$root/2019-4-${"%02d".format(start)}.json").
         map(line => JSON.parseObject(line)).
-        map(json => Twitter(
+        map(json => TwitterData(
                 json.getLong("id"),
                 json.getOrDefault("text", "").toString.split(" "),
                 json.getJSONObject("user").getLong("id"),
