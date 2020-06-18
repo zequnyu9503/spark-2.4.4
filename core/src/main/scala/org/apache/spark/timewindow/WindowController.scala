@@ -55,7 +55,8 @@ class WindowController[T, V, X] (
 
   private var backend_ : PrefetchBackend = _
 
-  private def backend: Option[PrefetchBackend] = Option(backend_)
+  private def backend: Option[PrefetchBackend] =
+    if (backend_.eq(null)) None else Option(backend_)
 
   private def timeline(id: Int): (Long, Long) =
     (timeScope.start + id * step, timeScope.start + id * step + size - 1)
@@ -91,7 +92,7 @@ class WindowController[T, V, X] (
 //          // BAD OPERATIONS.
 //
 //        }
-      case _ =>
+      case _ => logger.error("Prefetch backend has not been initialized.")
     }
   }
 
@@ -168,7 +169,7 @@ class WindowController[T, V, X] (
     val winFetcher = new WinFetcher[T, V](sc, this, sc.prefetchScheduler)
     backend match {
       case Some(bk) => backend_ = winFetcher.backend
-      case _ => logger.warn("Prefetch backend already exists.")
+      case None => logger.warn("Prefetch backend already exists.")
     }
     val thr = new Thread(winFetcher)
     thr.setName("WinFetcher")

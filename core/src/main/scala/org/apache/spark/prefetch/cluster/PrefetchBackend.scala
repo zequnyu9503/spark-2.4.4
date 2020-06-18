@@ -228,9 +228,6 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   def updateStartLine(id: Int, start: Long): Unit = synchronized {
     if (!startLine.contains(id)) {
       startLine(id) = start
-      logger.info(s"Update current window's startline [$start].")
-    } else {
-      logger.info("Update failed: winId already exists.")
     }
   }
 
