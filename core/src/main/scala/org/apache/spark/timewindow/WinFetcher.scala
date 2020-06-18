@@ -69,11 +69,9 @@ class WinFetcher[T, V] (sc: SparkContext,
         for (tryId <- 0 to 2 if id == controller.id) {
           isAllowed(id + tryId) match {
             case Some(plan) => doPrefetch(plan)
-            case _ =>
+            case _ => suspend()
           }
         }
-
-        suspend()
 
         isRunning = controller.hasNext
       }

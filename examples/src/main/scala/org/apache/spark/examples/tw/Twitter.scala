@@ -44,7 +44,6 @@ object Twitter extends Serializable {
   1.861525493, 1.8487064)
 
 
-
   def main(args: Array[String]): Unit = {
     val isPrefetch = args(0).toBoolean
     val start = args(1).toInt
