@@ -168,8 +168,8 @@ class WindowController[T, V, X] (
   def startPrefetchService(): Unit = {
     val winFetcher = new WinFetcher[T, V](sc, this, sc.prefetchScheduler)
     backend match {
-      case Some(bk) => backend_ = winFetcher.backend
-      case None => logger.warn("Prefetch backend already exists.")
+      case Some(bk) => logger.warn("Prefetch backend already exists.")
+      case None => backend_ = winFetcher.backend
     }
     val thr = new Thread(winFetcher)
     thr.setName("WinFetcher")
