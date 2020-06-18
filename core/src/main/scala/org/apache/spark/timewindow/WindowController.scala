@@ -191,7 +191,7 @@ class WindowController[T, V, X] (
       case Some(bk) =>
         val size = sc.rddCacheInMemory(rdd)
         bk.updateLocalResults(winId.get(), rdd, size)
-      case _ =>
+      case _ => logger.error("Prefetch backend has not been initialized.")
     }
   }
 
