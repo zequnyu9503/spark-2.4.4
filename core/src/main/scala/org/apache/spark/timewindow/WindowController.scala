@@ -49,6 +49,7 @@ class WindowController[T, V, X] (
   private var maxPartitions = 120
   private var storageLevel = StorageLevel.MEMORY_ONLY
   private var daySize: Seq[Long] = _
+  private var expanScope: Seq[Double] = _
 
   private var backend: PrefetchBackend = _
 
@@ -155,6 +156,10 @@ class WindowController[T, V, X] (
 
   def setDaySize(size: Seq[Long]): Unit = {
     daySize = size
+  }
+
+  def setExpansion(exp: Seq[Double]): Unit = {
+    expanScope = exp
   }
 
   def addLocalResult(rdd: RDD[X]): Unit = {

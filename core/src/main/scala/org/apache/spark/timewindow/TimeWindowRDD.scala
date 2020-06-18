@@ -59,6 +59,11 @@ sealed class TimeWindowRDD[T, V, X](sc: SparkContext, winSize: T,
     this
   }
 
+  def setExpansion(expan: Seq[Double]): TimeWindowRDD[T, V, X] = {
+    controller.setExpansion(expan)
+    this
+  }
+
   def allowPrefetch(bool: Boolean): TimeWindowRDD[T, V, X] = {
     if (bool) {
       val winFetcher = new WinFetcher[T, V](sc, controller, sc.prefetchScheduler)

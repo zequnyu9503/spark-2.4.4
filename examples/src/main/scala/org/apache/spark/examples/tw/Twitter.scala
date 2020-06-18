@@ -36,6 +36,15 @@ object Twitter extends Serializable {
     21112255362L, 20402706128L, 20130745918L, 21136173886L, 20433117880L,
     21758667067L)
 
+  private val expansion = Seq(1.926172368, 1.874953859, 1.899475824, 1.730937357,
+  1.923617647, 1.925945918, 1.90963953, 1.909251148, 1.845338424, 1.926799198,
+  1.914617904, 1.789227671, 1.619324391, 1.782439578, 1.796828794, 1.76782906,
+  1.787483822, 1.828101011, 1.721263759, 1.91201034, 1.886931018, 1.508855859,
+  1.752859953, 1.895321881, 1.912797045, 1.911496802, 1.900421881, 1.728075963,
+  1.861525493, 1.8487064)
+
+
+
   def main(args: Array[String]): Unit = {
     val isPrefetch = args(0).toBoolean
     val start = args(1).toInt
@@ -51,7 +60,7 @@ object Twitter extends Serializable {
       .set("load.local.prefetch", "4.27967E-06")
       .set("load.remote.prefetch", "0")
       .set("variation.prefetch", "0.018134686")
-      .set("min.prefetch", "5")
+      .set("min.prefetch", "3")
 
     val sc = new SparkContext(conf)
 
@@ -80,7 +89,8 @@ object Twitter extends Serializable {
       setPartitionsLimitations(120).
       setStorageLevel(StorageLevel.MEMORY_ONLY).
       allowPrefetch(isPrefetch).
-      setDaySize(daySize)
+      setDaySize(daySize).
+      setExpansion(expansion)
     val itr = twRDD.iterator()
 
     while (itr.hasNext) {
