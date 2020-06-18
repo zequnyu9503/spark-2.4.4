@@ -32,10 +32,10 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   private val logger = LoggerFactory.getLogger("prefetch")
 
   // Expansion factor for data from disk to memory.
-  private var expansion: Double = sc.conf.getDouble("expansion.hdfs", 2d)
+  private val expansion_ = new mutable.HashMap[Int, Double]()
 
   // Historical time window data size.
-  private [prefetch] val winSize = new mutable.HashMap[Int, Long]()
+  private val winSize = new mutable.HashMap[Int, Long]()
 
   // Historical local results size.
   private val localSize = new mutable.HashMap[Int, Long]()
@@ -87,7 +87,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   // Forecast future window data size.
   private [prefetch] def randomWinSize(id: Int): Option[Long] = {
     if (winSize.size >= min) {
-      if (id < winSize.size) {
+      if (winSize.contains(id)) {
         Option(winSize(id))
       } else {
         val history: Array[java.lang.Long] =
@@ -100,6 +100,15 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
     }
   }
 
+  private def expansion(winId: Int): Double = {
+    if (expansion_.contains(winId)) {
+      expansion_(winId)
+    } else {
+      // Average expansion provided.
+      expansion_.values.sum / expansion_.size
+    }
+  }
+
   private def prefetch_duration(plan: PrefetchPlan): Long = {
     val size: Long = randomWinSize(plan.winId).getOrElse(Long.MaxValue)
     val partitionSize: Long = size / plan.prefetch.partitions.length
@@ -108,7 +117,10 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
       case TaskLocality.ANY => load_remote * partitionSize
       case _ => 0L
     }
-    batches.sum.toLong
+    val duration = batches.sum.toLong
+    logger.info(s"Prefetch duration >> window size: [$size], " +
+      s"load_local: [$load_local], duration: [$duration].")
+    duration
   }
 
   private def main_duration(plan: PrefetchPlan): Long = {
@@ -125,14 +137,18 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
       }
     }
     val used = System.currentTimeMillis() - startLine.maxBy(_._1)._2
-    (waiting - used).toLong
+    val main = (waiting - used).toLong
+    logger.info(s"Main duration >> Waiting: [$waiting], Used: [$used], Main: [$main].")
+    main
   }
 
   private def prefetch_requirement(plan: PrefetchPlan): Long = {
-    randomWinSize(plan.winId) match {
-      case Some(size) => (size * expansion).toLong
+    val requirement = randomWinSize(plan.winId) match {
+      case Some(size) => (size * expansion(plan.winId)).toLong
       case None => Long.MaxValue
     }
+    logger.info(s"Prefetch requirement >> Size: [$requirement].")
+    requirement
   }
 
   private def cluster_availability(plan: PrefetchPlan): Long = {
@@ -144,29 +160,24 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
         case None => enlarged += 0L
       }
     }
-    currentFreeStorage - enlarged
+    val availability = currentFreeStorage - enlarged
+    logger.info(s"Cluster availability >> currentFreeStorage: [$currentFreeStorage], " +
+      s"Enlarged: [$enlarged].")
+    availability
   }
 
   def canPrefetch(plan: PrefetchPlan): Boolean = {
     if (plan.winId > min) {
       val prefetch = prefetch_duration(plan)
       val main = main_duration(plan)
-      logger.info(s"Prefetch duration: [$prefetch] and main duration: [$main].")
       if (prefetch < main) {
         val requirement = prefetch_requirement(plan)
         val availability = cluster_availability(plan)
-        logger.info(s"Requirement: [$requirement] and availability: [$availability].")
         if (requirement < availability) {
           true
-        } else {
-          false
-        }
-      } else {
-        false
-      }
-    } else {
-      false
-    }
+        } else false
+      } else false
+    } else false
   }
 
   def updateVelocity(plan: PrefetchPlan, reporters: Seq[PrefetchReporter]): Unit = {
@@ -235,6 +246,9 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
 
   def updateWinSize(winId: Int, size: Long): Unit = {
     if (!winSize.contains(winId)) winSize(winId) = size
-    logger.info(s"Update window [$winId] size of [$size] bytes on disk.")
+  }
+
+  def updateExpansion(winId: Int, factor: Double): Unit = {
+    if (!expansion_.contains(winId)) expansion_(winId) = factor
   }
 }

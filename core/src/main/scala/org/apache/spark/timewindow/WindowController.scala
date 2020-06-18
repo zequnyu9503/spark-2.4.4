@@ -48,35 +48,50 @@ class WindowController[T, V, X] (
 
   private var maxPartitions = 120
   private var storageLevel = StorageLevel.MEMORY_ONLY
+
+  // ONLY FOR EXPERIMENT.
   private var daySize: Seq[Long] = _
   private var expanScope: Seq[Double] = _
 
-  private var backend: PrefetchBackend = _
+  private var backend_ : PrefetchBackend = _
+
+  private def backend: Option[PrefetchBackend] = Option(backend_)
 
   private def timeline(id: Int): (Long, Long) =
     (timeScope.start + id * step, timeScope.start + id * step + size - 1)
 
   private def isPrefetchd(id: Int): Boolean = {
-    !backend.eq(null) && backend.finished.contains(id)
+    backend match {
+      case Some(bk) => bk.finished.contains(id)
+      case _ => false
+    }
   }
 
   private def prefetched[T, V](id: Int): Option[RDD[(T, V)]] = {
     if (isPrefetchd(id)) {
-      Option(backend.finished(id).asInstanceOf[RDD[(T, V)]])
-    } else {
-      None
-    }
+      Option(backend.get.finished(id).asInstanceOf[RDD[(T, V)]])
+    } else None
   }
 
   private def updateBackend(): Unit = {
-    if (backend.eq(null)) return
-    backend.updateWinId(winId.get())
-    backend.updateStartLine(winId.get(), System.currentTimeMillis())
+    backend match {
+      case Some(bk) =>
+        bk.updateWinId(winId.get())
+        bk.updateStartLine(winId.get(), System.currentTimeMillis())
 
-    val prevWinId = if (winId.get() > 0) winId.get() - 1 else 0
-    if (windows.contains(prevWinId)) {
-      // BAD OPERATION.
-      backend.updateWinSize(prevWinId, daySize(prevWinId))
+        for (wId <- daySize.indices) {
+          bk.updateWinSize(wId, daySize(wId))
+        }
+
+        for (winId <- expanScope.indices) {
+          bk.updateExpansion(winId, expanScope(winId))
+        }
+//        val prevWinId = if (winId.get() > 0) winId.get() - 1 else 0
+//        if (windows.contains(prevWinId)) {
+//          // BAD OPERATIONS.
+//
+//        }
+      case _ =>
     }
   }
 
@@ -149,9 +164,16 @@ class WindowController[T, V, X] (
     maxPartitions = partitions
   }
 
-  def setBackend(pb: PrefetchBackend): Unit = {
-    logger.info("Initialize prefetch backend.")
-    backend = pb
+  def startPrefetchService(): Unit = {
+    val winFetcher = new WinFetcher[T, V](sc, this, sc.prefetchScheduler)
+    backend match {
+      case Some(bk) => backend_ = winFetcher.backend
+      case _ => logger.warn("Prefetch backend already exists.")
+    }
+    val thr = new Thread(winFetcher)
+    thr.setName("WinFetcher")
+    thr.start()
+    logger.info("WinFetcher service begins running.")
   }
 
   def setDaySize(size: Seq[Long]): Unit = {
@@ -164,9 +186,11 @@ class WindowController[T, V, X] (
 
   def addLocalResult(rdd: RDD[X]): Unit = {
     localResults(winId.get()) = rdd
-    if (!backend.eq(null)) {
-      val size = sc.rddCacheInMemory(rdd)
-      backend.updateLocalResults(winId.get(), rdd, size)
+    backend match {
+      case Some(bk) =>
+        val size = sc.rddCacheInMemory(rdd)
+        bk.updateLocalResults(winId.get(), rdd, size)
+      case _ =>
     }
   }
 
