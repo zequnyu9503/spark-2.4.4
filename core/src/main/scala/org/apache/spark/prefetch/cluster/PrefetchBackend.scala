@@ -138,7 +138,8 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
     }
     val used = System.currentTimeMillis() - startLine.maxBy(_._1)._2
     val main = (waiting - used).toLong
-    logger.info(s"Main [${plan.winId}] duration >> Waiting: [$waiting], Used: [$used], Main: [$main].")
+    logger.info(s"Main [${plan.winId}] duration >> Waiting:" +
+      s"[$waiting], Used: [$used], Main: [$main].")
     main
   }
 
