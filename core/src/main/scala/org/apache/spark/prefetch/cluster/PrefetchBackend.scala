@@ -118,7 +118,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
       case _ => 0L
     }
     val duration = batches.sum.toLong
-    logger.info(s"Prefetch duration >> window size: [$size], " +
+    logger.info(s"Prefetch [${plan.winId}] duration >> window size: [$size], " +
       s"load_local: [$load_local], duration: [$duration].")
     duration
   }
@@ -138,7 +138,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
     }
     val used = System.currentTimeMillis() - startLine.maxBy(_._1)._2
     val main = (waiting - used).toLong
-    logger.info(s"Main duration >> Waiting: [$waiting], Used: [$used], Main: [$main].")
+    logger.info(s"Main [${plan.winId}] duration >> Waiting: [$waiting], Used: [$used], Main: [$main].")
     main
   }
 
@@ -147,7 +147,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
       case Some(size) => (size * expansion(plan.winId)).toLong
       case None => Long.MaxValue
     }
-    logger.info(s"Prefetch requirement >> Size: [$requirement].")
+    logger.info(s"Prefetch [${plan.winId}] requirement >> Size: [$requirement].")
     requirement
   }
 
