@@ -36,7 +36,7 @@ class WindowController[T, V, X] (
   private val logger = LoggerFactory.getLogger("tw")
 
   // Time window ID.
-  val winId = new AtomicInteger(0)
+  private val winId = new AtomicInteger(0)
 
   def id: Int = winId.get()
 
@@ -199,10 +199,11 @@ class WindowController[T, V, X] (
     localResults.values.reduce((a, b) => a.union(b)).coalesce(maxPartitions)
   }
 
+  // We create next time window rdd.
+  // Window id starts at index 0 and the winId always indicates next one.
   def next: RDD[(T, V)] = {
     updateBackend()
     release()
-    // Create next timewindow rdd.
     val rdd = randomWindow(winId.get())
     windows(winId.getAndIncrement()) = rdd
     rdd
