@@ -67,20 +67,10 @@ object Twitter extends Serializable {
       sc.textFile(s"$root/2019-4-${"%02d".format(start)}.json").
         map(line => JSON.parseObject(line)).
         filter(!_.containsKey("delete")).
-        map(json => {
-          new TwitterData(json.getLong("id"),
-            json.getOrDefault("text", "").toString.split(" "),
-            json.getJSONObject("user").getLong("id"),
-            json.getJSONObject("user").getString("name"),
-            json.getJSONObject("user").getString("description"),
-            json.getJSONObject("user").getString("created_at"),
-            json.getOrDefault("lang", "default").toString,
-            json.getString("timestamp_ms").toLong)
-        }).
+        map(json => TwitterData.assemble(json)).
         filter(_.text.length > 0).
         map(_.washText()).
         flatMap(_.text).
-        map(_.toUpperCase).
         map(_.toLowerCase).
         map(word => (start, word))
     }

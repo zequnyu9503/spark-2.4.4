@@ -16,15 +16,20 @@
  */
 package org.apache.spark.examples.tw
 
+import com.alibaba.fastjson.JSONObject
+
 class TwitterData(
-                        var id: Long,
-                        var text: Array[String],
-                        var userId: Long,
-                        var userName: String,
-                        var description: String,
-                        var userCreated: String,
-                        var lang: String,
-                        var ts: Long) {
+                   var id: Long,
+                   var id_str: String,
+                   var text: Array[String],
+                   var source: String,
+                   var truncated: Boolean,
+                   var favorited: Boolean,
+                   var retweeted: Boolean,
+                   var user: TUser,
+                   var filter_level: String,
+                   var lang: String,
+                   var ts: Long) {
 
   def washText(): TwitterData = {
     // Filter marks and numbers.
@@ -34,4 +39,22 @@ class TwitterData(
     this
   }
 
+}
+
+object TwitterData {
+  def assemble(data: JSONObject): TwitterData = {
+    new TwitterData(
+      data.getLong("id"),
+      data.getString("id_str"),
+      data.getOrDefault("text", "").toString.split(" "),
+      data.getString("source"),
+      data.getBoolean("truncated"),
+      data.getBoolean("favorited"),
+      data.getBoolean("retweeted"),
+      TUser.assemble(data.getJSONObject("user")),
+      data.getString("filter_level"),
+      data.getString("lang"),
+      data.getString("timestamp_ms").toLong
+    )
+  }
 }
