@@ -28,7 +28,7 @@ class TwitterData(
 
   def washText(): TwitterData = {
     // Filter marks and numbers.
-    text = text.map(word => word.
+    text = text.map(word => word.trim.
       replaceAll("[\\s\\d\\p{Punct}]+", "").
       replaceAll("[^0-9]", ""))
     this

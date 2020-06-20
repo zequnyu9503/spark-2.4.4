@@ -80,6 +80,7 @@ object Twitter extends Serializable {
         filter(_.text.length > 0).
         map(_.washText()).
         flatMap(_.text).
+        map(_.toUpperCase).
         map(_.toLowerCase).
         map(word => (start, word))
     }
