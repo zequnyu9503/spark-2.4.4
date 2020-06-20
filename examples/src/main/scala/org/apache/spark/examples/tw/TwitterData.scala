@@ -31,11 +31,23 @@ class TwitterData(
                    var lang: String,
                    var ts: Long) {
 
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case data: TwitterData =>
+        data.id.equals(id)
+      case _ => false
+    }
+  }
+
+  override def hashCode(): Int = {
+    id_str.hashCode * 31
+  }
+
   def washText(): TwitterData = {
-    // Filter marks and numbers.
+    // Filter marks.
     text = text.map(word => word.trim.
-      replaceAll("[\\s\\d\\p{Punct}]+", "").
-      replaceAll("[^0-9]", ""))
+      replaceAll("[\\~\\!\\@\\#\\$\\%\\^\\&\\*\\(\\)\\<\\>\\[\\]\\-\\=\\+\\.]", "").
+      replaceAll("[0-9]+", ""))
     this
   }
 

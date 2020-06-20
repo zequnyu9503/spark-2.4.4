@@ -47,6 +47,17 @@ class TUser(
                    var default_profile: Boolean,
                    var default_profile_image: Boolean) {
 
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case user: TUser => user.id.equals(id)
+      case _ => false
+    }
+  }
+
+  override def hashCode(): Int = {
+    id_str.hashCode * 31
+  }
+
 }
 
 object TUser {
