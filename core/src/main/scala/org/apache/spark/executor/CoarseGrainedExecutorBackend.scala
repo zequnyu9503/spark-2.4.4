@@ -86,8 +86,7 @@ private[spark] class CoarseGrainedExecutorBackend(
       try {
         prefetcher = new Prefetcher(executorId, hostname, this)
         migrant = new Migrant(executorId, hostname, env, this)
-        executor = new Executor(executorId, hostname, env, userClassPath, isLocal = false,
-          prefetcher = prefetcher)
+        executor = new Executor(executorId, hostname, env, userClassPath, isLocal = false)
       } catch {
         case NonFatal(e) =>
           exitExecutor(1, "Unable to create executor due to " + e.getMessage, e)
