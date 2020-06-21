@@ -37,6 +37,7 @@ import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
+import org.apache.spark.prefetch.Prefetcher
 import org.apache.spark.rdd.HadoopRDD.HadoopMapPartitionsWithSplitRDD
 import org.apache.spark.scheduler.{HDFSCacheTaskLocation, HostTaskLocation}
 import org.apache.spark.storage.StorageLevel
@@ -224,6 +225,8 @@ class HadoopRDD[K, V](
     val iter = new NextIterator[(K, V)] {
 
       private val split = theSplit.asInstanceOf[HadoopPartition]
+
+      Prefetcher.startLoading(System.currentTimeMillis())
       logInfo("Input split: " + split.inputSplit)
       private val jobConf = getJobConf()
 

@@ -25,6 +25,7 @@ import org.apache.spark.executor.{CoarseGrainedExecutorBackend, ExecutorBackend}
 import org.apache.spark.internal.Logging
 import org.apache.spark.util.UninterruptibleThread
 
+
 class Prefetcher(val executorId: String, val executorHostname: String, val backend: ExecutorBackend)
     extends Logging {
 
@@ -69,6 +70,27 @@ class Prefetcher(val executorId: String, val executorHostname: String, val backe
       case backend: CoarseGrainedExecutorBackend =>
         backend.reportFreeStorageMemory(maxOffHeap + maxOnHeap - size)
       case _ => logError("Report failed for retrieving process.")
+    }
+  }
+}
+
+object Prefetcher {
+
+  val duration: Int = 3 * 1000
+
+  @volatile
+  private var newest = 0L
+
+  def startLoading(ts: Long): Unit = synchronized {
+    if (ts > newest) newest = ts
+  }
+
+  def delay(): Long = synchronized {
+    val diff = System.currentTimeMillis() - newest
+    if (diff > 0 && diff < duration) {
+      diff - duration
+    } else {
+      0L
     }
   }
 }

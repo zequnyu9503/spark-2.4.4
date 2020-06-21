@@ -30,6 +30,7 @@ class PrefetchTaskRunner(val prefetcher: Prefetcher,
   val ser: SerializerInstance = env.closureSerializer.newInstance()
 
   override def run(): Unit = {
+    waitRunning()
     try {
       // This time stamp includes deserialize process
       // as well as computation.
@@ -44,6 +45,14 @@ class PrefetchTaskRunner(val prefetcher: Prefetcher,
     } catch {
       case t: Throwable =>
         logError(s"Exception in  prefetching", t)
+    }
+  }
+
+  def waitRunning(): Unit = synchronized {
+    val waiting = Prefetcher.delay()
+    if (waiting > 0) {
+      logInfo(s"Waiting $waiting ms to start task ${taskDescription.taskId}.")
+      this.wait(waiting)
     }
   }
 }
