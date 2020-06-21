@@ -53,6 +53,8 @@ class PrefetchTaskRunner(val prefetcher: Prefetcher,
     if (waiting > 0) {
       logInfo(s"Waiting $waiting ms to start task ${taskDescription.taskId}.")
       this.wait(waiting)
+    } else {
+      logInfo(s"No need to wait for it $waiting.")
     }
   }
 }
