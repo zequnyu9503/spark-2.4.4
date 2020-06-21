@@ -29,7 +29,7 @@ import org.apache.spark.scheduler.TaskLocality
 
 class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
 
-  private val logger = LoggerFactory.getLogger("prefetch")
+  private val logger = LoggerFactory.getLogger("backend")
 
   // Expansion factor for data from disk to memory.
   private val expansion_ = new mutable.HashMap[Int, Double]()
@@ -77,9 +77,6 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   // Timeline of startup of time window.
   // Updated.
   private val startLine = new mutable.HashMap[Int, Long]()
-
-  // Prefetch in progress or not yet started.
-  val pending = new mutable.HashMap[Int, RDD[_]]()
 
   // Prefetch completed or failed.
   val finished = new mutable.HashMap[Int, RDD[_]]()
@@ -208,18 +205,13 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
 
   def doPrefetch(plan: PrefetchPlan): Unit = {
     val id = plan.winId
-    if (!pending.contains(id) && !finished.contains(id)) {
-      pending(id) = plan.prefetch
-
-      logger.info(s"Start prefetching time window [$id].")
-      scheduler.prefetch(plan.prefetch) match {
-        case Some(reporters) =>
-          logger.info(s"Pefetch ${plan.prefetch.id} successfully. Then update it.")
-          updateVelocity(plan, reporters)
-          finished(id) = plan.rdd
-        case _ =>
-      }
-      pending.remove(id)
+    logger.info(s"Start prefetching time window [$id].")
+    scheduler.prefetch(plan.prefetch) match {
+      case Some(reporters) =>
+        logger.info(s"Pefetch ${plan.prefetch.id} successfully. Then update it.")
+        updateVelocity(plan, reporters)
+        finished(id) = plan.rdd
+      case _ =>
     }
   }
 
@@ -251,4 +243,16 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   def updateExpansion(winId: Int, factor: Double): Unit = {
     if (!expansion_.contains(winId)) expansion_(winId) = factor
   }
+}
+
+object PrefetchBackend {
+
+  private val running = new mutable.HashMap[Int, PrefetchPlan]()
+
+  def submit(prefetchPlan: PrefetchPlan): Unit = synchronized {
+    if (!running.contains(prefetchPlan.winId)) {
+      running(prefetchPlan.winId) = prefetchPlan
+    }
+  }
+
 }

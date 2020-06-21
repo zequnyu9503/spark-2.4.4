@@ -18,13 +18,16 @@ package org.apache.spark.prefetch.scheduler
 
 import scala.collection.mutable
 
-import org.apache.spark.internal.Logging
+import org.slf4j.LoggerFactory
+
 import org.apache.spark.prefetch.{PrefetchReporter, PrefetchTaskDescription}
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
 
+
 class PrefetchTaskManager(cgsb : CoarseGrainedSchedulerBackend,
-                          job: PrefetchJob)
-  extends Logging{
+                          job: PrefetchJob) {
+
+  private val logger = LoggerFactory.getLogger("prefetch")
 
   @volatile
   var pendingTasks = new mutable.HashMap[String, PrefetchReporter]()
@@ -48,7 +51,8 @@ class PrefetchTaskManager(cgsb : CoarseGrainedSchedulerBackend,
   def updatePrefetchTask(reporter: PrefetchReporter): Unit = {
     synchronized {
       pendingTasks(reporter.taskId) = reporter
-      logInfo(s"Prefetch Task [${reporter.taskId}] is over.")
+      logger.info(s"Prefetch Task [${reporter.taskId}] " +
+        s"costs ${reporter.duration} ms on ${reporter.eId}.")
     }
     if (gotBatches()) keepWorking()
   }
@@ -58,7 +62,7 @@ class PrefetchTaskManager(cgsb : CoarseGrainedSchedulerBackend,
     for (index <- schedules.indices) {
       val schedule = schedules(index)
       configBatches(schedule)
-      logInfo(s"Submit prefetch tasks to executors" +
+      logger.info(s"Submit prefetch tasks to executors" +
         s" [${schedule.map(_.executorId).mkString(",")}]")
       cgsb.submitPrefetches(this, schedule)
       waiting()

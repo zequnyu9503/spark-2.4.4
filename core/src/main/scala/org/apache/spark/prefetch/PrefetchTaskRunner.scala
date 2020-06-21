@@ -40,7 +40,8 @@ class PrefetchTaskRunner(val prefetcher: Prefetcher,
         Thread.currentThread.getContextClassLoader)
       task.startTask(TaskContext.empty())
       val endTime = System.currentTimeMillis()
-      val reporter = PrefetchReporter(task.taskId, endTime - startTime)
+      val reporter = PrefetchReporter(prefetcher.executorId,
+        task.taskId, endTime - startTime)
       prefetcher.reportTaskFinished(reporter)
     } catch {
       case t: Throwable =>
