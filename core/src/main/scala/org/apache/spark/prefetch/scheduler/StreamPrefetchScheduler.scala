@@ -28,9 +28,6 @@ import org.apache.spark.scheduler.{DAGScheduler, SchedulerBackend, TaskLocation,
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
 import org.apache.spark.storage.RDDBlockId
 
-
-
-
 class StreamPrefetchScheduler(val sc: SparkContext,
                               val backend: SchedulerBackend,
                               val ts: TaskScheduler,
@@ -48,12 +45,36 @@ class StreamPrefetchScheduler(val sc: SparkContext,
   }
 
   def prefetch(rdd: RDD[_]): Option[Array[PrefetchTaskResult]] = {
-    val streamJob = createPrefetchJob(rdd)
+    val prefetched = findRoot(rdd).head
+    val streamJob = createPrefetchJob(prefetched)
     val offers = makePrefetchOffers()
     val deployment = makeSchedules(streamJob, offers, cores_exe)
     val manager = new StreamPrefetchDeployManager(cgsb_, deployment, streamJob)
     manager.execute()
     None
+  }
+
+  private def findRoot(rdd: RDD[_]): Seq[RDD[_]] = {
+    val roots = new ArrayBuffer[RDD[_]]()
+    val visited = new ArrayBuffer[RDD[_]]()
+    val stack = new mutable.Stack[RDD[_]]()
+    stack.push(rdd)
+    while (stack.nonEmpty) {
+      val current = stack.pop()
+      if (current.dependencies.nonEmpty) {
+        var keepSearching = true
+        for (parent <- current.dependencies if keepSearching) {
+          if (!visited.contains(parent.rdd)) {
+            stack.push(parent.rdd)
+            keepSearching = false
+          }
+        }
+      } else {
+        roots += current
+      }
+      visited += current
+    }
+    roots
   }
 
   private def createPrefetchJob(rdd: RDD[_]): StreamPrefetchJob = {
