@@ -46,10 +46,10 @@ class Prefetcher(val executorId: String, val executorHostname: String, val backe
   }
 
   def acceptLaunchTask(taskDesc: PrefetchTaskDescription): Unit = {
-    val taskRunner = new PrefetchTaskRunner(this, SparkEnv.get, taskDesc)
-    logInfo(s"Accept prefetch task [${taskDesc.taskId}]" +
-      s" on executor $executorId of host $executorHostname")
-    threadpoolexecutor_.execute(taskRunner)
+//    val taskRunner = new PrefetchTaskRunner(this, SparkEnv.get, taskDesc)
+//    logInfo(s"Accept prefetch task [${taskDesc.taskId}]" +
+//      s" on executor $executorId of host $executorHostname")
+//    threadpoolexecutor_.execute(taskRunner)
   }
 
   def reportTaskFinished(reporter: PrefetchReporter): Unit = {
