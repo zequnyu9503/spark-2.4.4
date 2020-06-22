@@ -58,9 +58,11 @@ class StreamLoader(conf: SparkConf, partition: StreamPrefetchPartition) {
   }
 }
 
-case class StreamMeta(blockId: BlockId, level: StorageLevel, partition: StreamPrefetchPartition)
+case class StreamMeta(blockId: BlockId, level: StorageLevel,
+                      partition: StreamPrefetchPartition) extends Serializable
 
-case class StreamPrefetchPartition(partition: Partition, path: Path, offset: Long, len: Long)
+case class StreamPrefetchPartition(partition: Partition, path: Path,
+                                   offset: Long, len: Long) extends Serializable
 
 class StreamPrefetchTask(blockManager: BlockManager)
   extends Serializable with Logging{
