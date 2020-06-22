@@ -16,43 +16,42 @@
  */
 package org.apache.spark.prefetch
 
-import org.apache.spark.{SparkEnv, TaskContext}
 import org.apache.spark.internal.Logging
-import org.apache.spark.serializer.SerializerInstance
+import org.apache.spark.storage.BlockManager
 
+class PrefetchTaskRunner(prefetcher: Prefetcher, blockManager: BlockManager)
+    extends Runnable with Logging {
 
-class PrefetchTaskRunner(val prefetcher: Prefetcher,
-                         val env: SparkEnv,
-                         val taskDescription: PrefetchTaskDescription)
-    extends Runnable
-    with Logging {
+//  val ser: SerializerInstance = env.closureSerializer.newInstance()
 
-  val ser: SerializerInstance = env.closureSerializer.newInstance()
+  val streamPrefetchTask = new StreamPrefetchTask(blockManager)
 
   override def run(): Unit = {
     waitRunning()
-    try {
-      // This time stamp includes deserialize process
-      // as well as computation.
-      val startTime = System.currentTimeMillis()
-      val task = ser.deserialize[SinglePrefetchTask[Any]](
-        taskDescription.serializedTask,
-        Thread.currentThread.getContextClassLoader)
-      task.startTask(TaskContext.empty())
-      val endTime = System.currentTimeMillis()
-      val reporter = PrefetchReporter(prefetcher.executorId,
-        task.taskId, endTime - startTime)
-      prefetcher.reportTaskFinished(reporter)
-    } catch {
-      case t: Throwable =>
-        logError(s"Exception in  prefetching", t)
-    }
+
+    streamPrefetchTask.startPrefetchTask(null)
+//    try {
+//      // This time stamp includes deserialize process
+//      // as well as computation.
+//      val startTime = System.currentTimeMillis()
+//      val task = ser.deserialize[SinglePrefetchTask[Any]](
+//        taskDescription.serializedTask,
+//        Thread.currentThread.getContextClassLoader)
+//      task.startTask(TaskContext.empty())
+//      val endTime = System.currentTimeMillis()
+//      val reporter = PrefetchReporter(prefetcher.executorId,
+//        task.taskId, endTime - startTime)
+//      prefetcher.reportTaskFinished(reporter)
+//    } catch {
+//      case t: Throwable =>
+//        logError(s"Exception in  prefetching", t)
+//    }
   }
 
   def waitRunning(): Unit = synchronized {
     val waiting = Prefetcher.delay()
     if (waiting > 0) {
-      logInfo(s"Waiting $waiting ms to start task ${taskDescription.taskId}.")
+      logInfo(s"Waiting $waiting ms to start task.")
       this.wait(waiting)
     } else {
       logInfo(s"No need to wait for it $waiting.")

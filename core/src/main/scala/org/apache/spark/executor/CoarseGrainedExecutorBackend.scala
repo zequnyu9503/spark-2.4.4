@@ -110,6 +110,8 @@ private[spark] class CoarseGrainedExecutorBackend(
         logInfo("Got prefetch assigned task ")
         prefetcher.acceptLaunchTask(taskDesc)
       }
+    case LaunchStreamPrefetchTask(meta) =>
+      logInfo("Accpet stream prefetch task")
 
     case InspectFreeStorageMemory(eId) =>
       if (!executor.eq(null) && executorId.equals(eId)) {

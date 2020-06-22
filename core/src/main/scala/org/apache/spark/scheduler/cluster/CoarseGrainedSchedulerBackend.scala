@@ -29,8 +29,8 @@ import scala.concurrent.Future
 import org.apache.spark.{ExecutorAllocationClient, SparkEnv, SparkException, TaskState}
 import org.apache.spark.internal.Logging
 import org.apache.spark.migration.{MigrateScheduler, Migration}
-import org.apache.spark.prefetch.{PrefetchOffer, PrefetchTaskDescription, StorageMemory}
-import org.apache.spark.prefetch.scheduler.{PrefetchScheduler, PrefetchTaskManager}
+import org.apache.spark.prefetch.{PrefetchOffer, PrefetchTaskDescription, StorageMemory, StreamPrefetchDeployment}
+import org.apache.spark.prefetch.scheduler.{PrefetchScheduler, PrefetchTaskManager, StreamPrefetchDeployManager}
 import org.apache.spark.rpc._
 import org.apache.spark.scheduler._
 import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages.{WaitPrefetches, _}
@@ -145,12 +145,9 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
         makeOffers()
 
       case WaitPrefetches(schedule) =>
-        launchPrefetchTasks(schedule)
+        launchStreamPrefetch(schedule)
 
       case PrefetchTaskFinished(reporter) =>
-        if (!prefetchTaskManager.eq(null)) {
-          prefetchTaskManager.updatePrefetchTask(reporter)
-        }
 
       case ReportFreeStorageMemory(eId, size) =>
         if (!storageMemory.eq(null)) {
@@ -360,6 +357,16 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
       }
     }
 
+    private def launchStreamPrefetch(schedule: Array[StreamPrefetchDeployment]): Unit = {
+      if (schedule.nonEmpty) {
+        for (deploy <- schedule) {
+          val executorData = executorDataMap(deploy.executorId)
+          logInfo(s"Launch prefetch task [${deploy.taskId}] to executor ${deploy.executorId}")
+          executorData.executorEndpoint.send(LaunchStreamPrefetchTask(deploy.meta))
+        }
+      }
+    }
+
     private def doRetrieveFreeStorageMemory(offers: Seq[PrefetchOffer]): Unit = {
       for (offer <- offers) {
         val executorData = executorDataMap(offer.executorId)
@@ -472,7 +479,7 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
     migrateScheduler_ = scheduler
   }
 
-  private var prefetchTaskManager: PrefetchTaskManager = _
+  private var prefetchManager: StreamPrefetchDeployManager = _
   private var storageMemory: StorageMemory = _
 
   override def start() {
@@ -544,9 +551,9 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
     driverEndpoint.send(ReceiveMigration(migration))
   }
 
-  def submitPrefetches(taskManager: PrefetchTaskManager,
-                       schedule: Array[PrefetchTaskDescription]): Unit = {
-    prefetchTaskManager = taskManager
+  def submitPrefetches(manager: StreamPrefetchDeployManager,
+                       schedule: Array[StreamPrefetchDeployment]): Unit = {
+    prefetchManager = manager
     driverEndpoint.send(WaitPrefetches(schedule))
   }
 
