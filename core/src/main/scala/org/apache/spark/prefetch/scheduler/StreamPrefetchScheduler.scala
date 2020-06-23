@@ -44,14 +44,14 @@ class StreamPrefetchScheduler(val sc: SparkContext,
     }
   }
 
-  def prefetch(rdd: RDD[_]): Option[Array[PrefetchTaskResult]] = {
+  def prefetch(rdd: RDD[_]): Option[Seq[PrefetchTaskResult]] = {
     val prefetched = findRoot(rdd).head
     val streamJob = createPrefetchJob(prefetched)
     val offers = makePrefetchOffers()
     val deployment = makeSchedules(streamJob, offers, cores_exe)
     val manager = new StreamPrefetchDeployManager(cgsb_, deployment, streamJob)
     manager.execute()
-    None
+    Option(streamJob.retrieveResults())
   }
 
   private def findRoot(rdd: RDD[_]): Seq[RDD[_]] = {

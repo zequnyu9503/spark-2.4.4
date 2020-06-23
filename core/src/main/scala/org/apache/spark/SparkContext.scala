@@ -49,7 +49,7 @@ import org.apache.spark.internal.config._
 import org.apache.spark.io.CompressionCodec
 import org.apache.spark.migration.MigrateScheduler
 import org.apache.spark.partial.{ApproximateEvaluator, PartialResult}
-import org.apache.spark.prefetch.PrefetchReporter
+import org.apache.spark.prefetch.{PrefetchReporter, PrefetchTaskResult}
 import org.apache.spark.prefetch.cluster.PrefetchBackend
 import org.apache.spark.prefetch.scheduler.{PrefetchScheduler, StreamPrefetchScheduler}
 import org.apache.spark.rdd._
@@ -2451,9 +2451,8 @@ class SparkContext(config: SparkConf) extends Logging {
   def prefetchScheduler: PrefetchScheduler = _prefetchScheduler
 
   @deprecated
-  def prefetch(rdd: RDD[_], cores: Int): Option[Seq[PrefetchReporter]] = {
+  def prefetch(rdd: RDD[_], cores: Int): Option[Seq[PrefetchTaskResult]] = {
     _streamPrefetchScheduler.prefetch(rdd)
-    None
   }
 
   @deprecated
