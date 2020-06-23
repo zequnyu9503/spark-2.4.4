@@ -49,9 +49,9 @@ import org.apache.spark.internal.config._
 import org.apache.spark.io.CompressionCodec
 import org.apache.spark.migration.MigrateScheduler
 import org.apache.spark.partial.{ApproximateEvaluator, PartialResult}
-import org.apache.spark.prefetch.{PrefetchReporter, PrefetchTaskResult}
+import org.apache.spark.prefetch.PrefetchReporter
 import org.apache.spark.prefetch.cluster.PrefetchBackend
-import org.apache.spark.prefetch.scheduler.{PrefetchScheduler, StreamPrefetchScheduler}
+import org.apache.spark.prefetch.scheduler.PrefetchScheduler
 import org.apache.spark.rdd._
 import org.apache.spark.rpc.RpcEndpointRef
 import org.apache.spark.scheduler._
@@ -210,7 +210,6 @@ class SparkContext(config: SparkConf) extends Logging {
   private var _heartbeatReceiver: RpcEndpointRef = _
   @volatile private var _dagScheduler: DAGScheduler = _
   private var _prefetchScheduler: PrefetchScheduler = _
-  private var _streamPrefetchScheduler: StreamPrefetchScheduler = _
   private var _migrateScheduler: MigrateScheduler = _
   private var _applicationId: String = _
   private var _applicationAttemptId: Option[String] = None
@@ -504,8 +503,6 @@ class SparkContext(config: SparkConf) extends Logging {
     _taskScheduler = ts
     _dagScheduler = new DAGScheduler(this)
     _prefetchScheduler = new PrefetchScheduler(this, _schedulerBackend,
-      _taskScheduler, _dagScheduler)
-    _streamPrefetchScheduler = new StreamPrefetchScheduler(this, _schedulerBackend,
       _taskScheduler, _dagScheduler)
     _migrateScheduler = new MigrateScheduler(_schedulerBackend)
     _heartbeatReceiver.ask[Boolean](TaskSchedulerIsSet)
@@ -2451,8 +2448,8 @@ class SparkContext(config: SparkConf) extends Logging {
   def prefetchScheduler: PrefetchScheduler = _prefetchScheduler
 
   @deprecated
-  def prefetch(rdd: RDD[_], cores: Int): Option[Seq[PrefetchTaskResult]] = {
-    _streamPrefetchScheduler.prefetch(rdd)
+  def prefetch(rdd: RDD[_], cores: Int): Option[Seq[PrefetchReporter]] = {
+    _prefetchScheduler.prefetch(rdd, cores)
   }
 
   @deprecated

@@ -25,7 +25,7 @@ import org.apache.spark.{Partition, SparkContext, SparkEnv}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
 import org.apache.spark.network.util.JavaUtils
-import org.apache.spark.prefetch.{PrefetchOffer, PrefetchReporter, PrefetchTaskDescription, PrefetchTaskResult, SinglePrefetchTask, StorageMemory, StreamPrefetchPlan}
+import org.apache.spark.prefetch.{PrefetchOffer, PrefetchReporter, PrefetchTaskDescription, SinglePrefetchTask, StorageMemory}
 import org.apache.spark.prefetch.cluster.PrefetchPlan
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.{DAGScheduler, SchedulerBackend, TaskLocation, TaskScheduler}
@@ -67,8 +67,6 @@ class PrefetchScheduler(val sc: SparkContext,
       case None => None
     }
   }
-
-
 
   private def createPrefetchTasks(rdd: RDD[_]): Seq[SinglePrefetchTask[_]] = {
     var taskBinary: Broadcast[Array[Byte]] = null

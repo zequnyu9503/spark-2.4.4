@@ -24,8 +24,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.TaskLocation
 
 class SinglePrefetchTask[T](taskBinary: Broadcast[Array[Byte]],
-                            partition_ : Partition,
-                            locs_ : Seq[TaskLocation])
+                            partition_ : Partition, locs_ : Seq[TaskLocation])
     extends Serializable {
 
   val taskId: String = partition_.index.toString

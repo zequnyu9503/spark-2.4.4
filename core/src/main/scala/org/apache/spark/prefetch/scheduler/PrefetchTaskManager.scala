@@ -64,7 +64,7 @@ class PrefetchTaskManager(cgsb : CoarseGrainedSchedulerBackend,
       configBatches(schedule)
       logger.info(s"Submit prefetch tasks to executors" +
         s" [${schedule.map(_.executorId).mkString(",")}]")
-//      cgsb.submitPrefetches(this, schedule)
+      cgsb.submitPrefetches(this, schedule)
       waiting()
       updateJob()
     }

@@ -21,7 +21,7 @@ import java.nio.ByteBuffer
 
 import org.apache.spark.TaskState.TaskState
 import org.apache.spark.migration.Migration
-import org.apache.spark.prefetch.{PrefetchOffer, PrefetchReporter, PrefetchTaskDescription, PrefetchTaskResult, StreamMeta, StreamPrefetchDeployment}
+import org.apache.spark.prefetch.{PrefetchOffer, PrefetchReporter, PrefetchTaskDescription}
 import org.apache.spark.rpc.RpcEndpointRef
 import org.apache.spark.scheduler.ExecutorLossReason
 import org.apache.spark.util.SerializableBuffer
@@ -45,8 +45,6 @@ private[spark] object CoarseGrainedClusterMessages {
   case class LaunchTask(data: SerializableBuffer) extends CoarseGrainedClusterMessage
 
   case class LaunchPrefetchTask(data: SerializableBuffer) extends CoarseGrainedClusterMessage
-
-  case class LaunchStreamPrefetchTask(streamMeta: StreamMeta) extends CoarseGrainedClusterMessage
 
   case class InspectFreeStorageMemory(eId: String) extends CoarseGrainedClusterMessage
 
@@ -82,9 +80,6 @@ private[spark] object CoarseGrainedClusterMessages {
 
   case class PrefetchTaskFinished(reporter: PrefetchReporter) extends CoarseGrainedClusterMessage
 
-  case class BackPrefetchTaskResult(result: PrefetchTaskResult)
-    extends CoarseGrainedClusterMessage
-
   case class ReportFreeStorageMemory(eId: String, size: Long) extends CoarseGrainedClusterMessage
 
   case class MigrationFinished(migration: Migration[_]) extends CoarseGrainedClusterMessage
@@ -106,7 +101,7 @@ private[spark] object CoarseGrainedClusterMessages {
 
   case object StopExecutors extends CoarseGrainedClusterMessage
 
-  case class WaitPrefetches(schedule: Array[StreamPrefetchDeployment])
+  case class WaitPrefetches(schedule: Array[PrefetchTaskDescription])
     extends CoarseGrainedClusterMessage
 
   case class RetrieveFreeStorageMemory(offers: Seq[PrefetchOffer])

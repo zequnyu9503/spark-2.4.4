@@ -48,29 +48,17 @@ class Prefetcher(val executorId: String, val executorHostname: String, val backe
   }
 
   def acceptLaunchTask(taskDesc: PrefetchTaskDescription): Unit = {
-//    val taskRunner = new PrefetchTaskRunner(this, SparkEnv.get, taskDesc)
-//    logInfo(s"Accept prefetch task [${taskDesc.taskId}]" +
-//      s" on executor $executorId of host $executorHostname")
-//    threadpoolexecutor_.execute(taskRunner)
-  }
-
-  def acceptStreamPrefetchDeployment(meta: StreamMeta): Unit = {
-    val taskRunner = new StreamPrefetchTaskRunner(this, meta)
+    val taskRunner = new PrefetchTaskRunner(this, SparkEnv.get, taskDesc)
+    logInfo(s"Accept prefetch task [${taskDesc.taskId}]" +
+      s" on executor $executorId of host $executorHostname")
     threadpoolexecutor_.execute(taskRunner)
   }
+
 
   def reportTaskFinished(reporter: PrefetchReporter): Unit = {
     backend match {
       case backend: CoarseGrainedExecutorBackend =>
         backend.prefetchTaskFinished(reporter)
-      case _ => logError("Report failed for prefetching process.")
-    }
-  }
-
-  def backPrefetchTaskResult(result: PrefetchTaskResult): Unit = {
-    backend match {
-      case backend: CoarseGrainedExecutorBackend =>
-        backend.backPrefetchTaskResult(result)
       case _ => logError("Report failed for prefetching process.")
     }
   }

@@ -16,36 +16,33 @@
  */
 package org.apache.spark.prefetch
 
+import org.apache.spark.{SparkEnv, TaskContext}
 import org.apache.spark.internal.Logging
-import org.apache.spark.storage.BlockManager
+import org.apache.spark.serializer.SerializerInstance
 
-class PrefetchTaskRunner(prefetcher: Prefetcher, blockManager: BlockManager)
+class PrefetchTaskRunner(prefetcher: Prefetcher, env: SparkEnv,
+                         taskDesc: PrefetchTaskDescription)
     extends Runnable with Logging {
 
-//  val ser: SerializerInstance = env.closureSerializer.newInstance()
-
-  val streamPrefetchTask = new StreamPrefetchTask(blockManager)
+  val ser: SerializerInstance = env.closureSerializer.newInstance()
 
   override def run(): Unit = {
     waitRunning()
-
-    streamPrefetchTask.startPrefetchTask(null)
-//    try {
-//      // This time stamp includes deserialize process
-//      // as well as computation.
-//      val startTime = System.currentTimeMillis()
-//      val task = ser.deserialize[SinglePrefetchTask[Any]](
-//        taskDescription.serializedTask,
-//        Thread.currentThread.getContextClassLoader)
-//      task.startTask(TaskContext.empty())
-//      val endTime = System.currentTimeMillis()
-//      val reporter = PrefetchReporter(prefetcher.executorId,
-//        task.taskId, endTime - startTime)
-//      prefetcher.reportTaskFinished(reporter)
-//    } catch {
-//      case t: Throwable =>
-//        logError(s"Exception in  prefetching", t)
-//    }
+    try {
+      // This time stamp includes deserialize process
+      // as well as computation.
+      val startTime = System.currentTimeMillis()
+      val task = ser.deserialize[SinglePrefetchTask[Any]](taskDesc.serializedTask,
+        Thread.currentThread.getContextClassLoader)
+      task.startTask(TaskContext.empty())
+      val endTime = System.currentTimeMillis()
+      val reporter = PrefetchReporter(prefetcher.executorId,
+        task.taskId, endTime - startTime)
+      prefetcher.reportTaskFinished(reporter)
+    } catch {
+      case t: Throwable =>
+        logError(s"Exception in  prefetching", t)
+    }
   }
 
   def waitRunning(): Unit = synchronized {
