@@ -147,7 +147,10 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
       case WaitPrefetches(schedule) =>
         launchStreamPrefetch(schedule)
 
-      case PrefetchTaskFinished(reporter) =>
+      case BackPrefetchTaskResult(result) =>
+        if (!prefetchManager.eq(null)) {
+          prefetchManager.updatePrefetchTask(result)
+        }
 
       case ReportFreeStorageMemory(eId, size) =>
         if (!storageMemory.eq(null)) {

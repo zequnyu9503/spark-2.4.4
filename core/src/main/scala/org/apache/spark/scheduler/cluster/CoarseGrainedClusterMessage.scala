@@ -21,7 +21,7 @@ import java.nio.ByteBuffer
 
 import org.apache.spark.TaskState.TaskState
 import org.apache.spark.migration.Migration
-import org.apache.spark.prefetch.{PrefetchOffer, PrefetchReporter, PrefetchTaskDescription, StreamMeta, StreamPrefetchDeployment}
+import org.apache.spark.prefetch.{PrefetchOffer, PrefetchReporter, PrefetchTaskDescription, PrefetchTaskResult, StreamMeta, StreamPrefetchDeployment}
 import org.apache.spark.rpc.RpcEndpointRef
 import org.apache.spark.scheduler.ExecutorLossReason
 import org.apache.spark.util.SerializableBuffer
@@ -81,6 +81,9 @@ private[spark] object CoarseGrainedClusterMessages {
     data: SerializableBuffer) extends CoarseGrainedClusterMessage
 
   case class PrefetchTaskFinished(reporter: PrefetchReporter) extends CoarseGrainedClusterMessage
+
+  case class BackPrefetchTaskResult(result: PrefetchTaskResult)
+    extends CoarseGrainedClusterMessage
 
   case class ReportFreeStorageMemory(eId: String, size: Long) extends CoarseGrainedClusterMessage
 

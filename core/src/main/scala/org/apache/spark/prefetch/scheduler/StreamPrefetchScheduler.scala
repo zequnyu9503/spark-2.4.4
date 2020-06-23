@@ -77,15 +77,20 @@ class StreamPrefetchScheduler(val sc: SparkContext,
     roots
   }
 
+  // Create a prefetch job for rdd.
   private def createPrefetchJob(rdd: RDD[_]): StreamPrefetchJob = {
+    // We need to make sure that the type of rdd is HadoopRDD.
     val hadoop = rdd.asInstanceOf[HadoopRDD[_, _]]
     val streamPartitions = hadoop.partitions.
       map(p => {
+        // We first convert HadoopPartition into FileSplit.
         val fileSplit = p.asInstanceOf[HadoopPartition].inputSplit.value.asInstanceOf[FileSplit]
-        StreamPrefetchPartition(p, fileSplit.getPath, fileSplit.getStart, fileSplit.getLength)})
+        StreamPrefetchPartition(p, fileSplit.getPath.toString,
+          fileSplit.getStart, fileSplit.getLength)})
     val mapToLocations: Map[Partition, Seq[TaskLocation]] = rdd.partitions.map(
       partition => (partition, dag.getPreferredLocs(rdd, partition.index))
     ).toMap
+    // We make plans for each blocks.
     val plans = streamPartitions.map(sp => new StreamPrefetchPlan(
       RDDBlockId(rdd.id, sp.partition.index), sp, mapToLocations(sp.partition)))
     val entries = new mutable.HashMap[StreamPrefetchPlan, PrefetchTaskResult]()
@@ -93,6 +98,7 @@ class StreamPrefetchScheduler(val sc: SparkContext,
     new StreamPrefetchJob(rdd, entries)
   }
 
+  // Make prefetch resource offers.
   private def makePrefetchOffers(): Seq[PrefetchOffer] = {
     // Under normal case we should check alive executors firstly.
     val exeData = cgsb_.retrieveExeDataForPrefetch
@@ -107,6 +113,7 @@ class StreamPrefetchScheduler(val sc: SparkContext,
     }.toSeq
   }
 
+  // Deploy prefetch task onto executors.
   private def makeSchedules(job: StreamPrefetchJob, offers: Seq[PrefetchOffer], cores: Int):
   Array[Array[StreamPrefetchDeployment]] = {
     val hostToExecutors = new mutable.HashMap[String, ArrayBuffer[String]]()

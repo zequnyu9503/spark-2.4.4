@@ -32,7 +32,7 @@ import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.deploy.worker.WorkerWatcher
 import org.apache.spark.internal.Logging
 import org.apache.spark.migration.{Migrant, Migration}
-import org.apache.spark.prefetch.{Prefetcher, PrefetchReporter, PrefetchTaskDescription}
+import org.apache.spark.prefetch.{Prefetcher, PrefetchReporter, PrefetchTaskDescription, PrefetchTaskResult}
 import org.apache.spark.rpc._
 import org.apache.spark.scheduler.{ExecutorLossReason, TaskDescription}
 import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages._
@@ -110,8 +110,12 @@ private[spark] class CoarseGrainedExecutorBackend(
         logInfo("Got prefetch assigned task ")
         prefetcher.acceptLaunchTask(taskDesc)
       }
+
     case LaunchStreamPrefetchTask(meta) =>
-      logInfo("Accpet stream prefetch task")
+      if (!executor.eq(null)) {
+        logInfo(s"Got stream prefetch deployment [${meta.blockId}].")
+        prefetcher.acceptStreamPrefetchDeployment(meta)
+      }
 
     case InspectFreeStorageMemory(eId) =>
       if (!executor.eq(null) && executorId.equals(eId)) {
@@ -178,6 +182,14 @@ private[spark] class CoarseGrainedExecutorBackend(
 
   def prefetchTaskFinished(reporter: PrefetchReporter): Unit = {
     val msg = PrefetchTaskFinished(reporter)
+    driver match {
+      case Some(driverRef) => driverRef.send(msg)
+      case _ => logWarning(s"Drop $msg because has not yet connected to driver")
+    }
+  }
+
+  def backPrefetchTaskResult(result: PrefetchTaskResult): Unit = {
+    val msg = BackPrefetchTaskResult(result)
     driver match {
       case Some(driverRef) => driverRef.send(msg)
       case _ => logWarning(s"Drop $msg because has not yet connected to driver")

@@ -29,7 +29,9 @@ import org.apache.spark.util.UninterruptibleThread
 class Prefetcher(val executorId: String, val executorHostname: String, val backend: ExecutorBackend)
     extends Logging {
 
+
   val prefetcherId: String = executorId
+  val blockManager = SparkEnv.get.blockManager
 
   logInfo(s"Starting prefetcher [$prefetcherId] on host $executorHostname")
 
@@ -52,10 +54,23 @@ class Prefetcher(val executorId: String, val executorHostname: String, val backe
 //    threadpoolexecutor_.execute(taskRunner)
   }
 
+  def acceptStreamPrefetchDeployment(meta: StreamMeta): Unit = {
+    val taskRunner = new StreamPrefetchTaskRunner(this, meta)
+    threadpoolexecutor_.execute(taskRunner)
+  }
+
   def reportTaskFinished(reporter: PrefetchReporter): Unit = {
     backend match {
       case backend: CoarseGrainedExecutorBackend =>
         backend.prefetchTaskFinished(reporter)
+      case _ => logError("Report failed for prefetching process.")
+    }
+  }
+
+  def backPrefetchTaskResult(result: PrefetchTaskResult): Unit = {
+    backend match {
+      case backend: CoarseGrainedExecutorBackend =>
+        backend.backPrefetchTaskResult(result)
       case _ => logError("Report failed for prefetching process.")
     }
   }
