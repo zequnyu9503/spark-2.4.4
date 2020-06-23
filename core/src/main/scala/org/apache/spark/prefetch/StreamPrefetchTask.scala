@@ -47,6 +47,7 @@ class StreamLoader(conf: SparkConf, partition: StreamPrefetchPartition) {
     val baos = new ByteArrayOutputStream()
     IOUtils.copyLarge(ins, baos, partition.offset, partition.len)
     val chunk = ByteBuffer.wrap(baos.toByteArray)
+    fs_.close()
     chunks += chunk
     new ChunkedByteBuffer(chunks.toArray)
   }
