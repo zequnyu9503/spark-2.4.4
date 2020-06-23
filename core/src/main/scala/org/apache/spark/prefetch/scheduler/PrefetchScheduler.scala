@@ -92,7 +92,9 @@ class PrefetchScheduler(val sc: SparkContext,
   }
 
   private def createPrefetchJob(rdd: RDD[_], isCache: Boolean = true): Option[PrefetchJob] = {
-    val prefetchRDD: RDD[_] = if (isCache) rdd.persist(StorageLevel.MEMORY_ONLY_SER) else rdd
+    val prefetchRDD: RDD[_] = if (isCache && !rdd.getStorageLevel.equals(StorageLevel.NONE)) {
+      rdd.persist(StorageLevel.MEMORY_ONLY)
+    } else rdd
     val pTasks = createPrefetchTasks(prefetchRDD)
     if (pTasks.nonEmpty) {
       val tasks = new mutable.HashMap[SinglePrefetchTask[_], PrefetchReporter]()
