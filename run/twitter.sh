@@ -5,7 +5,7 @@ rm /home/zc/service/spark-2.4.4/logs/*
 spark-submit \
 --master spark://centos3:7079 \
 --executor-memory 16g \
---executor-cores 2 \
+--executor-cores 3 \
 --driver-cores 4 \
 --driver-memory 16g \
 --class org.apache.spark.examples.tw.Twitter \
