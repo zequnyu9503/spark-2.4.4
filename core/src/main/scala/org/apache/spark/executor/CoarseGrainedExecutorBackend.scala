@@ -106,15 +106,15 @@ private[spark] class CoarseGrainedExecutorBackend(
 
     case LaunchPrefetchTask(data) =>
       if (!executor.eq(null)) {
-        val taskDesc = PrefetchTaskDescription.decode(data.value)
-        logInfo("Got prefetch assigned task ")
-        prefetcher.acceptLaunchTask(taskDesc)
+        val pDesc = PrefetchTaskDescription.decode(data.value)
+        logInfo(s"Got prefetch task ${pDesc.taskId} and launch it.")
+        executor.launchPrefetch(prefetcher, pDesc)
       }
 
     case InspectFreeStorageMemory(eId) =>
       if (!executor.eq(null) && executorId.equals(eId)) {
         logInfo("Retrieve free storage memory.")
-        prefetcher.freeStorageMemory
+        prefetcher.freeStorageMemory()
       }
 
     case MigrateBlock(migration: Migration[_]) =>

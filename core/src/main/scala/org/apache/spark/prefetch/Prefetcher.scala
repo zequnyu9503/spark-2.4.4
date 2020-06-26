@@ -16,44 +16,17 @@
  */
 package org.apache.spark.prefetch
 
-import java.util.concurrent.{Executors, ThreadFactory, ThreadPoolExecutor}
-
-import com.google.common.util.concurrent.ThreadFactoryBuilder
-
 import org.apache.spark.SparkEnv
 import org.apache.spark.executor.{CoarseGrainedExecutorBackend, ExecutorBackend}
 import org.apache.spark.internal.Logging
-import org.apache.spark.util.UninterruptibleThread
 
 
 class Prefetcher(val executorId: String, val executorHostname: String, val backend: ExecutorBackend)
     extends Logging {
 
-
   val prefetcherId: String = executorId
-  val blockManager = SparkEnv.get.blockManager
 
   logInfo(s"Starting prefetcher [$prefetcherId] on host $executorHostname")
-
-  private val threadpoolexecutor_ : ThreadPoolExecutor = {
-    val threadFactory = new ThreadFactoryBuilder()
-      .setDaemon(false)
-      .setNameFormat("Prefetch task launch p-%d")
-      .setThreadFactory(new ThreadFactory {
-        override def newThread(r: Runnable): Thread =
-          new UninterruptibleThread(r, "unused")
-      })
-      .build()
-    Executors.newCachedThreadPool(threadFactory).asInstanceOf[ThreadPoolExecutor]
-  }
-
-  def acceptLaunchTask(taskDesc: PrefetchTaskDescription): Unit = {
-    val taskRunner = new PrefetchTaskRunner(this, SparkEnv.get, taskDesc)
-    logInfo(s"Accept prefetch task [${taskDesc.taskId}]" +
-      s" on executor $executorId of host $executorHostname")
-    threadpoolexecutor_.execute(taskRunner)
-  }
-
 
   def reportTaskFinished(reporter: PrefetchReporter): Unit = {
     backend match {
@@ -63,7 +36,7 @@ class Prefetcher(val executorId: String, val executorHostname: String, val backe
     }
   }
 
-  def freeStorageMemory: Unit = {
+  def freeStorageMemory(): Unit = {
     val maxOnHeap = SparkEnv.get.memoryManager.maxOnHeapStorageMemory
     val maxOffHeap = SparkEnv.get.memoryManager.maxOffHeapStorageMemory
     val size = SparkEnv.get.memoryManager.storageMemoryUsed

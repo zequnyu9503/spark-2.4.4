@@ -38,6 +38,7 @@ import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
 import org.apache.spark.memory.{SparkOutOfMemoryError, TaskMemoryManager}
+import org.apache.spark.prefetch.{Prefetcher, PrefetchTaskDescription, PrefetchTaskRunner}
 import org.apache.spark.rpc.RpcTimeout
 import org.apache.spark.scheduler.{DirectTaskResult, IndirectTaskResult, Task, TaskDescription}
 import org.apache.spark.shuffle.FetchFailedException
@@ -204,6 +205,11 @@ private[spark] class Executor(
     val tr = new TaskRunner(context, taskDescription)
     runningTasks.put(taskDescription.taskId, tr)
     threadPool.execute(tr)
+  }
+
+  def launchPrefetch(prefetcher: Prefetcher, pDesc: PrefetchTaskDescription): Unit = {
+    val taskRunner = new PrefetchTaskRunner(prefetcher, SparkEnv.get, pDesc)
+    threadPool.execute(taskRunner)
   }
 
   def killTask(taskId: Long, interruptThread: Boolean, reason: String): Unit = {
