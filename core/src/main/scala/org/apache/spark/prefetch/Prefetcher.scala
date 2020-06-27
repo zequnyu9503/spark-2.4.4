@@ -64,7 +64,7 @@ object Prefetcher {
   def delay(): Long = synchronized {
     val diff = System.currentTimeMillis() - newest
     if (diff > 0 && diff < duration) {
-      diff - duration
+      duration - diff
     } else {
       0L
     }
