@@ -37,7 +37,6 @@ class PrefetchTaskRunner(prefetcher: Prefetcher, env: SparkEnv,
       val task = ser.deserialize[SinglePrefetchTask[Any]](taskDesc.serializedTask,
         Thread.currentThread.getContextClassLoader)
       val timeline = task.startTask(TaskContext.empty())
-      val endTime = System.currentTimeMillis()
       val reporter = PrefetchReporter(prefetcher.executorId,
         task.taskId, timeline._1, timeline._2 - timeline._1)
       prefetcher.reportTaskFinished(reporter)
