@@ -34,13 +34,12 @@ class PrefetchTaskRunner(prefetcher: Prefetcher, env: SparkEnv,
     try {
       // This time stamp includes deserialize process
       // as well as computation.
-      val startTime = System.currentTimeMillis()
       val task = ser.deserialize[SinglePrefetchTask[Any]](taskDesc.serializedTask,
         Thread.currentThread.getContextClassLoader)
-      task.startTask(TaskContext.empty())
+      val timeline = task.startTask(TaskContext.empty())
       val endTime = System.currentTimeMillis()
       val reporter = PrefetchReporter(prefetcher.executorId,
-        task.taskId, endTime - startTime)
+        task.taskId, timeline._1, timeline._2 - timeline._1)
       prefetcher.reportTaskFinished(reporter)
     } catch {
       case t: Throwable =>

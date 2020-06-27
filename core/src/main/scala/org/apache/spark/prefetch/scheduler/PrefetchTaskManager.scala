@@ -45,14 +45,19 @@ class PrefetchTaskManager(cgsb : CoarseGrainedSchedulerBackend,
   }
 
   private def updateJob(): Unit = synchronized {
-    pendingTasks.keys.foreach(tId => job.updateTaskById(tId, pendingTasks(tId)))
+    if (pendingTasks.nonEmpty) {
+      val reporters = pendingTasks.values.toSeq.sortBy(_.startLine)
+      reporters.foreach(reporter => {
+        job.updateTaskById(reporter.taskId, reporter)
+        logger.info(s"Update prefetch [${reporter.taskId}] launch at {${reporter.startLine} " +
+          s"costs <${reporter.duration}> ms on executor (${reporter.eId}).")
+      })
+    }
   }
 
   def updatePrefetchTask(reporter: PrefetchReporter): Unit = {
     synchronized {
       pendingTasks(reporter.taskId) = reporter
-      logger.info(s"Prefetch Task [${reporter.taskId}] " +
-        s"costs ${reporter.duration} ms on ${reporter.eId}.")
     }
     if (gotBatches()) keepWorking()
   }
