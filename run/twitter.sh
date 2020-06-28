@@ -5,8 +5,8 @@ rm /home/zc/service/spark-2.4.4/logs/*
 spark-submit \
 --master spark://centos3:7079 \
 --executor-memory 16g \
---executor-cores 1 \
---driver-cores 2 \
+--executor-cores 2 \
+--driver-cores 4 \
 --driver-memory 16g \
 --class org.apache.spark.examples.tw.Twitter \
 --driver-java-options "-Dlog4j.configuration=file:${log_path}" \
