@@ -81,7 +81,13 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   // Prefetch completed or failed.
   val finished_ = new mutable.HashMap[Int, RDD[_]]()
 
-  def isFinished(winId: Int): Boolean = finished_.contains(winId)
+  def isPrefetched(winId: Int): Boolean = finished_.contains(winId)
+
+  def isPersisted(winId: Int): Boolean = {
+    if (isPrefetched(winId)) {
+      sc.getPersistentRDDs.contains(finished_(winId).id)
+    } else false
+  }
 
   // Forecast future window data size.
   private [prefetch] def randomWinSize(id: Int): Option[Long] = {
@@ -176,7 +182,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   }
 
   def canPrefetch(plan: PrefetchPlan): Boolean = {
-    if (plan.winId > min && !isFinished(plan.winId)) {
+    if (plan.winId > min && !isPrefetched(plan.winId)) {
       val prefetch = prefetch_duration(plan)
       val main = main_duration(plan)
       if (prefetch < main) {

@@ -62,9 +62,9 @@ class WindowController[T, V, X] (
   private def timeline(id: Int): (Long, Long) =
     (timeScope.start + id * step, timeScope.start + id * step + size - 1)
 
-  private def isPrefetchd(id: Int): Boolean = {
+  private def isPrefetchd(winId: Int): Boolean = {
     backend match {
-      case Some(bk) => bk.finished_.contains(id)
+      case Some(bk) => bk.isPersisted(winId)
       case _ => false
     }
   }
