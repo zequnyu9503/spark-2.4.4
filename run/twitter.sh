@@ -13,7 +13,7 @@ spark-submit \
 --jars ${libs_dir}/fastjson-1.2.35.jar \
 examples/target/original-spark-examples_2.11-2.4.4.jar \
 20 \
-30 \
+25 \
 true \
 2 \
 3 \
