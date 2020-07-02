@@ -65,7 +65,7 @@ sealed class TimeWindowRDD[T, V, X](sc: SparkContext, winSize: T,
   }
 
   def setVariation(variation: Seq[Double]): TimeWindowRDD[T, V, X] = {
-    controller.setExpansion(variation)
+    controller.setExactVariation(variation)
     this
   }
 
