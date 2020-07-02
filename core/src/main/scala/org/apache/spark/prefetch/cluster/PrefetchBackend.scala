@@ -79,7 +79,9 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   private val startLine = new mutable.HashMap[Int, Long]()
 
   // Prefetch completed or failed.
-  val finished = new mutable.HashMap[Int, RDD[_]]()
+  val finished_ = new mutable.HashMap[Int, RDD[_]]()
+
+  def isFinished(winId: Int): Boolean = finished_.contains(winId)
 
   // Forecast future window data size.
   private [prefetch] def randomWinSize(id: Int): Option[Long] = {
@@ -134,7 +136,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
     for (id <- winId until plan.winId) {
       randomWinSize(id) match {
         case Some(size) =>
-          if (finished.contains(id)) {
+          if (finished_.contains(id)) {
             waiting += size * calc
           } else {
             waiting += size * (calc + load_local)
@@ -174,7 +176,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   }
 
   def canPrefetch(plan: PrefetchPlan): Boolean = {
-    if (plan.winId > min) {
+    if (plan.winId > min && !isFinished(plan.winId)) {
       val prefetch = prefetch_duration(plan)
       val main = main_duration(plan)
       if (prefetch < main) {
@@ -219,7 +221,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
       case Some(reporters) =>
         logger.info(s"Pefetch ${plan.prefetch.id} successfully. Then update it.")
         updateVelocity(plan, reporters)
-        finished(id) = plan.rdd
+        finished_(id) = plan.rdd
       case _ =>
     }
   }

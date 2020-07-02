@@ -64,14 +64,14 @@ class WindowController[T, V, X] (
 
   private def isPrefetchd(id: Int): Boolean = {
     backend match {
-      case Some(bk) => bk.finished.contains(id)
+      case Some(bk) => bk.finished_.contains(id)
       case _ => false
     }
   }
 
   private def prefetched[T, V](id: Int): Option[RDD[(T, V)]] = {
     if (isPrefetchd(id)) {
-      Option(backend.get.finished(id).asInstanceOf[RDD[(T, V)]])
+      Option(backend.get.finished_(id).asInstanceOf[RDD[(T, V)]])
     } else None
   }
 
