@@ -64,6 +64,11 @@ sealed class TimeWindowRDD[T, V, X](sc: SparkContext, winSize: T,
     this
   }
 
+  def setVariation(variation: Seq[Double]): TimeWindowRDD[T, V, X] = {
+    controller.setExpansion(variation)
+    this
+  }
+
   def allowPrefetch(bool: Boolean): TimeWindowRDD[T, V, X] = {
     if (bool) {
       controller.startPrefetchService()

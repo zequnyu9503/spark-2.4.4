@@ -52,6 +52,7 @@ class WindowController[T, V, X] (
   // ONLY FOR EXPERIMENT.
   private var daySize: Seq[Long] = _
   private var expanScope: Seq[Double] = _
+  private var exactVariation: Seq[Double] = _
 
   private var backend_ : PrefetchBackend = _
 
@@ -86,6 +87,9 @@ class WindowController[T, V, X] (
 
         for (winId <- expanScope.indices) {
           bk.updateExpansion(winId, expanScope(winId))
+        }
+        for (winId <- exactVariation.indices) {
+          bk.updateVariation(winId, exactVariation(winId))
         }
 //        val prevWinId = if (winId.get() > 0) winId.get() - 1 else 0
 //        if (windows.contains(prevWinId)) {
@@ -183,6 +187,10 @@ class WindowController[T, V, X] (
 
   def setExpansion(exp: Seq[Double]): Unit = {
     expanScope = exp
+  }
+
+  def setExactVariation(variation: Seq[Double]): Unit = {
+    exactVariation = variation
   }
 
   def addLocalResult(rdd: RDD[X]): Unit = {

@@ -12,4 +12,18 @@ spark-submit \
 --driver-java-options "-Dlog4j.configuration=file:${log_path}" \
 --jars ${libs_dir}/fastjson-1.2.35.jar \
 examples/target/original-spark-examples_2.11-2.4.4.jar \
-true 2 20 30
+20 \
+30 \
+true \
+2 \
+3 \
+0.00009335577487945556640625 \
+1.12326E-05
+# 参数:
+#窗口起始编号
+#窗口结束编号
+#是否预取
+#预取并行度
+#最大等待预取窗口数
+#本地数据载入速度
+#窗口计算速度

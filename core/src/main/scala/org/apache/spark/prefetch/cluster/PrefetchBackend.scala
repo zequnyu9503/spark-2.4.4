@@ -45,7 +45,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
 
   // Velocity of computation.
   // Updated.
-  private var calc: Double = sc.conf.getDouble("calc.prefetch", 0)
+  private var calc: Double = sc.conf.getDouble("calc.velocity", 0)
 
   // Loading velocity for loading local data.
   // Updated.
@@ -57,7 +57,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
 
   // Variation factor of local result in culster.
   // Updated.
-  private var variation: Double = sc.conf.getDouble("variation.prefetch", 0d)
+  private val variation_ = new mutable.HashMap[Int, Double]()
 
   // Minimize windows accepted for prefetching.
   private var min: Int = sc.conf.getInt("min.prefetch", 3)
@@ -103,6 +103,15 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
     } else {
       // Average expansion provided.
       expansion_.values.sum / expansion_.size
+    }
+  }
+
+  private def variation(winId: Int): Double = {
+    if (variation_.contains(winId)) {
+      variation_(winId)
+    } else {
+      // Average variation provided.
+      variation_.values.sum / variation_.size
     }
   }
 
@@ -154,7 +163,7 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
     var enlarged: Long = 0L
     for (id <- winId until plan.winId) {
       randomWinSize(id) match {
-        case Some(size) => enlarged += (size * variation).toLong
+        case Some(size) => enlarged += (size * variation(plan.winId)).toLong
         case None => enlarged += 0L
       }
     }
@@ -242,6 +251,10 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
 
   def updateExpansion(winId: Int, factor: Double): Unit = {
     if (!expansion_.contains(winId)) expansion_(winId) = factor
+  }
+
+  def updateVariation(winId: Int, variation: Double): Unit = {
+    if (!variation_.contains(winId)) variation_(winId) = variation
   }
 }
 
