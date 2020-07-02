@@ -27,10 +27,7 @@ class PrefetchTaskRunner(prefetcher: Prefetcher, env: SparkEnv,
   val ser: SerializerInstance = env.closureSerializer.newInstance()
 
   override def run(): Unit = {
-    waitRunning()
-
     Thread.currentThread().setPriority(10)
-
     try {
       // This time stamp includes deserialize process
       // as well as computation.

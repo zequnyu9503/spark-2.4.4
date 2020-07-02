@@ -220,6 +220,10 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
     if (velocity_remote.nonEmpty) load_remote = velocity_remote.max
   }
 
+  def prefetchOver(): Unit = {
+
+  }
+
   def doPrefetch(plan: PrefetchPlan): Unit = {
     val id = plan.winId
     logger.info(s"Start prefetching time window [$id].")
