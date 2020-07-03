@@ -18,7 +18,7 @@
 package org.apache.spark.prefetch
 
 import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
-import org.apache.spark.prefetch.cluster.PrefetchBackend
+import org.apache.spark.prefetch.cluster.{PrefetchBackend, PrefetchPlan}
 
 class PrefetchSchedulerSuite extends SparkFunSuite {
 

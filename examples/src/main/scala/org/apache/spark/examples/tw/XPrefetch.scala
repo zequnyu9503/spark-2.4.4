@@ -17,23 +17,30 @@
 package org.apache.spark.examples.tw
 
 import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.prefetch.cluster.{PrefetchBackend, PrefetchPlan}
 
 object XPrefetch {
-
 
   def main(args: Array[String]): Unit = {
     val appName = "XPrefetch"
     val conf = new SparkConf().setAppName(appName)
     val sc = new SparkContext(conf)
 
-    val toBePrefetched = sc.textFile("hdfs://centos3:9000/real-world/2019-4-30.json")
+    val toBePrefetched = sc.textFile("hdfs://centos3:9000/real-world/2019-4-30.json").
+      map(_ + "suffix").
+      filter(_.length > 10)
 
     sc.textFile("hdfs://centos3:9000/real-world/2019-4-20.json").count()
+
+    val backend = new PrefetchBackend(sc, sc.prefetchScheduler)
+
     new Thread(new Runnable {
       override def run(): Unit = {
-        sc.prefetch(toBePrefetched, 2)
+        val plan = new PrefetchPlan(0, toBePrefetched)
+        backend.doPrefetch(plan)
       }
     }).start()
+
     sc.textFile("hdfs://centos3:9000/real-world/2019-4-20.json").count()
     sc.textFile("hdfs://centos3:9000/real-world/2019-4-20.json").count()
     toBePrefetched.count()

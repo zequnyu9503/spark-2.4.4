@@ -226,8 +226,9 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
 
   def doPrefetch(plan: PrefetchPlan): Unit = {
     val id = plan.winId
+    val toBePrefetched = plan.prefetch
     logger.info(s"Start prefetching time window [$id].")
-    scheduler.prefetch(plan.prefetch) match {
+    scheduler.prefetch(toBePrefetched) match {
       case Some(reporters) =>
         logger.info(s"Pefetch ${plan.prefetch.id} successfully. Then update it.")
         updateVelocity(plan, reporters)
