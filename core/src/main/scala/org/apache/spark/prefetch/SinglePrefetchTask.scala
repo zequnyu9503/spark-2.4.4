@@ -38,11 +38,12 @@ class SinglePrefetchTask[T](taskBinary: Broadcast[Array[Byte]],
     val rdd = ser.deserialize[RDD[T]](
       ByteBuffer.wrap(taskBinary.value),
       Thread.currentThread.getContextClassLoader)
-    val iterator = rdd.iterator(partition_, context)
     val startLine = System.currentTimeMillis()
+    val iterator = rdd.iterator(partition_, context)
     while (iterator.hasNext) {
       iterator.next()
     }
-    (startLine, System.currentTimeMillis())
+    val end = System.currentTimeMillis()
+    (startLine, end)
   }
 }

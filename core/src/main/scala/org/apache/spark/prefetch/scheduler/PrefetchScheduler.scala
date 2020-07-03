@@ -171,7 +171,7 @@ class PrefetchScheduler(val sc: SparkContext,
 
   def makePlan(winId: Int, rdd: RDD[_]): Option[PrefetchPlan] = {
     val plan = new PrefetchPlan(winId, rdd)
-    createPrefetchJob(rdd, false) match {
+    createPrefetchJob(rdd, isCache = false) match {
       case Some(job) =>
         val offers = makePrefetchOffers()
         plan.schedule = makeSchedules(job, offers, cores_exe)
