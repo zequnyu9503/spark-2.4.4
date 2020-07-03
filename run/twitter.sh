@@ -15,7 +15,7 @@ examples/target/original-spark-examples_2.11-2.4.4.jar \
 20 \
 25 \
 true \
-2 \
+1 \
 3 \
 0.00009335577487945556640625 \
 1.12326E-05
