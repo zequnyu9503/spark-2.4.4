@@ -43,6 +43,9 @@ object XPrefetch {
 
     sc.textFile("hdfs://centos3:9000/real-world/2019-4-20.json").count()
     sc.textFile("hdfs://centos3:9000/real-world/2019-4-20.json").count()
+
+    // scalastyle:off println
+    println(sc.getPersistentRDDs.mkString(","))
     toBePrefetched.count()
   }
 }
