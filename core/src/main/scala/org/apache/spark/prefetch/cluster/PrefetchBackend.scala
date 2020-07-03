@@ -79,15 +79,17 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
   private val startLine = new mutable.HashMap[Int, Long]()
 
   // Prefetch completed or failed.
-  val finished_ = new mutable.HashMap[Int, RDD[_]]()
+  private val finished_ = new mutable.HashMap[Int, PrefetchPlan]()
 
-  def isPrefetched(winId: Int): Boolean = finished_.contains(winId)
-
-  def isPersisted(winId: Int): Boolean = {
-    if (isPrefetched(winId)) {
-      sc.getPersistentRDDs.contains(finished_(winId).id)
-    } else false
+  def isPrefetched(wId: Int): Boolean = synchronized {
+    // We first find out whether we did a prefetch and
+    // make sure that the prefetched rdd was partial or
+    // integrally persisted in memory.
+    finished_.contains(wId) &&
+      sc.getPersistentRDDs.contains(finished_(wId).prefetch.id)
   }
+
+  def getPersistentPlan(winId: Int): PrefetchPlan = synchronized(finished_(winId))
 
   // Forecast future window data size.
   private [prefetch] def randomWinSize(id: Int): Option[Long] = {
@@ -220,21 +222,18 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
     if (velocity_remote.nonEmpty) load_remote = velocity_remote.max
   }
 
-  def prefetchOver(): Unit = {
-
+  def prefetchOver(plan: PrefetchPlan, reporters: Seq[PrefetchReporter]):
+  Unit = synchronized {
+    finished_(plan.winId) = plan
   }
 
   def doPrefetch(plan: PrefetchPlan): Unit = {
-    val id = plan.winId
     val toBePrefetched = plan.prefetch
-    logger.info(s"Start prefetching time window [$id].")
+    logger.info(s"Start prefetching time window [${plan.winId}].")
     scheduler.prefetch(toBePrefetched) match {
       case Some(reporters) =>
         logger.info(s"Pefetch ${plan.prefetch.id} successfully. Then update it.")
-        if (sc.getPersistentRDDs.contains(plan.prefetch.id)) {
-          logger.info("Prefetch rdd successfully.")
-        }
-        finished_(id) = plan.rdd
+        prefetchOver(plan, reporters)
       case _ =>
     }
   }

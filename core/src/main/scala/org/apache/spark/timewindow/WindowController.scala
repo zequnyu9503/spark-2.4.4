@@ -62,17 +62,12 @@ class WindowController[T, V, X] (
   private def timeline(id: Int): (Long, Long) =
     (timeScope.start + id * step, timeScope.start + id * step + size - 1)
 
-  private def isPrefetchd(winId: Int): Boolean = {
-    backend match {
-      case Some(bk) => bk.isPersisted(winId)
-      case _ => false
+  private def prefetched[T, V](wId: Int): Option[RDD[(T, V)]] = {
+    if (backend_.eq(null) || !backend_.isPrefetched(wId)) {
+      None
+    } else {
+      Option(backend_.getPersistentPlan(wId).rdd)
     }
-  }
-
-  private def prefetched[T, V](id: Int): Option[RDD[(T, V)]] = {
-    if (isPrefetchd(id)) {
-      Option(backend.get.finished_(id).asInstanceOf[RDD[(T, V)]])
-    } else None
   }
 
   private def updateBackend(): Unit = {
