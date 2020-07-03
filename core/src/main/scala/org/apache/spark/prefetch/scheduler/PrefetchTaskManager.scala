@@ -16,6 +16,9 @@
  */
 package org.apache.spark.prefetch.scheduler
 
+import java.text.SimpleDateFormat
+import java.util.Date
+
 import scala.collection.mutable
 
 import org.slf4j.LoggerFactory
@@ -47,9 +50,11 @@ class PrefetchTaskManager(cgsb : CoarseGrainedSchedulerBackend,
   private def updateJob(): Unit = synchronized {
     if (pendingTasks.nonEmpty) {
       val reporters = pendingTasks.values.toSeq.sortBy(_.startLine)
+      val sdf = new SimpleDateFormat("hh:mm:ss")
       reporters.foreach(reporter => {
         job.updateTaskById(reporter.taskId, reporter)
-        logger.info(s"Update prefetch [${reporter.taskId}] launch at {${reporter.startLine} " +
+        logger.info(s"Update prefetch [${reporter.taskId}] launch at" +
+          s"{${sdf.format(new Date(reporter.startLine))} " +
           s"costs <${reporter.duration}> ms on executor (${reporter.eId}).")
       })
     }
