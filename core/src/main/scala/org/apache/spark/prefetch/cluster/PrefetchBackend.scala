@@ -231,7 +231,9 @@ class PrefetchBackend(val sc: SparkContext, val scheduler: PrefetchScheduler) {
     scheduler.prefetch(toBePrefetched) match {
       case Some(reporters) =>
         logger.info(s"Pefetch ${plan.prefetch.id} successfully. Then update it.")
-        updateVelocity(plan, reporters)
+        if (sc.getPersistentRDDs.contains(plan.prefetch.id)) {
+          logger.info("Prefetch rdd successfully.")
+        }
         finished_(id) = plan.rdd
       case _ =>
     }
