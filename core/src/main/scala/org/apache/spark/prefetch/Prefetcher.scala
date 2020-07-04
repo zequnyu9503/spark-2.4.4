@@ -54,7 +54,6 @@ class Prefetcher(val executorId: String, val executorHostname: String, val backe
 
 object Prefetcher {
 
-  @volatile
   private val shuffles = new mutable.HashSet[Int]()
 
   def canFetch: Boolean = synchronized(shuffles.isEmpty)
