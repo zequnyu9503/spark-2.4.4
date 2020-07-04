@@ -26,6 +26,7 @@ import scala.language.existentials
 import org.apache.spark._
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
+import org.apache.spark.prefetch.Prefetcher
 import org.apache.spark.rdd.RDD
 import org.apache.spark.shuffle.ShuffleWriter
 
@@ -96,7 +97,10 @@ private[spark] class ShuffleMapTask(
     try {
       val manager = SparkEnv.get.shuffleManager
       writer = manager.getWriter[Any, Any](dep.shuffleHandle, partitionId, context)
-      writer.write(rdd.iterator(partition, context).asInstanceOf[Iterator[_ <: Product2[Any, Any]]])
+      val records = rdd.iterator(partition, context).asInstanceOf[Iterator[_ <: Product2[Any, Any]]]
+      Prefetcher.startShuffleWrite(context.partitionId())
+      writer.write(records)
+      Prefetcher.overShuffleWrite(context.partitionId())
       writer.stop(success = true).get
     } catch {
       case e: Exception =>

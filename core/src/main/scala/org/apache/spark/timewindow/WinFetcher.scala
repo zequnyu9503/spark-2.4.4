@@ -31,8 +31,6 @@ class WinFetcher[T, V] (sc: SparkContext,
   @volatile
   private var isRunning = true
 
-  private val logger = LoggerFactory.getLogger("prefetch")
-
   val backend = new PrefetchBackend(sc, scheduler)
 
   def updateWinId(id: Int): Unit = synchronized {
@@ -44,7 +42,6 @@ class WinFetcher[T, V] (sc: SparkContext,
 
   def start(): Unit = synchronized {
     isRunning = true
-    logger.info("Prefetch service starting.")
   }
 
   def stop(): Unit = synchronized {
@@ -62,7 +59,6 @@ class WinFetcher[T, V] (sc: SparkContext,
   override def run(): Unit = {
     // scalastyle:off println
     synchronized {
-      logger.info("Prefetch service launched.")
       while (isRunning) {
         var id = controller.id
 

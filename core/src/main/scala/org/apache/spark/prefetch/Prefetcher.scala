@@ -16,6 +16,8 @@
  */
 package org.apache.spark.prefetch
 
+import scala.collection.mutable
+
 import org.apache.spark.SparkEnv
 import org.apache.spark.executor.{CoarseGrainedExecutorBackend, ExecutorBackend}
 import org.apache.spark.internal.Logging
@@ -52,21 +54,17 @@ class Prefetcher(val executorId: String, val executorHostname: String, val backe
 
 object Prefetcher {
 
-  val duration: Int = 3 * 1000
-
   @volatile
-  private var newest = 0L
+  private val shuffles = new mutable.HashSet[Int]()
 
-  def startLoading(ts: Long): Unit = synchronized {
-    if (ts > newest) newest = ts
+  def canFetch: Boolean = synchronized(shuffles.isEmpty)
+
+  // We need to avoid reading conflict encountering with shuffle write.
+  def startShuffleWrite(partitionId: Int): Unit = synchronized {
+    if (!shuffles.contains(partitionId)) shuffles.add(partitionId)
   }
 
-  def delay(): Long = synchronized {
-    val diff = System.currentTimeMillis() - newest
-    if (diff > 0 && diff < duration) {
-      duration - diff
-    } else {
-      0L
-    }
+  def overShuffleWrite(partitionId: Int): Unit = synchronized {
+    if (shuffles.contains(partitionId)) shuffles.remove(partitionId)
   }
 }

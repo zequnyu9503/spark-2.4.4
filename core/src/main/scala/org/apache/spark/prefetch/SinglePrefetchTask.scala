@@ -27,6 +27,8 @@ class SinglePrefetchTask[T](taskBinary: Broadcast[Array[Byte]],
                             partition_ : Partition, locs_ : Seq[TaskLocation])
     extends Serializable {
 
+  val waitingShuffle = 100
+
   val taskId: String = partition_.index.toString
 
   def partition: Partition = partition_
@@ -41,7 +43,13 @@ class SinglePrefetchTask[T](taskBinary: Broadcast[Array[Byte]],
     val startLine = System.currentTimeMillis()
     val iterator = rdd.iterator(partition_, context)
     while (iterator.hasNext) {
-      iterator.next()
+      if (Prefetcher.canFetch) {
+        iterator.next()
+      } else {
+        synchronized {
+          this.wait(waitingShuffle)
+        }
+      }
     }
     val end = System.currentTimeMillis()
     (startLine, end)
