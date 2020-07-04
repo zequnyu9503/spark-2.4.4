@@ -42,14 +42,4 @@ class PrefetchTaskRunner(prefetcher: Prefetcher, env: SparkEnv,
         logError(s"Exception in  prefetching", t)
     }
   }
-
-  def waitRunning(): Unit = synchronized {
-    val waiting = Prefetcher.delay()
-    if (waiting > 0) {
-      logInfo(s"Waiting $waiting ms to start task.")
-      this.wait(waiting)
-    } else {
-      logInfo(s"No need to wait for it $waiting.")
-    }
-  }
 }
