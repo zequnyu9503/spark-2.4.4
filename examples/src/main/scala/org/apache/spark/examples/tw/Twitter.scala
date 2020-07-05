@@ -66,11 +66,9 @@ object Twitter extends Serializable {
         filter(!_.eq(null)).
         filter(!_.containsKey("delete")).
         map(json => TwitterData.assemble(json)).
-        filter(_.text.length > 0).
         map(_.washText()).
-        flatMap(_.text).
-        map(_.toLowerCase).
-        map(word => (start, word))
+        flatMap(_.getWords).
+        map(record => (start, record))
     }
 
     val twRDD = new TimeWindowRDD[Long, String, (String, Long)](sc, 1, 1, load).

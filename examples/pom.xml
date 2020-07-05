@@ -39,6 +39,13 @@
     <parquet.deps.scope>provided</parquet.deps.scope>
   </properties>
 
+  <repositories>
+    <repository>
+      <id>Atilika Open Source repository</id>
+      <url>http://www.atilika.org/nexus/content/repositories/atilika</url>
+    </repository>
+  </repositories>
+
   <dependencies>
     <!-- Prevent our dummy JAR from being included in Spark distributions or uploaded to YARN -->
     <dependency>
@@ -129,6 +136,13 @@
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase-mapreduce</artifactId>
       <version>2.1.4</version>
+    </dependency>
+    <dependency>
+      <groupId>org.atilika.kuromoji</groupId>
+      <artifactId>kuromoji</artifactId>
+      <version>0.7.7</version>
+      <type>jar</type>
+      <scope>compile</scope>
     </dependency>
   </dependencies>
 
