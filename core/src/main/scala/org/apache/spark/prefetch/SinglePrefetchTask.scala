@@ -42,14 +42,9 @@ class SinglePrefetchTask[T](taskBinary: Broadcast[Array[Byte]],
       Thread.currentThread.getContextClassLoader)
     val startLine = System.currentTimeMillis()
     val iterator = rdd.iterator(partition_, context)
+    // The performance of experiment seems unacceptable.
     while (iterator.hasNext) {
-      if (Prefetcher.canFetch) {
-        iterator.next()
-      } else {
-        synchronized {
-          this.wait(waitingShuffle)
-        }
-      }
+      iterator.next()
     }
     val end = System.currentTimeMillis()
     (startLine, end)
