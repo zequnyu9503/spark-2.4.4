@@ -105,6 +105,8 @@ class WindowController[T, V, X] (
   }
 
   def randomWindow(id: Int): RDD[(T, V)] = {
+    if (!timeScope.isLegal(id)) return null
+
     val line = timeline(id)
     if (step < size && id - 1 >=0) {
       // This means that windows overlaps.

@@ -34,7 +34,7 @@ object LocalResult {
     val sc = new SparkContext(conf)
 
     var record = ""
-    for (i <- 1 to 5) {
+    for (i <- 20 to 25) {
       val origin = sc.textFile(s"$root/2019-4-${"%02d".format(i)}.json")
       origin.cache().count()
       val input = sc.rddCacheInMemory(origin)
