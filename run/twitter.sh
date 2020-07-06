@@ -10,7 +10,9 @@ spark-submit \
 --driver-memory 16g \
 --class org.apache.spark.examples.tw.Twitter \
 --driver-java-options "-Dlog4j.configuration=file:${log_path}" \
---jars ${libs_dir}/fastjson-1.2.35.jar \
+--jars \
+${libs_dir}/fastjson-1.2.35.jar \
+${libs_dir}/kuromoji-0.7.7.jar \
 examples/target/original-spark-examples_2.11-2.4.4.jar \
 20 \
 30 \
