@@ -30,36 +30,36 @@
 # - SPARK_LOCAL_IP, to set the IP address Spark binds to on this node
 # - SPARK_PUBLIC_DNS, to set the public DNS name of the driver program
 # - SPARK_LOCAL_DIRS, storage directories to use on this node for shuffle and RDD data
-export SPARK_LOCAL_DIRS=/home/zc/service/spark-2.4.4-localdir
+export SPARK_LOCAL_DIRS=/opt/service/spark/spark-local
 # - MESOS_NATIVE_JAVA_LIBRARY, to point to your libmesos.so if you use Mesos
 
 # Options read in YARN client/cluster mode
 # - SPARK_CONF_DIR, Alternate conf dir. (Default: ${SPARK_HOME}/conf)
 # - HADOOP_CONF_DIR, to point Spark towards Hadoop configuration files
-export HADOOP_CONF_DIR=/home/zc/service/hadoop-2.8.5/etc/hadoop
+export HADOOP_CONF_DIR=/opt/service/hadoop-2.8.5/etc/hadoop
 # - YARN_CONF_DIR, to point Spark towards YARN configuration files when you use YARN
-export YARN_CONF_DIR=/home/zc/service/hadoop-2.8.5/etc/hadoop
+export YARN_CONF_DIR=/opt/service/hadoop-2.8.5/etc/hadoop/
 # - SPARK_EXECUTOR_CORES, Number of cores for the executors (Default: 1).
 # - SPARK_EXECUTOR_MEMORY, Memory per Executor (e.g. 1000M, 2G) (Default: 1G)
 # - SPARK_DRIVER_MEMORY, Memory for Driver (e.g. 1000M, 2G) (Default: 1G)
 
 # Options for the daemons used in the standalone deploy mode
 # - SPARK_MASTER_HOST, to bind the master to a different IP address or hostname
-export SPARK_MASTER_HOST=centos3
+export SPARK_MASTER_HOST=node6
 # - SPARK_MASTER_PORT / SPARK_MASTER_WEBUI_PORT, to use non-default ports for the master
 export SPARK_MASTER_PORT=7079
 # - SPARK_MASTER_OPTS, to set config properties only for the master (e.g. "-Dx=y")
 # - SPARK_WORKER_CORES, to set the number of cores to use on this machine
-export SPARK_WORKER_CORES=6
+export SPARK_WORKER_CORES=32
 # - SPARK_WORKER_MEMORY, to set how much total memory workers have to give executors (e.g. 1000m, 2g)
-export SPARK_WORKER_MEMORY=16g
+export SPARK_WORKER_MEMORY=32g
 # - SPARK_WORKER_PORT / SPARK_WORKER_WEBUI_PORT, to use non-default ports for the worker
 # - SPARK_WORKER_DIR, to set the working directory of worker processes
 # - SPARK_WORKER_OPTS, to set config properties only for the worker (e.g. "-Dx=y")
 # export SPARK_WORKER_OPTS="-Dspark.worker.cleanup.enabled=true  -Dspark.worker.cleanup.interval=120  -Dspark.worker.cleanup.appDataTtl=3600"
 # - SPARK_DAEMON_MEMORY, to allocate to the master, worker and history server themselves (default: 1g).
 # - SPARK_HISTORY_OPTS, to set config properties only for the history server (e.g. "-Dx=y")
-export SPARK_HISTORY_OPTS="-Dspark.history.fs.logDirectory=hdfs://centos3:9000/spark-2.4.4-logs"
+export SPARK_HISTORY_OPTS="-Dspark.history.fs.logDirectory=hdfs://node6:9000/spark-2.4.4-logs"
 # - SPARK_SHUFFLE_OPTS, to set config properties only for the external shuffle service (e.g. "-Dx=y")
 # - SPARK_DAEMON_JAVA_OPTS, to set config properties for all daemons (e.g. "-Dx=y")
 # - SPARK_DAEMON_CLASSPATH, to set the classpath for all daemons
@@ -76,4 +76,4 @@ export SPARK_HISTORY_OPTS="-Dspark.history.fs.logDirectory=hdfs://centos3:9000/s
 # You might get better performance to enable these options if using native BLAS (see SPARK-21305).
 # - MKL_NUM_THREADS=1        Disable multi-threading of Intel MKL
 # - OPENBLAS_NUM_THREADS=1   Disable multi-threading of OpenBLAS
-export SPARK_MASTER_WEBUI_PORT=10086
+export SPARK_MASTER_WEBUI_PORT=66880
