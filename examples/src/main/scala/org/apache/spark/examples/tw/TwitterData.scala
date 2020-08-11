@@ -16,10 +16,7 @@
  */
 package org.apache.spark.examples.tw
 
-import scala.collection.JavaConverters._
-
 import com.alibaba.fastjson.JSONObject
-import org.atilika.kuromoji.Tokenizer
 
 class TwitterData(
                    var id: Long,
@@ -66,8 +63,6 @@ class TwitterData(
 
 object TwitterData {
 
-  private val tokenizer = Tokenizer.builder().build()
-
   def assemble(data: JSONObject): TwitterData = {
     new TwitterData(
       data.getLong("id"),
@@ -85,8 +80,7 @@ object TwitterData {
   }
 
   def breakJap(origin: String): Array[String] = {
-    val token = tokenizer.tokenize(origin).asScala
-    token.map(_.getSurfaceForm).toArray
+    origin.split(" ").filter(_.length > 0)
   }
 
   def breakEn(origin: String): Array[String] = {
