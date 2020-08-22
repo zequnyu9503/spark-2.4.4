@@ -76,4 +76,4 @@ export SPARK_HISTORY_OPTS="-Dspark.history.fs.logDirectory=hdfs://node6:9000/spa
 # You might get better performance to enable these options if using native BLAS (see SPARK-21305).
 # - MKL_NUM_THREADS=1        Disable multi-threading of Intel MKL
 # - OPENBLAS_NUM_THREADS=1   Disable multi-threading of OpenBLAS
-export SPARK_MASTER_WEBUI_PORT=66880
+export SPARK_MASTER_WEBUI_PORT=36963
