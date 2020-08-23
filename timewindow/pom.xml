@@ -19,6 +19,11 @@
             <version>14.0.1</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- Scala environment-->
         <dependency>
             <groupId>org.scala-lang</groupId>

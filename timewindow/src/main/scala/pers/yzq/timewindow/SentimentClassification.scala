@@ -42,12 +42,14 @@ object SentimentClassification {
     var line: String = reader.readLine()
     while(line != null) {
       if (!line.charAt(0).equals('#')) {
-        val formats = line.split(" ")
+        val formats = line.split("\t")
         val PosScore = formats(2)
         val NegScore = formats(3)
-        var word = formats(4)
-        word = word.substring(0, word.indexOf("#"))
-        map.put(word, (PosScore.toFloat, NegScore.toFloat))
+        val words = formats(4).split(" ")
+        words.foreach(word => {
+          val content = word.substring(0, word.indexOf('#'))
+          map.put(content, (PosScore.toFloat, NegScore.toFloat))
+        })
       }
       line = reader.readLine()
     }
