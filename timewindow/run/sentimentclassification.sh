@@ -9,4 +9,5 @@ spark-submit \
 --driver-memory 16g \
 --class pers.yzq.timewindow.SentimentClassification \
 --driver-java-options "-Dlog4j.configuration=file:${log_path}" \
---jars ${libs_dir}/fastjson-1.2.35.jar
+--jars ${libs_dir}/fastjson-1.2.35.jar \
+/opt/service/spark/spark-2.4.4/timewindow/target/timewindow-2.4.4.jar
