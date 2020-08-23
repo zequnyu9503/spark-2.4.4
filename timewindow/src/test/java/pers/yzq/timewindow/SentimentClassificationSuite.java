@@ -14,12 +14,14 @@ public class SentimentClassificationSuite {
         InputStreamReader streamReader = new InputStreamReader(inputStream);
         BufferedReader reader = new BufferedReader(streamReader);
         String line = reader.readLine();
-        while (line != null) {
+        while (line != null && line.length() > 0) {
             if (line.charAt(0) != '#') {
                 String [] formats = line.split("\t");
                 String [] words = formats[4].split(" ");
                 for (String word : words) {
-                    System.out.println(word);
+                    if (word.indexOf("#") > -1) {
+                        String content = word.substring(0, word.indexOf('#'));
+                    }
                 }
             }
             line = reader.readLine();
