@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.examples.tw
+package pers.yzq.timewindow
 
-import com.alibaba.fastjson.JSON
 import org.apache.hadoop.hbase.{Cell, CompareOperator, HBaseConfiguration}
 import org.apache.hadoop.hbase.client.{Result, Scan}
 import org.apache.hadoop.hbase.filter.{BinaryComparator, FamilyFilter, FilterList, QualifierFilter}
