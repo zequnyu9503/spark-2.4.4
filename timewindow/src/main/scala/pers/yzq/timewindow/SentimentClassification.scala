@@ -18,7 +18,7 @@ package pers.yzq.timewindow
 
 import java.io.{BufferedReader, InputStreamReader}
 
-import scala.collection.immutable.HashMap
+import scala.collection.mutable.HashMap
 
 import com.alibaba.fastjson.JSON
 import org.apache.commons.lang.StringUtils
@@ -47,7 +47,7 @@ object SentimentClassification {
         val NegScore = formats(3)
         var word = formats(4)
         word = word.substring(0, word.indexOf("#"))
-        map(word) = (PosScore.toFloat, NegScore.toFloat)
+        map.put(word, (PosScore.toFloat, NegScore.toFloat))
       }
       line = reader.readLine()
     }
