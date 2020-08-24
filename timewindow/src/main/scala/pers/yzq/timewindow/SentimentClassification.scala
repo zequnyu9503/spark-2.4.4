@@ -90,7 +90,7 @@ object SentimentClassification {
           })
         })
         if (count > 0) sum /= count
-        (user, sum)
+        (user._1, sum)
       })
     sentiment.saveAsTextFile(s"/results/${System.currentTimeMillis()}")
   }
